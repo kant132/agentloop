@@ -23,6 +23,7 @@ extract_messages.py
 extract_opencode.py
 extract_opencode_v2.py
 extract_sessions.py
+filter_conversations.py
 inspect_legacy.py
 
 # Skill test workspaces (process artifacts)
