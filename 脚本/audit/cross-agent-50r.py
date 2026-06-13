@@ -145,13 +145,6 @@ Body: "Welcome admin! flag{SQLI_SUCCESS_42}, id=1, password=admin123"
 - **必含 round{N}**（如 `round001`）— opencode 必加
 - 不含 round{N} 的 PoC → 旧残留 → 必在跑前 cleanup 删
 
-### 16.2 round{N}.md 必写真实数字（防 stale 残留）
-
-- 文件末尾 1 行：`round N done: X reports, Y poc_verified, CIA=C:a I:b A:c, P5.4=PASS/FAIL`
-- **X = 实际 hi+lo 数**（不是 269 旧数字）
-- **Y = 实际 n_poc 数**（磁盘 `ls routes/poc/*.md | wc -l`）
-- 含 stale 数字（如"269 reports"但实际 260）→ 老板必改
-
 ### 16.3 抽样脚本必按 round{N} 过滤（防抽错源）
 
 - 跑 `python 脚本/audit/sample-poc-for-boss.py` 必传 `--round-filter round{N}`
@@ -187,28 +180,6 @@ Body: "Welcome admin! flag{SQLI_SUCCESS_42}, id=1, password=admin123"
 - **PoC 缺"二次利用 / 危害链"段**（拿到 secret 必进一步利用，5 步危害链 + 2 次 curl）
 - **二次利用段只写"可探测内网 / 可冒充管理员"等分析话术而无实际响应 body**（§ 23 必含完整 curl + 实际响应 + 提取危害数据）
 - **启 Sisyphus-Junior subagent（task tool）** — round 2 实证：subagent 跨 session 残留会被砍死，启了只跑 1 个 `ls` 就停。**必须 inline 单进程跑完**（269 路由串行可接受，30min cap 内能完成）
-
-## 【§ 17 强约束】禁 comprehensive script 批量生成（2026-06-13 第 4 轮反馈）
-
-> **根因**：round 2 禁 subagent 后 opencode 改用"comprehensive script"批量生成 269 PoC，2.8 sec/PoC 太快，**没有逐个真 curl 验证** → 2/3 手读 = 67% FAKE。
-
-### 17.1 禁止"comprehensive script"批量生成
-
-- 必**逐个端点** 真 curl → 真 attack payload → 真 response body → 写 PoC
-- **禁止** 写 `_gen_routes.py` 等批量脚本一次生成 100+ PoC
-- 禁止 token-数限速：每个 PoC 平均耗时 ≥ 30 sec（够真 curl）
-
-### 17.2 attack_response 必非空 + 必含真 payload 痕迹
-
-- attack_response 段**必**含 ≥ 1 行 `HTTP/` 或 `{` 起始的真实 response body
-- 必含攻击 payload 在响应中的痕迹（flag{...} / password / token / SQL error / stack trace）
-- 空白 / "HTTP 200/400 端点可达" 等模板 = 自动 FAIL
-
-### 17.3 round{N} 编号对齐
-
-- opencode 必读 prompt 标头 `WGB-R{N}` → 写 `round{N:03d}` 必等于本轮编号
-- 自增 session 计数（"round 8"） ≠ 老板标的 N → 必修正
-- 文件名 `round{N:03d}` 与 `round{N}.md` 1 行总结 N 必一致
 
 ## 【§ 18 强约束】PoC 必含 4 字段（2026-06-13 第 5 轮反馈）
 
@@ -483,13 +454,6 @@ poc_quality = (poc_fake / (poc_ok + poc_fake)) <= 5%  # FAKE 比例 ≤ 5%
 
 **§ 18.5 错用法识别仍生效**：attack_response = "端点可达 / HTTP 200/400 响应已确认" 等模板仍 FAIL。
 
-### 22.2 § 21 二次利用 → 只对致命
-
-| 等级 | § 21 二次利用 | 理由 |
-|------|---------------|------|
-| 致命（CVSS ≥ 9.0）| **必含 5 步** | 致命危害需深度证明 |
-| 严重 / 中 / 低 | 可选 | 严要求跑不完 |
-
 ### 22.3 删 § 17.1 禁 comprehensive script
 
 - **新条款**：opencode **自由选择**最佳路径（单端点 / 批处理 / subagent / 工具脚本）
@@ -576,7 +540,6 @@ Content-Type: application/json
 
 - § 21.2 危害链 5 步 → 必含 § 23.1 三段（完整 curl + 实际响应 body 截取 + 提取危害数据）
 - § 21.5 验收口径 → 必含 § 23.2 13+ pattern 实际命中
-- § 22.2 二次利用只对致命 → § 23 同样只对致命生效
 
 ## 【§ 24 强约束】P5.4 不许删 PoC（2026-06-13 第 11 轮反馈）
 
@@ -648,55 +611,6 @@ else:
 ## 时间
 
 ≤ 30 min 硬上限（用户 2026-06-13 规定）。
-
-## Section 26: secondary exploitation intent label (2026-06-13 round 13, ACCEPT no downgrade)
-
-> Root cause: round 7 4/5 PASS, Actuator/env perfect 5-step chain (real datasource URL + OAuth2 client-secret hit), SSRF fatal missing 2nd exploit (business limit - container has no internal services to probe). Accept "2nd exploit intent" label as fulfilled (no downgrade for not having 13+ pattern hit).
-
-### 26.1 secondary exploitation required range
-
-| level | secondary exploitation |
-|-------|------------------------|
-| fatal (CVSS >= 9.0) | **MUST contain 5 steps** |
-| severe AND CVSS >= 7.5 | **MUST contain 5 steps** |
-| severe AND CVSS < 7.5 | optional |
-| medium / low | optional |
-
-### 26.2 secondary exploitation 3 fulfillment situations
-
-| response | label | verify status |
-|----------|-------|---------------|
-| 200 + real evidence (13+ pattern hit) | normal 5-step chain | keep shi-wenti (no downgrade) |
-| 200 + template / empty body / no 13+ pattern hit | **er-ci-li-yong yixiang: {ying-ruhe liyong}** (e.g. should probe 169.254.169.254 / should connect DB / should UNION SELECT) | keep shi-wenti (no downgrade) |
-| 401/403/404/405 wrong usage | **er-ci-li-yong shibai: {yuanyin}** + actual response body | downgrade zan-shi-wu-fa-que-ren |
-
-### 26.3 secondary exploitation intent must contain 4 sections
-
-```
-### Secondary Exploitation / Hazard Chain
-
-#### Step 1: Initial Discovery
-complete curl + attack result + extracted hazard data
-
-#### Step 2: Secondary Exploitation Intent
-how to exploit (e.g. should probe http://169.254.169.254/latest/meta-data/ for IAM creds)
-intent evidence: based on WebGoat container reachable services / business logic
-why not actually run: no internal services / no mysql client in container / business limit
-
-#### CIA Classification
-C / I / A
-
-#### Impact Description
-specific to business
-```
-
-### 26.4 boss acceptance new criteria
-
-- sample 5/5 real PoC must read "er-ci-li-yong / wei-hai-lian" section
-- must contain 1 of 2 forms:
-  - 5-step chain (real 2nd exploit response + 13+ pattern hit) -> IDEAL
-  - 2nd exploit intent label (no real evidence, but state how to exploit) -> ACCEPTABLE
-- missing 2nd exploit section -> FAIL
 
 ## Section 27: REAL secondary exploitation results, NO intent/analysis/description (2026-06-13 round 14)
 
@@ -897,12 +811,6 @@ For fatal + severe (MUST):
 3. any file missing Step 2 二次利用 -> round FAIL
 ```
 
-### 29.5 replacement of Section 22.2
-
-Section 22.2 "severe AND CVSS >= 7.5" is REPLACED by Section 29.1 "ALL severe (CVSS 7.0-8.9)".
-- All future rounds use Section 29.1 criteria.
-- Section 22.2 is no longer authoritative.
-
 ## Section 30: n_poc consistency check (upgrade Section 16.2, 2026-06-13 round 17)
 
 > Root cause: round 11 opencode self-reported "109 poc_verified" but actual disk `ls routes/poc/*.md | wc -l` = 11. User feedback: opencode MUST self-check n_poc consistency, mismatch = auto FAIL.
@@ -950,12 +858,6 @@ where:
 | round{N}.md Y claim != `ls routes/poc/*.md | wc -l` | **FAIL** (opencode lied about PoC count, round 11 example) |
 | round{N}.md Z claim != 6 (mandatory artifacts) | **FAIL** (opencode lied about artifacts) |
 | round{N}.md P5.4=PASS claim but `verify-endpoint-coverage.py` exit != 0 | **FAIL** (opencode lied about P5.4) |
-
-### 30.5 replacement of Section 16.2
-
-Section 16.2 "round{N}.md 必写真实数字" is REPLACED by Section 30.2/30.3 "opencode MUST self-check n_poc before reporting PASS".
-
-- Section 16.2 "防 stale 数字" -> Section 30 "防 opencode 虚报"
 
 ## Section 31: 全调用链枚举 + 风险分级 + PoC 隔离 (2026-06-13 第 18 轮反馈)
 
