@@ -38,18 +38,16 @@ FEEDBACK_TIMEOUT = 900  # 15 min 硬上限 (用户 2026-06-13 规定)
 
 
 def load_preset() -> dict:
-    """同 cross-agent-50r.py 的 load_preset, 独立可调用。"""
+    """同 cross-agent-50r.py 的 load_preset, 独立可调用。agentloop 不内置项目实例。"""
     p = os.environ.get("AGENTLOOP_PRESET")
     if not p:
-        default = _PRESETS_DIR / "org.owasp.webgoat" / "preset.json"
-        if default.exists():
-            p = str(default)
-        else:
-            raise FileNotFoundError(
-                f"未指定 preset.json。请:\n"
-                f"  1. 设 env AGENTLOOP_PRESET=项目/<groupId>/preset.json\n"
-                f"  或 2. cp 项目/_template/preset.template.json 项目/<groupId>/preset.json"
-            )
+        raise FileNotFoundError(
+            f"未指定 preset.json (agentloop 是工具, 不内置项目实例)。请:\n"
+            f"  1. 复制 项目/_template/preset.template.json 到 项目/<groupId>/preset.json\n"
+            f"  2. 填 groupId / projectRoot / dockerContainer / appPort / ...\n"
+            f"  3. 设 env: export AGENTLOOP_PRESET=项目/<groupId>/preset.json\n"
+            f"  4. 再跑 python 脚本/audit/collect-feedback.py"
+        )
     pf = Path(p)
     if not pf.exists():
         raise FileNotFoundError(f"preset.json 不存在: {pf}")

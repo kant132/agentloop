@@ -40,7 +40,9 @@ PER_ROUND_TIMEOUT = 3600  # **60 min per opencode round**（§ 22 修订：用�
 GLOBAL_TIMEOUT = 1800    # 30 min global（5 轮小规模验证用）
 OPENCODE_CMD = r"C:\Users\Administrator\AppData\Roaming\npm\opencode.cmd"  # 必须绝对路径！
 
-# ===== 目标项目 (从 preset.json 加载, 必传 GROUP_ID env 或 CLI 参数) =====
+# ===== 目标项目 (从 preset.json 加载, 必传 AGENTLOOP_PRESET env 或 CLI 参数) =====
+# 用户 2026-06-13: agentloop 是通用工具, 不为任何项目建实例。
+# operator 必自己: cp 项目/_template/preset.template.json 项目/<groupId>/preset.json + 填值
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # 脚本/audit/cross-agent-50r.py -> 仓库根
 PRESETS_DIR = REPO_ROOT / "项目"
 PRESET_PATH_ENV = "AGENTLOOP_PRESET"  # 必设, 指向 项目/{groupId}/preset.json
@@ -48,21 +50,19 @@ PRESET_PATH_ENV = "AGENTLOOP_PRESET"  # 必设, 指向 项目/{groupId}/preset.j
 def load_preset(path: str = None) -> dict:
     """**加载项目 preset** (机器可读项目元信息)。
 
-    用户 2026-06-13: 主流程不能过拟合 WebGoat, 所有项目特异数据必从 preset.json 读。
-    优先级: CLI 参数 > AGENTLOOP_PRESET env > 默认 (org.owasp.webgoat 兼容)
+    用户 2026-06-13: agentloop 是工具, 不内置任何项目实例。
+    优先级: CLI 参数 > AGENTLOOP_PRESET env
+    必设其一, 否则报错。
     """
     p = path or os.environ.get(PRESET_PATH_ENV)
     if not p:
-        # 向后兼容: 找 项目/org.owasp.webgoat/preset.json
-        default = PRESETS_DIR / "org.owasp.webgoat" / "preset.json"
-        if default.exists():
-            p = str(default)
-        else:
-            raise FileNotFoundError(
-                f"未指定 preset.json。请:\n"
-                f"  1. 设 env AGENTLOOP_PRESET=项目/<groupId>/preset.json\n"
-                f"  或 2. 复制 项目/_template/preset.template.json 到 项目/<groupId>/preset.json"
-            )
+        raise FileNotFoundError(
+            f"未指定 preset.json (agentloop 是工具, 不内置项目实例)。请:\n"
+            f"  1. 复制 项目/_template/preset.template.json 到 项目/<groupId>/preset.json\n"
+            f"  2. 填 groupId / projectRoot / dockerContainer / appPort / ...\n"
+            f"  3. 设 env: export AGENTLOOP_PRESET=项目/<groupId>/preset.json\n"
+            f"  4. 再跑 python 脚本/audit/cross-agent-50r.py"
+        )
     preset_file = Path(p)
     if not preset_file.exists():
         raise FileNotFoundError(f"preset.json 不存在: {preset_file}")

@@ -20,26 +20,24 @@ import re
 import sys
 from pathlib import Path
 
-# ===== 项目 preset 加载 (用户 2026-06-13: 主流程不能过拟合 WebGoat) =====
-# 与 cross-agent-50r.py 共用 preset.json, 切项目自动适配
+# ===== 项目 preset 加载 (用户 2026-06-13: agentloop 是工具, 不内置项目实例) =====
+# 与 cross-agent-50r.py 共用 AGENTLOOP_PRESET env, 必设, 否则用保守默认
+import os
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_PRESETS_DIR = _REPO_ROOT / "项目"
 
 def _load_preset() -> dict:
     p = os.environ.get("AGENTLOOP_PRESET")
     if not p:
-        default = _PRESETS_DIR / "org.owasp.webgoat" / "preset.json"
-        if default.exists():
-            p = str(default)
-        else:
-            return {}
+        # 没设 env → 用保守默认 (Cookie=JSESSIONID, container=webgoat-local),
+        # 这是工具的兜底, 不是 agentloop 内置项目实例。
+        return {"sessionCookieName": "JSESSIONID", "dockerContainer": "webgoat-local"}
     pf = Path(p)
     if not pf.exists():
-        return {}
+        return {"sessionCookieName": "JSESSIONID", "dockerContainer": "webgoat-local"}
     try:
         return json.loads(pf.read_text(encoding="utf-8"))
     except Exception:
-        return {}
+        return {"sessionCookieName": "JSESSIONID", "dockerContainer": "webgoat-local"}
 
 _PRESET = _load_preset()
 SESSION_COOKIE_NAME = _PRESET.get("sessionCookieName", "JSESSIONID")
