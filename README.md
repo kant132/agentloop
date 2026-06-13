@@ -20,8 +20,9 @@ Each round opencode:
 6. Marks **"unable to confirm"** with code evidence + self-reflection (§ 28)
 7. Self-checks n_poc consistency before reporting PASS (§ 30)
 8. Verifies P5.4 invariant (hi + lo + unable-to-confirm == ep_lines) (§ 20)
+9. **For each source: lists ALL call chains first → grades 高/低/无 → THEN PoCs only 高风险** (§ 31)
 
-## 17 mandatory constraints (Section 14-30)
+## 18 mandatory constraints (Section 14-31)
 
 | # | Constraint | Purpose |
 |---|------------|---------|
@@ -42,6 +43,7 @@ Each round opencode:
 | § 28 | "Unable to confirm" must have reason + reflection + code evidence | Anti-lazy |
 | § 29 | ALL severe-level MUST contain real 2nd exploit | No threshold cut-off |
 | § 30 | opencode MUST self-check n_poc consistency | Anti-lie |
+| § 31 | Full call-chain enumeration + 3-tier risk triage + PoC isolation | Sequential analysis: list ALL chains first → grade (高/低/无) → THEN PoC only on 高风险 chains |
 
 ## 5-dimensional cross-verification
 
