@@ -1,0 +1,27 @@
+{
+  "groupId": "{{groupId}}",
+  "projectName": "{{projectName}}",
+  "projectRoot": "{{projectRoot}}",
+  "codegraphDb": "{{projectRoot}}/.codegraph/codegraph.db",
+  "loopDir": "loop_audit",
+  "epJsonl": "external_endpoints/端点.jsonl",
+  "dockerContainer": "{{dockerContainer}}",
+  "appPort": {{appPort}},
+  "appCtxPath": "{{appCtxPath}}",
+  "appBaseUrl": "http://localhost:{{appPort}}",
+  "loginUrl": "{{loginUrl}}",
+  "registerUrl": "{{registerUrl}}",
+  "sessionCookieName": "{{sessionCookieName}}",
+  "testUser": "{{testUser}}",
+  "testPass": "{{testPass}}",
+  "adminPassword": "{{adminPassword}}",
+  "keyFiles": {
+    "loginHtml": "{{loginHtml}}",
+    "securityConfig": "{{securityConfig}}",
+    "controllers": "{{controllers}}"
+  },
+  "codegraph": {
+    "nRoutes": {{nRoutes}},
+    "nMethods": {{nMethods}}
+  }
+}

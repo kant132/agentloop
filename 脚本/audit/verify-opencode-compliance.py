@@ -15,9 +15,35 @@ opencode 每跑完一轮必留 6 个 artifact，boss 必查全有：
 """
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
+
+# ===== 项目 preset 加载 (用户 2026-06-13: 主流程不能过拟合 WebGoat) =====
+# 与 cross-agent-50r.py 共用 preset.json, 切项目自动适配
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_PRESETS_DIR = _REPO_ROOT / "项目"
+
+def _load_preset() -> dict:
+    p = os.environ.get("AGENTLOOP_PRESET")
+    if not p:
+        default = _PRESETS_DIR / "org.owasp.webgoat" / "preset.json"
+        if default.exists():
+            p = str(default)
+        else:
+            return {}
+    pf = Path(p)
+    if not pf.exists():
+        return {}
+    try:
+        return json.loads(pf.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+_PRESET = _load_preset()
+SESSION_COOKIE_NAME = _PRESET.get("sessionCookieName", "JSESSIONID")
+DOCKER_CONTAINER = _PRESET.get("dockerContainer", "webgoat-local")
 
 # Build Chinese via chr() to avoid encoding issues
 def cn(cp_list):
@@ -80,19 +106,21 @@ CIA_EVIDENCE_PATTERNS = {
 }
 
 # **Session 必须真用**（用户 2026-06-13 第 3 轮反馈：`<session>` 占位 = FAIL）
+# Cookie 名从 preset.json 读 (用户 2026-06-13 第 N 轮反馈: 不绑死 JSESSIONID)
+_SCN = re.escape(SESSION_COOKIE_NAME)
 SESSION_PLACEHOLDER_PATTERNS = [
-    r"JSESSIONID=<session>",
-    r"JSESSIONID=\$SESSION",
-    r"JSESSIONID=\{session\}",
-    r"Cookie:\s*JSESSIONID=\?",
-    r"Cookie:\s*JSESSIONID=TODO",
+    rf"{_SCN}=<session>",
+    rf"{_SCN}=\$SESSION",
+    rf"{_SCN}=\{{session\}}",
+    rf"Cookie:\s*{_SCN}=\?",
+    rf"Cookie:\s*{_SCN}=TODO",
 ]
 SESSION_REAL_USAGE_PATTERNS = [
     r"curl\s+.*-c\s+",
     r"curl\s+.*-b\s+",
-    r"--cookie\s+['\"]?JSESSIONID=",
-    r"-H\s+['\"]Cookie:?\s*JSESSIONID=",
-    r"Cookie:?\s*JSESSIONID=[A-F0-9]{16,}",
+    rf"--cookie\s+['\"]?{_SCN}=",
+    rf"-H\s+['\"]Cookie:?\s*{_SCN}=",
+    rf"Cookie:?\s*{_SCN}=[A-F0-9]{{16,}}",
 ]
 
 CACHE_COVERAGE_MIN_RATIO = 0.5
@@ -198,16 +226,16 @@ def main():
             print(f"  [INFO] 无 session 提及（可能 PoC 不需要登录）")
             passed += 0  # 不强制
 
-    # docker_ps 必须含 "webgoat-local" Up
+    # docker_ps 必须含 "<container>" Up (从 preset.json 读)
     print()
     dps = diag / "docker_ps.txt"
     if dps.exists():
         content = dps.read_text(encoding="utf-8", errors="replace")
-        if "webgoat-local" in content and "Up" in content:
-            print(f"  [OK] docker_ps.txt 含 'webgoat-local' Up 验证")
+        if DOCKER_CONTAINER in content and "Up" in content:
+            print(f"  [OK] docker_ps.txt 含 '{DOCKER_CONTAINER}' Up 验证")
             passed += 1
         else:
-            print(f"  [{CN_FAIL}] docker_ps.txt 缺 'webgoat-local' Up 验证")
+            print(f"  [{CN_FAIL}] docker_ps.txt 缺 '{DOCKER_CONTAINER}' Up 验证")
             failed += 1
 
     # code_reads 必须含 login.html + SecurityConfig.java

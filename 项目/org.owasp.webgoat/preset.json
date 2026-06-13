@@ -1,0 +1,27 @@
+{
+  "groupId": "org.owasp.webgoat",
+  "projectName": "WebGoat 2025.3",
+  "projectRoot": "D:\\code\\WebGoat-2025.3",
+  "codegraphDb": "D:\\code\\WebGoat-2025.3\\.codegraph\\codegraph.db",
+  "loopDir": "loop_audit",
+  "epJsonl": "external_endpoints/端点.jsonl",
+  "dockerContainer": "webgoat-local",
+  "appPort": 18080,
+  "appCtxPath": "/WebGoat",
+  "appBaseUrl": "http://localhost:18080",
+  "loginUrl": "POST /login",
+  "registerUrl": "POST /register.mvc",
+  "sessionCookieName": "JSESSIONID",
+  "testUser": "tester",
+  "testPass": "tester123",
+  "adminPassword": "NWRhYzZjZDktZDFhZC00ZjUxLTk5YjMtMDhkZTFjNmRhYWEw",
+  "keyFiles": {
+    "loginHtml": "src/main/resources/webgoat/templates/login.html",
+    "securityConfig": "src/main/java/**/Security*.java",
+    "controllers": "src/main/java/**/controller/**Controller.java"
+  },
+  "codegraph": {
+    "nRoutes": 269,
+    "nMethods": 1317
+  }
+}
