@@ -40,11 +40,43 @@ PER_ROUND_TIMEOUT = 3600  # **60 min per opencode round**（§ 22 修订：用�
 GLOBAL_TIMEOUT = 1800    # 30 min global（5 轮小规模验证用）
 OPENCODE_CMD = r"C:\Users\Administrator\AppData\Roaming\npm\opencode.cmd"  # 必须绝对路径！
 
-# ===== 目标项目 =====
-DB = r"D:\code\WebGoat-2025.3\.codegraph\codegraph.db"
-PROJECT_ROOT = Path(r"D:\code\WebGoat-2025.3")
-LOOP_DIR = PROJECT_ROOT / "loop_audit"
-EP_JSONL = LOOP_DIR / "external_endpoints" / "端点.jsonl"
+# ===== 目标项目 (从 preset.json 加载, 必传 GROUP_ID env 或 CLI 参数) =====
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # 脚本/audit/cross-agent-50r.py -> 仓库根
+PRESETS_DIR = REPO_ROOT / "项目"
+PRESET_PATH_ENV = "AGENTLOOP_PRESET"  # 必设, 指向 项目/{groupId}/preset.json
+
+def load_preset(path: str = None) -> dict:
+    """**加载项目 preset** (机器可读项目元信息)。
+
+    用户 2026-06-13: 主流程不能过拟合 WebGoat, 所有项目特异数据必从 preset.json 读。
+    优先级: CLI 参数 > AGENTLOOP_PRESET env > 默认 (org.owasp.webgoat 兼容)
+    """
+    p = path or os.environ.get(PRESET_PATH_ENV)
+    if not p:
+        # 向后兼容: 找 项目/org.owasp.webgoat/preset.json
+        default = PRESETS_DIR / "org.owasp.webgoat" / "preset.json"
+        if default.exists():
+            p = str(default)
+        else:
+            raise FileNotFoundError(
+                f"未指定 preset.json。请:\n"
+                f"  1. 设 env AGENTLOOP_PRESET=项目/<groupId>/preset.json\n"
+                f"  或 2. 复制 项目/_template/preset.template.json 到 项目/<groupId>/preset.json"
+            )
+    preset_file = Path(p)
+    if not preset_file.exists():
+        raise FileNotFoundError(f"preset.json 不存在: {preset_file}")
+    return json.loads(preset_file.read_text(encoding="utf-8"))
+
+
+# ===== 默认值 (向后兼容) — 实际从 preset.json 读 =====
+_PRESET = load_preset()
+GROUP_ID = _PRESET["groupId"]
+REDIS_PREFIX = f"audit:{GROUP_ID}"
+PROJECT_ROOT = Path(_PRESET["projectRoot"])
+DB = _PRESET.get("codegraphDb", str(PROJECT_ROOT / ".codegraph" / "codegraph.db"))
+LOOP_DIR = PROJECT_ROOT / _PRESET.get("loopDir", "loop_audit")
+EP_JSONL = LOOP_DIR / _PRESET.get("epJsonl", "external_endpoints/端点.jsonl")
 HI_DIR = LOOP_DIR / "routes" / "高风险端点"
 LO_DIR = LOOP_DIR / "routes" / "中低险端点"
 POC_DIR = LOOP_DIR / "routes" / "poc"
@@ -52,33 +84,36 @@ LOG_DIR = LOOP_DIR / "loop-log" / "cross-50r"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 MEMURAI_CLI = r"C:\Program Files\Memurai\memurai-cli.exe"
 
-# ===== 项目标识 (用户 2026-06-13: 避免清缓存时误删其他项目) =====
-# 所有 Redis key 必含 {GROUP_ID} 前缀, 隔离不同项目的 audit 缓存
-# 格式: audit:{GROUP_ID}:{...} (e.g. audit:org.owasp.webgoat:commit:HEAD:round:2:...)
-# 切项目时只改这一行 (yudao-cloud -> "com.ruoyi" 等)
-GROUP_ID = "org.owasp.webgoat"
-REDIS_PREFIX = f"audit:{GROUP_ID}"
+# ===== 命令（每轮都一样，运行时用 preset 替换 __VAR__ 占位符）=====
+# 用户 2026-06-13: 主流程不能过拟合 WebGoat, 项目特异数据从 preset.json 读
+# 占位符格式: __VAR__ (双下划线包裹, 避免与 {} 冲突, 简单 .replace() 即可)
+COMMAND_TEMPLATE = """在 __PROJECT_ROOT__ 跑 Java 白盒审计。codegraph 已索引 __N_ROUTES__ routes + __N_METHODS__ methods。
 
-# ===== 命令（每轮都一样）=====
-COMMAND = """在 D:\\code\\WebGoat-2025.3 跑 Java 白盒审计。codegraph 已索引 269 routes + 1317 methods。
+## 业务环境（从 preset.json 读）
 
-## 业务环境（用户 2026-06-13 提供）
+- **项目名**: __PROJECT_NAME__
+- **groupId**: `__GROUP_ID__`
+- **容器名**: `__DOCKER_CONTAINER__`（必用 docker ps 找，状态必 Up/healthy）
+- **应用 URL**: __APP_BASE_URL____APP_CTX_PATH__    ← 注意 __APP_CTX_PATH__ 前缀
+- **登录入口**: `__LOGIN_URL__` (测试账号 `__TEST_USER__` / `__TEST_PASS__`)
+- **注册入口**: `__REGISTER_URL__`
+- **会话 Cookie**: `__SESSION_COOKIE_NAME__`
+- **真实登录 HTML**: `__LOGIN_HTML__` 找 form action
+- **鉴权配置**: `__SECURITY_CONFIG__` 找 permitAll + formLogin
+- **Controller 目录**: `__CONTROLLERS__` 找所有 `@PostMapping`/`@GetMapping`
 
-- **WebGoat 容器名**: `webgoat-local`（必用 docker ps 找，状态必 Up/healthy）
-- **WebGoat URL**: http://localhost:18080/WebGoat    ← 注意 /WebGoat 前缀
-- **WebWolf URL**: http://localhost:19090/WebWolf     ← 注意 /WebWolf 前缀
-- **admin 凭据**: password = `NWRhYzZjZDktZDFhZC00ZjUxLTk5YjMtMDhkZTFjNmRhYWEw`（base64 解码 = UUID）
-- **真实登录入口**：`src/main/resources/webgoat/templates/login.html` → `<form th:action="@{/login}" method='POST'>` → **POST /login 表单提交 username+password**
+**附加项目知识**: 必读 `项目/__GROUP_ID__/README.md`（worker 写项目分析）+ `项目/__GROUP_ID__/feedback.md`（累积经验/坑）。
+如需更细的源码速查, 读 `项目/__GROUP_ID__/知识沉淀.md`。
 
 ## 【§ 14 强约束】docker 环境 + 代码必读
 
-1. 必跑 `docker ps` → 找到 `webgoat-local` Up 状态 → 写 `loop_audit/diag/docker_ps.txt`
-2. 必跑 `docker inspect webgoat-local` → 拿 IP/Port/Env → 写 `loop_audit/diag/docker_inspect.json`
-3. 必跑 `docker logs webgoat-local --tail 50` 看启动日志
-4. 必读 `src/main/resources/webgoat/templates/login.html` 找 form action
-5. 必读 `src/main/java/**/Security*.java` 找 permitAll + formLogin
-6. 必读 `src/main/java/**/controller/**Controller.java` 找所有 `@PostMapping`/`@GetMapping`
-7. 必列所有 lesson 端点 = `grep -rE "@(Post|Get)Mapping" src/main/java/ | sort -u`
+1. 必跑 `docker ps` → 找到 `__DOCKER_CONTAINER__` Up 状态 → 写 `loop_audit/diag/docker_ps.txt`
+2. 必跑 `docker inspect __DOCKER_CONTAINER__` → 拿 IP/Port/Env → 写 `loop_audit/diag/docker_inspect.json`
+3. 必跑 `docker logs __DOCKER_CONTAINER__ --tail 50` 看启动日志
+4. 必读 `__LOGIN_HTML__` 找 form action
+5. 必读 `__SECURITY_CONFIG__` 找 permitAll + formLogin
+6. 必读 `__CONTROLLERS__` 找所有 `@PostMapping`/`@GetMapping`
+7. 必列所有端点 = `grep -rE "@(Post|Get)Mapping" src/main/java/ | sort -u`
 8. 每读一个文件 → 追加到 `loop_audit/diag/code_reads.log`
 
 ## 【§ 15 强约束】200 OK ≠ 成功，必证明 CIA 影响
@@ -99,7 +134,7 @@ COMMAND = """在 D:\\code\\WebGoat-2025.3 跑 Java 白盒审计。codegraph 已�
 
 例：
 ```
-POST /SqlInjectionAdvanced/login -d "username=admin' OR 1=1 --&password=admin"
+__APP_CTX_PATH__/login -d "username=admin' OR 1=1 --&password=admin"
 Response: HTTP/1.1 200
 Body: "Welcome admin! flag{SQLI_SUCCESS_42}, id=1, password=admin123"
 → CIA: C (data exfiltration)
@@ -117,17 +152,17 @@ Body: "Welcome admin! flag{SQLI_SUCCESS_42}, id=1, password=admin123"
 ## 【404 必查】
 
 - curl 返回 404 = FAIL 信号，必查：
-  1. 路径是否要带 `/WebGoat` 前缀（不是 `/`）
-  2. 是否要带 session cookie（先 POST /login）
+  1. 路径是否要带 `__APP_CTX_PATH__` 前缀（不是 `/`）
+  2. 是否要带 session cookie（先 __LOGIN_URL__）
   3. 是否要 POST 不是 GET
 - 每条 404 必写到 `loop_audit/diag/404_investigations.md`
 
 ## 【6 个必留 artifact】
 
 写到 `loop_audit/diag/`：
-1. `docker_ps.txt` — docker ps 输出（必含 webgoat-local Up）
+1. `docker_ps.txt` — docker ps 输出（必含 `__DOCKER_CONTAINER__` Up）
 2. `docker_inspect.json` — docker inspect（必含 IP/Port/Env）
-3. `code_reads.log` — opencode 实际读的源文件清单（必含 login.html + SecurityConfig.java）
+3. `code_reads.log` — opencode 实际读的源文件清单（必含 `__LOGIN_HTML__` + `__SECURITY_CONFIG__`）
 4. `curl_attempts.log` — 所有 curl 请求 + 状态码
 5. `404_investigations.md` — 0 404 写"无 404"；有 404 每条解释
 6. `poc_real_attack.log` — 真攻击 payload + CIA 证据
@@ -208,15 +243,15 @@ Body: "Welcome admin! flag{SQLI_SUCCESS_42}, id=1, password=admin123"
 - 必含**完整可粘跑** 的代码段，二选一：
   - **curl 命令行**（含 cookie + method + URL + body）
     ```
-    curl -s -b "JSESSIONID=xxx" -X POST "http://localhost:18080/WebGoat/.../attack" \
+    curl -s -b "__SESSION_COOKIE_NAME__=<session>" -X POST "__APP_BASE_URL____APP_CTX_PATH__/.../attack" \
       -d "username=admin' OR 1=1 --&password=admin"
     ```
   - **Python requests 代码**（含 session + payload + response 截取）
     ```python
     import requests
     s = requests.Session()
-    s.post("http://localhost:18080/WebGoat/login", data={"username":"tester","password":"tester123"})
-    r = s.post("http://localhost:18080/WebGoat/SqlInjection/attack2", data={"username":"admin' OR 1=1 --"})
+    s.post("__APP_BASE_URL____APP_CTX_PATH__/login", data={"username":"__TEST_USER__","password":"__TEST_PASS__"})
+    r = s.post("__APP_BASE_URL____APP_CTX_PATH__/SqlInjection/attack2", data={"username":"admin' OR 1=1 --"})
     print(r.status_code, r.text[:500])
     ```
 - 必含**为什么这个 payload 能触发漏洞**（不只贴代码）
@@ -494,7 +529,7 @@ poc_quality = (poc_fake / (poc_ok + poc_fake)) <= 5%  # FAKE 比例 ≤ 5%
 
 **完整 curl 命令**（必含 cookie + method + URL + 二次利用 payload）：
 ```bash
-curl -s -b "JSESSIONID=xxx" -X POST "http://localhost:18080/WebGoat/admin/users" \
+curl -s -b "__SESSION_COOKIE_NAME__=<session>" -X POST "__APP_BASE_URL____APP_CTX_PATH__/admin/users" \
   -H "Authorization: Bearer {第一次拿到的 token}" \
   -d "action=list"
 ```
@@ -505,10 +540,10 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 {
   "users": [
-    {"id":1, "username":"admin", "email":"admin@webgoat.local", "role":"ADMIN"},
-    {"id":2, "username":"tester", "email":"tester@webgoat.local", "role":"USER"}
+    {"id":1, "username":"admin", "email":"admin@__GROUP_ID__.local", "role":"ADMIN"},
+    {"id":2, "username":"__TEST_USER__", "email":"__TEST_USER__@__GROUP_ID__.local", "role":"USER"}
   ],
-  "admin_email_leaked": "admin@webgoat.local",
+  "admin_email_leaked": "admin@__GROUP_ID__.local",
   "admin_token_issued": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiJ9.xxxxx"
 }
 ```
@@ -1084,6 +1119,39 @@ def cleanup_loop_results():
     #     EP_JSONL.unlink()
 
 
+def format_command(preset: dict) -> str:
+    """**运行时** 用 preset.json 替换 COMMAND_TEMPLATE 中的 __VAR__ 占位符。
+
+    用户 2026-06-13: 主流程不能过拟合 WebGoat, 项目特异数据从 preset 注入。
+    优点: 切项目只改 preset.json, 不改代码。
+    """
+    key_files = preset.get("keyFiles", {})
+    codegraph = preset.get("codegraph", {})
+    repl = {
+        "__PROJECT_ROOT__": preset.get("projectRoot", ""),
+        "__PROJECT_NAME__": preset.get("projectName", ""),
+        "__GROUP_ID__": preset.get("groupId", ""),
+        "__DOCKER_CONTAINER__": preset.get("dockerContainer", ""),
+        "__APP_PORT__": str(preset.get("appPort", "")),
+        "__APP_CTX_PATH__": preset.get("appCtxPath", ""),
+        "__APP_BASE_URL__": preset.get("appBaseUrl", ""),
+        "__LOGIN_URL__": preset.get("loginUrl", ""),
+        "__REGISTER_URL__": preset.get("registerUrl", ""),
+        "__SESSION_COOKIE_NAME__": preset.get("sessionCookieName", "JSESSIONID"),
+        "__TEST_USER__": preset.get("testUser", ""),
+        "__TEST_PASS__": preset.get("testPass", ""),
+        "__LOGIN_HTML__": key_files.get("loginHtml", ""),
+        "__SECURITY_CONFIG__": key_files.get("securityConfig", ""),
+        "__CONTROLLERS__": key_files.get("controllers", ""),
+        "__N_ROUTES__": str(codegraph.get("nRoutes", "?")),
+        "__N_METHODS__": str(codegraph.get("nMethods", "?")),
+    }
+    out = COMMAND_TEMPLATE
+    for k, v in repl.items():
+        out = out.replace(k, v)
+    return out
+
+
 def clear_redis_cache() -> int:
     """**每次项目启动前清除本项目历史 Redis 缓存** (audit:{GROUP_ID}:* keys)。
 
@@ -1140,9 +1208,11 @@ def run_new_opencode_session(round_n: int) -> dict:
     """
     t0 = time.time()
     # 短 message + 长 prompt 写文件，--file 引用
-    short_msg = f"Stability R{round_n}/50. Read the attached file and execute it on D:\\code\\WebGoat-2025.3. Verify P5.4 before exit."
+    # 用 preset.json 替换 {占位符}, 不再硬编码项目路径
+    command_rendered = format_command(_PRESET)
+    short_msg = f"Stability R{round_n}/50. Read the attached file and execute it on {_PRESET['projectRoot']}. Verify P5.4 before exit."
     prompt_file = Path(rf"C:\Users\ADMINI~1\AppData\Local\Temp\wgb-prompt-{round_n}.txt")
-    prompt_file.write_text(COMMAND, encoding="utf-8")
+    prompt_file.write_text(command_rendered, encoding="utf-8")
 
     cmd = [
         OPENCODE_CMD, "run", short_msg,
