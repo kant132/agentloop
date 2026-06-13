@@ -1077,6 +1077,47 @@ def cleanup_loop_results():
     #     EP_JSONL.unlink()
 
 
+def clear_redis_cache() -> int:
+    """**每次项目启动前清除历史 Redis 缓存** (audit:* keys)。
+
+    用户 2026-06-13 反馈: 项目启动前必清, 防止上轮残留污染本轮 audit 结果。
+    Returns: 删除的 key 数 (失败返回 -1)。
+    """
+    try:
+        # Step 1: SCAN 列出所有 audit:* key
+        scan_proc = subprocess.run(
+            [MEMURAI_CLI, "-h", "localhost", "-p", "6379", "-e",
+             "--scan", "--pattern", "audit:*", "--count", "1000"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if scan_proc.returncode != 0:
+            return -1
+        keys = [k.strip() for k in scan_proc.stdout.splitlines() if k.strip()]
+        if not keys:
+            return 0
+
+        # Step 2: DEL 批量删除 (Redis 单次命令上限 1000 keys, 实际很少超)
+        del_proc = subprocess.run(
+            [MEMURAI_CLI, "-h", "localhost", "-p", "6379", "-e",
+             "DEL", *keys],
+            capture_output=True, text=True, timeout=10,
+        )
+        if del_proc.returncode != 0:
+            return -1
+        # DEL 返回删除数量 (整数)
+        try:
+            return int(del_proc.stdout.strip())
+        except ValueError:
+            return len(keys)
+    except subprocess.TimeoutExpired:
+        return -1
+    except FileNotFoundError:
+        # Memurai 未安装/未运行, 跳过 (不阻塞 round)
+        return -1
+    except Exception:
+        return -1
+
+
 def run_new_opencode_session(round_n: int) -> dict:
     """**新开** opencode session（不传 -s），跑同一命令。
     关键：positional message 必须在 --file 之前，否则 --file 把 message 当文件名解析。
@@ -1158,7 +1199,10 @@ def main():
         else:  # 40-50
             cleanup_label = "KEEP (test knowledge reuse)"
 
-        print(f"\n--- R{n}/{MAX_ROUNDS} [{cleanup_label}] ---")
+        # **每轮项目启动前清 Redis 缓存** (用户 2026-06-13 反馈, 防上轮残留污染本轮)
+        n_cleared = clear_redis_cache()
+        redis_label = f"redis_cleared={n_cleared}" if n_cleared >= 0 else "redis_cleared=FAIL"
+        print(f"\n--- R{n}/{MAX_ROUNDS} [{cleanup_label}] [{redis_label}] ---")
         result = run_new_opencode_session(n)
         metrics = count_reports()
         result.update(metrics)
