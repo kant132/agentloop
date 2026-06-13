@@ -52,6 +52,13 @@ LOG_DIR = LOOP_DIR / "loop-log" / "cross-50r"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 MEMURAI_CLI = r"C:\Program Files\Memurai\memurai-cli.exe"
 
+# ===== 项目标识 (用户 2026-06-13: 避免清缓存时误删其他项目) =====
+# 所有 Redis key 必含 {GROUP_ID} 前缀, 隔离不同项目的 audit 缓存
+# 格式: audit:{GROUP_ID}:{...} (e.g. audit:org.owasp.webgoat:commit:HEAD:round:2:...)
+# 切项目时只改这一行 (yudao-cloud -> "com.ruoyi" 等)
+GROUP_ID = "org.owasp.webgoat"
+REDIS_PREFIX = f"audit:{GROUP_ID}"
+
 # ===== 命令（每轮都一样）=====
 COMMAND = """在 D:\\code\\WebGoat-2025.3 跑 Java 白盒审计。codegraph 已索引 269 routes + 1317 methods。
 
@@ -1042,12 +1049,12 @@ def count_reports() -> tuple:
     # **PoC 一致性**：poc == high_risk（每个高危 1 PoC）
     poc_consistent = (n_poc == n_hi) if n_hi else True
 
-    # Memurai audit:* key 数
+    # Memurai audit:{GROUP_ID}:* key 数 (项目隔离, 不数其他项目)
     n_redis = 0
     try:
         proc = subprocess.run(
             [MEMURAI_CLI, "-h", "localhost", "-p", "6379", "-e",
-             "--scan", "--pattern", "audit:*", "--count", "1000"],
+             "--scan", "--pattern", f"{REDIS_PREFIX}:*", "--count", "1000"],
             capture_output=True, text=True, timeout=10,
         )
         n_redis = sum(1 for _ in proc.stdout.splitlines() if _.strip())
@@ -1078,16 +1085,19 @@ def cleanup_loop_results():
 
 
 def clear_redis_cache() -> int:
-    """**每次项目启动前清除历史 Redis 缓存** (audit:* keys)。
+    """**每次项目启动前清除本项目历史 Redis 缓存** (audit:{GROUP_ID}:* keys)。
 
-    用户 2026-06-13 反馈: 项目启动前必清, 防止上轮残留污染本轮 audit 结果。
-    Returns: 删除的 key 数 (失败返回 -1)。
+    用户 2026-06-13 反馈:
+    1. 项目启动前必清, 防止上轮残留污染本轮 audit 结果
+    2. **必按 groupId 隔离, 避免误删其他项目的 audit:* 缓存**
+
+    Returns: 删除的 key 数 (失败返回 -1, 0 表示无 key)。
     """
     try:
-        # Step 1: SCAN 列出所有 audit:* key
+        # Step 1: SCAN 列出本项目所有 audit:{GROUP_ID}:* key (项目隔离)
         scan_proc = subprocess.run(
             [MEMURAI_CLI, "-h", "localhost", "-p", "6379", "-e",
-             "--scan", "--pattern", "audit:*", "--count", "1000"],
+             "--scan", "--pattern", f"{REDIS_PREFIX}:*", "--count", "1000"],
             capture_output=True, text=True, timeout=10,
         )
         if scan_proc.returncode != 0:
@@ -1095,6 +1105,12 @@ def clear_redis_cache() -> int:
         keys = [k.strip() for k in scan_proc.stdout.splitlines() if k.strip()]
         if not keys:
             return 0
+
+        # 防御: 二次校验所有 key 必含 {REDIS_PREFIX}: 前缀, 防止 DEL 误伤其他项目
+        for k in keys:
+            if not k.startswith(f"{REDIS_PREFIX}:"):
+                print(f"  [WARN] 跳过非本项目 key: {k}")
+                return -1
 
         # Step 2: DEL 批量删除 (Redis 单次命令上限 1000 keys, 实际很少超)
         del_proc = subprocess.run(
