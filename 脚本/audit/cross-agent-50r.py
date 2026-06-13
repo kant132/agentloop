@@ -1323,6 +1323,24 @@ def main():
     print(f"总耗时: {summary['elapsed_total']}s (cap {GLOBAL_TIMEOUT}s)")
     print(f"summary: {LOG_DIR / 'summary.json'}")
 
+    # **项目结束反馈** (用户 2026-06-13: 反馈沉底到 项目/{groupId}/feedback.md)
+    # 触发: env AGENTLOOP_FINAL_FEEDBACK=1
+    if os.environ.get("AGENTLOOP_FINAL_FEEDBACK") == "1":
+        print(f"\n=== AGENTLOOP_FINAL_FEEDBACK=1, 派发项目结束反馈 ===")
+        from collect_feedback import run_feedback_session, collect_rounds, get_feedback_path
+        rounds = collect_rounds(LOG_DIR)
+        if rounds:
+            fb_path = get_feedback_path(_PRESET)
+            print(f"  反馈目标: {fb_path}")
+            print(f"  数据源: {len(rounds)} 个 round ({LOG_DIR}/)")
+            fb_result = run_feedback_session(_PRESET, rounds, LOG_DIR)
+            print(f"  反馈 session: rc={fb_result.get('rc')} elapsed={fb_result.get('elapsed')}s")
+            if fb_path.exists():
+                n_sections = fb_path.read_text(encoding="utf-8").count("## Project Run")
+                print(f"  反馈文件 Project Run 段数: {n_sections}")
+        else:
+            print(f"  [SKIP] 无 round 数据可分析")
+
 
 if __name__ == "__main__":
     main()
