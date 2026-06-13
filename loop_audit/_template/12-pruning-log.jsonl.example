@@ -1,0 +1,15 @@
+# 12-pruning-log.jsonl
+
+> **存放位置**：`loop_audit/pruning-log.jsonl`
+>
+> **触发场景**：L1 端点级剪枝 / L2 链级消毒 / L3 跨轮次跳过
+> **复审**：`list-pruned.py` + `force-rescan.py`（仅跑 C/D）
+
+每行一个 JSON：
+
+```json
+{"ts": "2026-06-12T10:30:00", "level": "L1", "rule_id": "P-L1-001", "endpoint_fqn": "com.example.HealthController.ping", "reason": "no_params", "reversible": false}
+{"ts": "2026-06-12T10:30:05", "level": "L1", "rule_id": "P-L1-002", "endpoint_fqn": "com.example.UserController.findById", "reason": "numeric_only", "reversible": true, "fwd_modes_skipped": ["A","B","INFO"], "fwd_modes_kept": ["C","D"]}
+{"ts": "2026-06-12T10:30:10", "level": "L2", "chain_id": "abc123", "node_idx": 2, "fqn": "com.example.UserDao.findByKeyword", "pruning_status": "pruned", "reason": "sanitized_by_PreparedStatement", "evidence": "UserDao.java:23"}
+{"ts": "2026-06-12T10:30:15", "level": "L3", "chain_id": "xyz789", "reason": "final_finding_exists", "skipped_redo": true}
+```

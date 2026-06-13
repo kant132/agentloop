@@ -1,0 +1,195 @@
+{
+  "1_schema_inspect": {
+    "ok": true,
+    "elapsed_ms": 3,
+    "result": {
+      "tables": [
+        "edges",
+        "files",
+        "nodes",
+        "nodes_fts",
+        "nodes_fts_config",
+        "nodes_fts_data",
+        "nodes_fts_docsize",
+        "nodes_fts_idx",
+        "project_metadata",
+        "schema_versions",
+        "sqlite_sequence",
+        "sqlite_stat1",
+        "unresolved_refs"
+      ],
+      "nodes_count": 7170,
+      "edges_count": 13143,
+      "routes_count": 269,
+      "methods_count": 1317,
+      "calls_edges": 2072,
+      "decorators_nonempty": 0
+    }
+  },
+  "2_cte_recursive_20_layer": {
+    "ok": true,
+    "elapsed_ms": 1,
+    "result": {
+      "candidates": [
+        {
+          "fqn": "org.owasp.webgoat.container.service::LessonMenuService::showLeftNav",
+          "found": true,
+          "total_nodes": 142,
+          "max_depth": 7
+        },
+        {
+          "fqn": "org.owasp.webgoat.container.lessons::Lesson::getDefaultCategory",
+          "found": true,
+          "total_nodes": 79,
+          "max_depth": 1
+        },
+        {
+          "fqn": "org.owasp.webgoat.lessons.idor::IDOREditOtherProfile::completed",
+          "found": true,
+          "total_nodes": 31,
+          "max_depth": 1
+        },
+        {
+          "fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction::SqlInjectionLesson9::injectableQueryIntegrity",
+          "found": true,
+          "total_nodes": 20,
+          "max_depth": 2
+        }
+      ],
+      "best_chain": {
+        "fqn": "org.owasp.webgoat.container.service::LessonMenuService::showLeftNav",
+        "found": true,
+        "total_nodes": 142,
+        "max_depth": 7
+      }
+    }
+  },
+  "3_multi_hop_20join": {
+    "ok": true,
+    "elapsed_ms": 442,
+    "result": {
+      "forward_5hop_20join": {
+        "join_count": 20,
+        "row_count": 590
+      },
+      "multi_sink_search": {
+        "join_count": 7,
+        "row_count": 0
+      },
+      "auth_miss_3hop": {
+        "join_count": 11,
+        "row_count": 168
+      },
+      "full_forward_4hop": {
+        "join_count": 18,
+        "row_count": 1000
+      },
+      "sqli_auth_context": {
+        "join_count": 13,
+        "row_count": 0
+      }
+    }
+  },
+  "4_pattern_search_sinks": {
+    "ok": true,
+    "elapsed_ms": 504,
+    "result": {
+      "sql_injection": 2,
+      "rce": 7,
+      "deserialize": 1,
+      "ssrf": 3,
+      "path_traversal": 19,
+      "ldap": 1,
+      "controller_method": 1
+    }
+  },
+  "5_memurai_cli": {
+    "ok": true,
+    "elapsed_ms": 125,
+    "result": {
+      "available": true,
+      "dbsize": 0,
+      "elapsed_ms": 52
+    }
+  },
+  "6_e2e_20layer_extract": {
+    "ok": true,
+    "elapsed_ms": 67,
+    "result": {
+      "actual_max_depth": 7,
+      "row_count": 142,
+      "sample_chain": [
+        {
+          "id": "method:d36834f8c32c3302dcffb98739e2a181",
+          "qualified_name": "org.owasp.webgoat.container.service::LessonMenuService::showLeftNav",
+          "depth": 0,
+          "file_path": "src/main/java/org/owasp/webgoat/container/service/LessonMenuService.java",
+          "start_line": 44
+        },
+        {
+          "id": "method:201bda949d4e5cc691b721422e8b70f1",
+          "qualified_name": "org.owasp.webgoat.container.session::Course::getCategories",
+          "depth": 1,
+          "file_path": "src/main/java/org/owasp/webgoat/container/session/Course.java",
+          "start_line": 27
+        },
+        {
+          "id": "method:675b9a7606bcfa0a53a8720b71b96124",
+          "qualified_name": "org.owasp.webgoat.container.users::UserProgressRepository::findByUser",
+          "depth": 1,
+          "file_path": "src/main/java/org/owasp/webgoat/container/users/UserProgressRepository.java",
+          "start_line": 12
+        },
+        {
+          "id": "method:262884a6876481ebac6d2cb0dc86971b",
+          "qualified_name": "org.owasp.webgoat.webwolf.requests::WebWolfTraceRepository::contains",
+          "depth": 1,
+          "file_path": "src/main/java/org/owasp/webgoat/webwolf/requests/WebWolfTraceRepository.java",
+          "start_line": 39
+        },
+        {
+          "id": "method:c104bba5cdda3d54605d965a8b8c5d3a",
+          "qualified_name": "org.owasp.webgoat.container.lessons::LessonMenuItem::setName",
+          "depth": 1,
+          "file_path": "src/main/java/org/owasp/webgoat/container/lessons/LessonMenuItem.java",
+          "start_line": 39
+        },
+        {
+          "id": "method:77666dce84264fee19913b302e3eca71",
+          "qualified_name": "org.owasp.webgoat.container.lessons::LessonMenuItem::setType",
+          "depth": 1,
+          "file_path": "src/main/java/org/owasp/webgoat/container/lessons/LessonMenuItem.java",
+          "start_line": 75
+        },
+        {
+          "id": "method:040eb5e6452235a667d156020c7f463b",
+          "qualified_name": "org.owasp.webgoat.container.session::Course::getLessons",
+          "depth": 1,
+          "file_path": "src/main/java/org/owasp/webgoat/container/session/Course.java",
+          "start_line": 47
+        },
+        {
+          "id": "method:262884a6876481ebac6d2cb0dc86971b",
+          "qualified_name": "org.owasp.webgoat.webwolf.requests::WebWolfTraceRepository::contains",
+          "depth": 1,
+          "file_path": "src/main/java/org/owasp/webgoat/webwolf/requests/WebWolfTraceRepository.java",
+          "start_line": 39
+        },
+        {
+          "id": "method:a86ac26f1005e4c9ef20aca52328f0f5",
+          "qualified_name": "org.owasp.webgoat.container.lessons::Lesson::getName",
+          "depth": 1,
+          "file_path": "src/main/java/org/owasp/webgoat/container/lessons/Lesson.java",
+          "start_line": 27
+        },
+        {
+          "id": "method:c104bba5cdda3d54605d965a8b8c5d3a",
+          "qualified_name": "org.owasp.webgoat.container.lessons::LessonMenuItem::setName",
+          "depth": 1,
+          "file_path": "src/main/java/org/owasp/webgoat/container/lessons/LessonMenuItem.java",
+          "start_line": 39
+        }
+      ]
+    }
+  }
+}

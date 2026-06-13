@@ -1,0 +1,42 @@
+# 外部调用点清单 - {项目}
+
+## 摘要
+
+- 总数：{N} | REST：{x} | RPC：{y} | Servlet：{z} | MQ：{w} | Schedule：{v} | 其他：{u}
+- 覆盖率：{pct}% | 精度：{pct}%（基于抽样 20 条）
+- 未确认条目：{k}（见末尾）
+
+## REST 端点（{x}）
+
+| 方法 | 路径 | Handler | 受保护 | 置信度 | 证据 |
+|------|------|---------|--------|--------|------|
+| GET | /api/users/{id} | UserController.getUser | ✓ | 0.98 | UserController.java:42 |
+| POST | /api/users | UserController.create | ✗ | 0.95 | UserController.java:55 |
+
+## RPC 端点（{y}）
+
+| 接口 | 方法 | Handler | 受保护 | 置信度 |
+|------|------|---------|--------|--------|
+| UserService | getUser | UserServiceImpl.getUser | ✓ | 0.90 |
+
+## Servlet 端点（{z}）
+
+| URL | 类 | 受保护 | 置信度 |
+|-----|-----|--------|--------|
+| /api/legacy | LegacyServlet | ✗ | 0.85 |
+
+## MQ 监听（{w}）
+
+| Topic / Queue | Listener | 业务 | 风险 |
+|---------------|----------|------|------|
+
+## 定时任务（{v}）
+
+| Cron | 类 | 业务 | 风险 |
+|------|-----|------|------|
+
+## 未确认（{k}）
+
+| FQN | 原因 | 建议 |
+|-----|------|------|
+| LegacyServlet.doGet | 继承 HttpServlet 但无注解 | 人工确认是否被 web.xml 注册 |

@@ -1,0 +1,64 @@
+# 06-Filter 拦截器深度分析
+
+> **存放位置**：`loop_audit/filters/{类名}.md`
+>
+> **触发场景**：Phase 3 启动时，对每个 Filter / Interceptor / SecurityConfig / 自定义鉴权注解独立建档
+
+---
+
+## 元信息
+
+- **类名**：`AuthFilter`
+- **全限定**：`com.example.security.AuthFilter`
+- **类型**：Filter / Interceptor / SecurityConfig / HandlerInterceptor / 自定义注解
+- **注册位置**：`SecurityConfig.java:34` (`@Bean public FilterRegistrationBean<AuthFilter> ...`)
+- **执行顺序**：第 3 个（SecurityFilterChain 之前）
+- **覆盖 URL 模式**：`/api/**`（除 `/api/auth/login`）
+
+## 1. 用途
+
+JWT token 校验 + 提取 userId + 设置 SecurityContext。
+
+## 2. 关键代码片段
+
+```java
+public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) {
+    HttpServletRequest httpReq = (HttpServletRequest) req;
+    String token = httpReq.getHeader("Authorization");
+    if (token == null || !token.startsWith("Bearer ")) {
+        chain.doFilter(req, resp);  // ⚠️ 缺失：未 throw，跳过鉴权
+        return;
+    }
+    // ... 校验 + 设置 userId
+}
+```
+
+## 3. 风险点
+
+| # | 风险 | 等级 | 证据 |
+|---|------|------|------|
+| 1 | 缺失 token 时**放行**而非 401 | **严重** | line 23 `chain.doFilter` 而非 `throw` |
+| 2 | 覆盖 URL 不含 `/api/admin/**` | 中危 | 注册只到 `/api/**` |
+| 3 | token 过期未检查 | 中危 | 无 exp 校验 |
+| 4 | userId 来自 token payload 无签名校验 | 严重 | JWT secret 可能硬编码 |
+
+## 4. 鉴权绕过场景
+
+- **绕过 1**：无 token 直接访问受保护端点 → 静默通过（严重）
+- **绕过 2**：token 过期但 filter 放行 → 业务代码取到空 userId → NPE
+- **绕过 3**：伪造 token（weak secret）→ 任意身份访问
+
+## 5. 修复建议（**不写入正式报告**）
+
+> 留作个人备忘，正式报告不写修复
+>
+> - 应在缺失 token 时直接 `throw new AuthenticationException`
+> - 应校验 JWT exp
+> - 应将 secret 移到配置中心
+
+## 6. 关联端点
+
+所有经此 filter 的端点（从 web.xml / SecurityConfig 推）：
+- `GET /api/users/**`
+- `POST /api/orders/**`
+- ...（省略，按 groupId 列出）

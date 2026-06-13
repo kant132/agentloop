@@ -1,0 +1,43 @@
+# 10-待人工分析
+
+> **存放位置**：`loop_audit/needs_human/{chainId}.md`
+>
+> **触发场景**：
+> - 环境不可达，PoC 无法执行
+> - 工具失败（codegraph / memurai 不可用降级后）
+> - 链中含未识别的 jar / 三方服务
+> - 评分连续 < 27 超过 3 轮
+
+---
+
+## 元信息
+
+- **链 ID**：abc123def456
+- **外部端点**：`POST /api/internal/importData`
+- **sink**：`DataImportService.parseExcel` (未识别)
+- **原 finding 文件**：`严重_com.example.ImportController_import_a1b2c3d4.md`
+
+## 1. 待人工原因
+
+调用了 `org.apache.poi.xssf.usermodel.XSSFWorkbook.parse()`，
+该方法在 jar 包内，codegraph 未索引其方法体。
+无法判断是否存在 XXE / 任意文件读取。
+
+## 2. 已做的人工可验证线索
+
+- 端点文件：`ImportController.java:45`
+- 业务方法：`DataImportService.java:23`
+- 接收文件类型：xlsx
+- 上传大小限制：无
+- 鉴权：仅 `@PreAuthorize("hasRole('ADMIN')")`
+
+## 3. 建议人工验证步骤
+
+1. 反编译 poi jar：`jadx -d output poi-ooxml-5.2.3.jar`
+2. 搜 `XSSFWorkbook` 构造器调用栈
+3. 检查 `OPCPackage` / `XMLReader` 配置
+4. 验证是否禁用外部实体（XXE 防护）
+
+## 4. 风险等级
+
+中危（外部资源消耗 + 潜在 XXE）

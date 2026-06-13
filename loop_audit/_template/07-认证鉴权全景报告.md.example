@@ -1,0 +1,58 @@
+# 07-认证鉴权全景报告
+
+> **存放位置**：`loop_audit/auth/认证鉴权全景报告.md`
+>
+> **触发场景**：Phase 2 完成后输出草稿，Phase 3 后定稿
+
+---
+
+## 一、认证机制
+
+| 机制 | 实现位置 | 协议/标准 | 适用范围 |
+|------|---------|----------|----------|
+| JWT | `AuthFilter:34` | Bearer Token | REST API |
+| Session | `WebSecurityConfig:55` | HTTP Session | Web MVC |
+| OAuth2 | `OAuth2Config:78` | OAuth 2.0 | 第三方登录 |
+
+## 二、鉴权实现
+
+### 2.1 注解方式
+- 框架注解：`@PreAuthorize` / `@Secured` / `@RolesAllowed`
+- 自定义注解：见 `loop_audit/filters/自定义注解审计.md`
+
+### 2.2 Filter / Interceptor
+- `AuthFilter` (JWT) — `loop_audit/filters/AuthFilter.md`
+- `RoleInterceptor` (角色) — `loop_audit/filters/RoleInterceptor.md`
+- `RateLimitFilter` (限流) — `loop_audit/filters/RateLimitFilter.md`
+
+### 2.3 SecurityConfig
+- `SecurityConfig.java` 包含 12 个 SecurityFilterChain
+
+## 三、覆盖分析
+
+| URL 模式 | 是否有 filter 覆盖 | 风险 |
+|----------|-------------------|------|
+| `/api/auth/login` | ✅ 白名单 | - |
+| `/api/users/**` | ✅ AuthFilter | - |
+| `/api/admin/**` | ❌ 未覆盖 | **严重越权** |
+| `/api/internal/**` | ⚠️ 部分 | 待评估 |
+
+## 四、缺失/绕过
+
+- ❌ `/api/admin/**` 完全无鉴权（可越权访问管理后台）
+- ❌ AuthFilter 缺失 token 时**放行**（严重）
+- ❌ 自定义注解 `@RequiresPermission` 未注册拦截器
+- ⚠️ 限流 filter 仅覆盖 `/api/public/**`
+
+## 五、关联 phase 5 优先级
+
+P0 端点（必须 Phase 5 重点审计）：
+1. `/api/admin/**` 全部
+2. `/api/users/{id}/profile` 类（IDOR 候选）
+3. `/api/payment/**` 类（支付绕过候选）
+
+## 六、阶段评分
+
+- 完整性：80/100（已识别 12 个 filter）
+- 准确性：75/100（filter 顺序未验证）
+- 可执行性：70/100（缺修复建议是硬约束）

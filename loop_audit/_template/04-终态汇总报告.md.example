@@ -1,0 +1,109 @@
+# 终态汇总报告 - {项目} - {date}
+
+> 来自原始规范："汇总报告：威胁分析报告中文、人类友好；API 报告完整无缺；漏洞报告严格分级"。
+
+## 一、整体概况
+
+- 扫描起止时间：{start} - {end}
+- 总耗时：{duration}
+- 总 finding 数：{N}
+- 严重性分布：致命 {x} | 严重 {y} | 中危 {z} | 低危 {w}
+- 漏洞类型分布：注入 {a} | 业务逻辑 {b} | 鉴权 {c} | 信息泄露 {d} | 反序列化 {e} | 文件操作 {f}
+- PoC 通过率：{pct}%
+- 数据对账：{pass} / 7+1 项
+
+## 二、威胁建模
+
+> 来自 Phase 2 产出（threat-model-analyst skill）。
+
+### 2.1 资产清单
+- 外部端点总数：{N}
+- 关键业务对象：{列出}
+- 信任边界：{...}
+
+### 2.2 威胁概览（STRIDE）
+
+| 类别 | 数量 | 代表性 finding |
+|------|------|---------------|
+| Spoofing | {N} | {chainId} |
+| Tampering | {N} | {chainId} |
+| Repudiation | {N} | {chainId} |
+| Info Disclosure | {N} | {chainId} |
+| DoS | {N} | {chainId} |
+| Elevation of Privilege | {N} | {chainId} |
+
+### 2.3 攻击树
+```mermaid
+{插入 attack tree}
+```
+
+## 三、认证鉴权全景
+
+> 来自 Phase 2/3 产出。
+
+- 已识别鉴权组件数：{N}
+- 已分析组件数：{N}
+- 缺失鉴权的端点：{x}
+- 鉴权绕过风险：{y}
+
+## 四、API 资产
+
+- 总端点数：{N}
+- 各协议分布：REST {a} / RPC {b} / Servlet {c} / MQ {d} / Schedule {e}
+- 含漏洞的端点：{k}（占 {pct}%）
+- 完整 API 清单：见 `loop_audit/外部调用点清单.md`
+
+## 五、漏洞分级报告
+
+### 5.1 致命（{x}）
+
+#### FWD-A001 - SQLi - POST /api/users/search
+- **端点**：UserController.search
+- **链**：UserController.search → UserService.findByName → UserDao.query
+- **证据**：UserDao.java:23（字符串拼接）
+- **业务影响**：可读取/修改/删除全表数据
+- **PoC**：`' OR '1'='1`（已验证）
+
+#### FWD-C003 - IDOR - POST /api/orders/create
+- **端点**：OrderController.create
+- **链**：OrderController.create → OrderService.createOrder → OrderDao.insert
+- **缺失规则**：未校验 userId 与 session 一致
+- **业务影响**：可创建属于他人账户的订单
+- **PoC**：POST /api/orders/create, body={"userId":"victim","amount":999}（已验证）
+
+### 5.2 严重（{y}）
+{类似 5.1 列出}
+
+### 5.3 中危（{z}）
+{类似 5.1 列出}
+
+### 5.4 低危（{w}）
+{类似 5.1 列出}
+
+## 六、已验证 PoC
+
+- 致命 PoC：{a} / {b} 通过（{pct}%）
+- 严重 PoC：{c} / {d} 通过（{pct}%）
+- 详细：见 `loop_audit/poc/*.json`
+
+## 七、待人工分析
+
+| chainId | 类型 | 原因 | 建议 |
+|---------|------|------|------|
+| FWD-C007 | 业务 | 环境不可达 | 人工复现 |
+| FWD-A099 | 注入 | 三方 jar 无法识别 | 人工分析 gadget chain |
+
+## 八、Loop 效率自评
+
+- 总 token 消耗：{N}
+- 单端点平均：{N}
+- 缓存命中率：{pct}%
+- subagent 失败率：{pct}%
+- 写盘率：{pct}%
+- 反思评分：{N}/100
+
+## 九、下轮建议
+
+- 重点复查：{...}
+- 新发现的类型/规则：{...}
+- 工具/脚本优化：{...}

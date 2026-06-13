@@ -1,0 +1,107 @@
+# 05-端点调用链分析报告
+
+> **文件命名规范**（来自原始指令 § 三）：
+> `{危险等级}_{全限定类名}_{方法名}_{签名Hash}.md`
+>
+> 例：`严重_com.example.UserController_search_a1b2c3d4.md`
+> 危险等级 = 该入口所有调用链中最高风险（致命 > 严重 > 中危 > 低危 > 无风险）
+>
+> 存放位置（按危险等级分桶）：
+> - `loop_audit/routes/高风险端点/`（致命/严重/中危）
+> - `loop_audit/routes/中低险端点/`（低危/无风险）
+
+---
+
+## 元信息
+
+- **外部端点**：`GET /api/users/search`
+- **全限定方法**：`com.example.UserController.search`
+- **签名 hash**：`a1b2c3d4`
+- **危险等级**：严重
+- **方法签名**：`Page<User> search(@RequestParam String keyword)`
+- **路由注解**：`@GetMapping("/api/users/search")`
+- **所属类**：`com.example.UserController`
+- **类注解**：`@RestController`
+- **业务说明**：用户搜索接口，按 keyword 模糊查询
+- **审计时间**：2026-06-12
+- **审计者**：FWD-A + FWD-C subagent
+
+---
+
+## 1. 执行摘要
+
+业务说明：用户输入 keyword 查询用户列表。
+
+**关键风险**：
+- keyword 直接拼入 SQL like 模式（`%${keyword}%`），无任何转义 → SQL 注入
+- 缺失分页参数上限控制 → 大数据集 DoS
+- 缺失登录校验（类级 `@PreAuthorize` 缺失，方法级无）→ 越权
+
+**防护现状**：
+- 无 SQL 参数化
+- 无输入过滤
+- 无鉴权注解
+
+**综合定级**：**严重**（SQL 注入可拖库）
+
+## 2. 审计 Checklist
+
+| 检查项 | 状态 | 证据 |
+|--------|------|------|
+| 认证（是否要求登录） | ❌ 缺失 | 方法/类无 `@PreAuthorize` / `@Secured` |
+| 鉴权（角色/权限检查） | ❌ 缺失 | 同上 |
+| SQL 注入 | ❌ 命中 | `UserDao.findByKeyword:23` 直接拼接 |
+| 业务逻辑漏洞 | ⚠️ 待评估 | 分页参数无上限 |
+| 路径遍历 | ✅ 不适用 | 无文件操作 |
+| 异常信息泄露 | ⚠️ 待评估 | `GlobalExceptionHandler` 未审计 |
+| 日志敏感信息 | ⚠️ 待评估 | 待 Phase 5.5 |
+
+## 3. 细节
+
+### 3.1 调用链图
+
+```
+UserController.search(keyword)                        depth=0
+  └→ UserService.search(keyword)                     depth=1
+       └→ UserDao.findByKeyword(keyword)             depth=2
+            └→ JdbcTemplate.query("SELECT * FROM users WHERE name LIKE '%" + keyword + "%'", ...)  [SINK]  depth=3
+```
+
+### 3.2 污点传播
+
+| 节点 | 入参 | 消毒 | 传播 |
+|------|------|------|------|
+| `UserController.search` | `keyword: String` | 无 | 透传 |
+| `UserService.search` | `keyword: String` | 无 | 透传 |
+| `UserDao.findByKeyword` | `keyword: String` | 无 | 字符串拼接 |
+| `JdbcTemplate.query` | `"%${keyword}%"` | **缺失** | **到达 sink** |
+
+### 3.3 sink 点详情
+
+**位置**：`UserDao.java:23`
+**sink 类型**：SQL Injection
+**触发条件**：`keyword` 包含 `' OR 1=1 --` 等
+**PoC**：`GET /api/users/search?keyword=' OR 1=1 --`
+**验证结果**（待 PoC 阶段填）：是问题 / 非问题 / 暂时无法确认
+
+### 3.4 PoC 过程
+
+> 待 PoC 阶段填充（写到 `loop_audit/routes/poc/{验证状态}_{问题等级}_{fqn-端点mthod-sink点-round100}.md`）
+
+## 4. 调用链统计
+
+- **调用链总数**：1
+- **按类型分类**：
+  - SQL 注入：1
+  - 业务逻辑：0
+  - 鉴权缺失：1
+- **高危调用链明细**：
+  - `search → UserService.search → UserDao.findByKeyword → JdbcTemplate.query` [SQL 注入] [严重]
+
+## 5. 评分
+
+- 污点追踪逻辑（30）：28
+- 业务/安全漏洞（25）：22
+- PoC 逻辑清晰度（25）：待 PoC
+- **本轮总分**：50/80
+- 是否 `finished`：否（需 PoC 验证 + 连续 3 轮 ≥ 85）
