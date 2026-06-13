@@ -15,15 +15,6 @@
   "testUser": "{{testUser}}",
   "testPass": "{{testPass}}",
   "adminPassword": "{{adminPassword}}",
-  "keyFiles": {
-    "loginHtml": "{{loginHtml}}",
-    "securityConfig": "{{securityConfig}}",
-    "controllers": "{{controllers}}"
-  },
-  "codegraph": {
-    "nRoutes": {{nRoutes}},
-    "nMethods": {{nMethods}}
-  },
   "knowledgeIndex": {
     "annotationsDoc": "01-自定义注解清单.md",
     "frameworkConfigDoc": "02-特殊框架配置.md",

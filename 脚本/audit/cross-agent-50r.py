@@ -87,7 +87,7 @@ MEMURAI_CLI = r"C:\Program Files\Memurai\memurai-cli.exe"
 # ===== 命令（每轮都一样，运行时用 preset 替换 __VAR__ 占位符）=====
 # 用户 2026-06-13: 主流程不能过拟合 WebGoat, 项目特异数据从 preset.json 读
 # 占位符格式: __VAR__ (双下划线包裹, 避免与 {} 冲突, 简单 .replace() 即可)
-COMMAND_TEMPLATE = """在 __PROJECT_ROOT__ 跑 Java 白盒审计。codegraph 已索引 __N_ROUTES__ routes + __N_METHODS__ methods。
+COMMAND_TEMPLATE = """在 __PROJECT_ROOT__ 跑 Java 白盒审计。
 
 ## 业务环境（从 preset.json 读）
 
@@ -98,9 +98,9 @@ COMMAND_TEMPLATE = """在 __PROJECT_ROOT__ 跑 Java 白盒审计。codegraph 已
 - **登录入口**: `__LOGIN_URL__` (测试账号 `__TEST_USER__` / `__TEST_PASS__`)
 - **注册入口**: `__REGISTER_URL__`
 - **会话 Cookie**: `__SESSION_COOKIE_NAME__`
-- **真实登录 HTML**: `__LOGIN_HTML__` 找 form action
-- **鉴权配置**: `__SECURITY_CONFIG__` 找 permitAll + formLogin
-- **Controller 目录**: `__CONTROLLERS__` 找所有 `@PostMapping`/`@GetMapping`
+- **真实登录 HTML**: 找 form action (在 src/main/resources/**/login.html 等)
+- **鉴权配置**: SecurityConfig / ShiroConfig 找 permitAll + formLogin
+- **Controller 目录**: src/main/java/**/*Controller.java 找所有 `@PostMapping`/`@GetMapping`
 
 **附加项目知识**: 必读 `项目/__GROUP_ID__/README.md`（worker 写项目分析）+ `项目/__GROUP_ID__/feedback.md`（累积经验/坑）。
 如需更细的源码速查, 读 `项目/__GROUP_ID__/知识沉淀.md`。
@@ -110,9 +110,9 @@ COMMAND_TEMPLATE = """在 __PROJECT_ROOT__ 跑 Java 白盒审计。codegraph 已
 1. 必跑 `docker ps` → 找到 `__DOCKER_CONTAINER__` Up 状态 → 写 `loop_audit/diag/docker_ps.txt`
 2. 必跑 `docker inspect __DOCKER_CONTAINER__` → 拿 IP/Port/Env → 写 `loop_audit/diag/docker_inspect.json`
 3. 必跑 `docker logs __DOCKER_CONTAINER__ --tail 50` 看启动日志
-4. 必读 `__LOGIN_HTML__` 找 form action
-5. 必读 `__SECURITY_CONFIG__` 找 permitAll + formLogin
-6. 必读 `__CONTROLLERS__` 找所有 `@PostMapping`/`@GetMapping`
+4. 必读 login HTML 找 form action
+5. 必读 SecurityConfig 找 permitAll + formLogin
+6. 必读 *Controller.java 找所有 `@PostMapping`/`@GetMapping`
 7. 必列所有端点 = `grep -rE "@(Post|Get)Mapping" src/main/java/ | sort -u`
 8. 每读一个文件 → 追加到 `loop_audit/diag/code_reads.log`
 
@@ -162,7 +162,7 @@ Body: "Welcome admin! flag{SQLI_SUCCESS_42}, id=1, password=admin123"
 写到 `loop_audit/diag/`：
 1. `docker_ps.txt` — docker ps 输出（必含 `__DOCKER_CONTAINER__` Up）
 2. `docker_inspect.json` — docker inspect（必含 IP/Port/Env）
-3. `code_reads.log` — opencode 实际读的源文件清单（必含 `__LOGIN_HTML__` + `__SECURITY_CONFIG__`）
+3. `code_reads.log` — opencode 实际读的源文件清单（必含 login.html + SecurityConfig.java）
 4. `curl_attempts.log` — 所有 curl 请求 + 状态码
 5. `404_investigations.md` — 0 404 写"无 404"；有 404 每条解释
 6. `poc_real_attack.log` — 真攻击 payload + CIA 证据
@@ -200,29 +200,6 @@ Body: "Welcome admin! flag{SQLI_SUCCESS_42}, id=1, password=admin123"
 - 跑前必删 `loop_audit/external_endpoints/端点.jsonl`
 - 跑后必跑 `python 脚本/audit/verify-endpoint-coverage.py` 退出码 0
 
-## 【禁止】
-
-- 读 12 个 rules 文件
-- codegraph_explore 12 次
-- 写"终态汇总"
-- **PoC 写占位**（必含真攻击 + CIA 证据）
-- 200 OK 就当成功（必证 CIA）
-- 解释你能做什么
-- **PoC 文件名漏 round{N} 标记**
-- **round{N}.md 写 stale 数字**（必写真实磁盘统计）
-- **写 `_gen_routes.py` 等 comprehensive script 批量生成 100+ PoC**（必逐个真 curl）
-- **attack_response 段空白 / 模板文本**（必含真实 response body + payload 痕迹）
-- **round{N:03d} 编号自创**（必等于 prompt 标头 `WGB-R{N}` 的 N）
-- **PoC 缺复现步骤 / Payload / 攻击结果 / CVSS 4.0 复验 4 字段**
-- **attack_response = 405/400/404 错用法当 evidence**（必看 controller method 重测）
-- **CVSS 写个分数了事**（必含 10 维评分表 + 复验对比 + 错则反思）
-- **文件名缺"验证状态"前缀**（reports + PoC 必以 `是问题_/非问题_/暂时无法确认_/failed_` 开头）
-- **文件名用 `.` 分隔 fqn**（必 `.` → `__`）
-- **文件名漏 CVSS 段**（reports 必含数字 + 可选小数）
-- **PoC 缺"二次利用 / 危害链"段**（拿到 secret 必进一步利用，5 步危害链 + 2 次 curl）
-- **二次利用段只写"可探测内网 / 可冒充管理员"等分析话术而无实际响应 body**（§ 23 必含完整 curl + 实际响应 + 提取危害数据）
-- **启 Sisyphus-Junior subagent（task tool）** — round 2 实证：subagent 跨 session 残留会被砍死，启了只跑 1 个 `ls` 就停。**必须 inline 单进程跑完**（269 路由串行可接受，30min cap 内能完成）
-
 ## 【§ 18 强约束】PoC 必含 4 字段（2026-06-13 第 5 轮反馈）
 
 > **根因**：round 2 PasswordReset PoC 实证 — 端点 `GET /PasswordReset/reset/reset-password/{link}` 用 POST 请求拿 405 Method Not Allowed 当"密码重置缺陷"evidence，CVSS 7.5 写死无 10 维复验。**PoC 必含老板可复跑的 4 字段**。
@@ -240,20 +217,7 @@ Body: "Welcome admin! flag{SQLI_SUCCESS_42}, id=1, password=admin123"
 
 ### 18.2 验证代码/Payload（核心测试代码）
 
-- 必含**完整可粘跑** 的代码段，二选一：
-  - **curl 命令行**（含 cookie + method + URL + body）
-    ```
-    curl -s -b "__SESSION_COOKIE_NAME__=<session>" -X POST "__APP_BASE_URL____APP_CTX_PATH__/.../attack" \
-      -d "username=admin' OR 1=1 --&password=admin"
-    ```
-  - **Python requests 代码**（含 session + payload + response 截取）
-    ```python
-    import requests
-    s = requests.Session()
-    s.post("__APP_BASE_URL____APP_CTX_PATH__/login", data={"username":"__TEST_USER__","password":"__TEST_PASS__"})
-    r = s.post("__APP_BASE_URL____APP_CTX_PATH__/SqlInjection/attack2", data={"username":"admin' OR 1=1 --"})
-    print(r.status_code, r.text[:500])
-    ```
+- 必含**完整可粘跑** 的代码段（curl 或 Python requests 二选一, 用 preset 变量填充）
 - 必含**为什么这个 payload 能触发漏洞**（不只贴代码）
 - 禁止只写 "Payload: flag=challenge_flag_value" / "input=malicious_tainted_value" 等无意义字符串
 
@@ -438,30 +402,6 @@ poc_quality = (poc_fake / (poc_ok + poc_fake)) <= 5%  # FAKE 比例 ≤ 5%
 **新增第 5 字段**：
 - **二次利用 / 危害链**（拿到 secret 后进一步证明危害的步骤 + 证据）
 
-```markdown
-### 二次利用 / 危害链
-1. **一次发现**: {初始 payload 拿到什么 secret}
-   ```bash
-   {curl 完整命令}
-   ```
-   {响应 body 截取 + 提取的 secret}
-
-2. **二次利用**: {用此 secret 调什么端点 / 探测什么}
-   ```bash
-   {第二次 curl 命令（含 secret 注入）}
-   ```
-   {响应 body 截取 + 危害证据}
-
-3. **危害证明**: {实际影响，C/I/A 具体证据}
-   - C: {泄露数据：password / token / flag / DB rows}
-   - I: {数据修改：modified N rows / success}
-   - A: {服务中断：5xx / stack trace / 异常}
-
-4. **CIA 分类**: {C/I/A 可多选}
-
-5. **影响描述**: {一句话具体到业务}
-```
-
 ### 21.4 二次利用失败处理
 
 - 二次利用响应 = 401/403/404 → **不算二次利用**（需调其他**受保护**端点）
@@ -523,35 +463,9 @@ poc_quality = (poc_fake / (poc_ok + poc_fake)) <= 5%  # FAKE 比例 ≤ 5%
 ### 23.1 二次利用 3 段必含完整 evidence
 
 每个二次利用步骤必含 3 段（**不**只是"可探测内网"等分析话）：
-
-```markdown
-#### 二次利用步骤 N: {描述}
-
-**完整 curl 命令**（必含 cookie + method + URL + 二次利用 payload）：
-```bash
-curl -s -b "__SESSION_COOKIE_NAME__=<session>" -X POST "__APP_BASE_URL____APP_CTX_PATH__/admin/users" \
-  -H "Authorization: Bearer {第一次拿到的 token}" \
-  -d "action=list"
-```
-
-**实际响应 body 截取**（必含 HTTP 状态 + 完整 body 200-500 字，**不**省略）：
-```
-HTTP/1.1 200 OK
-Content-Type: application/json
-{
-  "users": [
-    {"id":1, "username":"admin", "email":"admin@__GROUP_ID__.local", "role":"ADMIN"},
-    {"id":2, "username":"__TEST_USER__", "email":"__TEST_USER__@__GROUP_ID__.local", "role":"USER"}
-  ],
-  "admin_email_leaked": "admin@__GROUP_ID__.local",
-  "admin_token_issued": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiJ9.xxxxx"
-}
-```
-
-**提取的危害数据**（从响应 body 实际提取，**不**是分析推测）：
-- C: admin email `admin@webgoat.local` 泄露 + admin token `eyJ...xxxxx` 拿到
-- 危害值：可用此 token 调任何 admin-only 端点
-```
+- 完整 curl 命令（cookie + method + URL + 二次利用 payload）
+- 实际响应 body 截取（HTTP 状态 + 完整 body 200-500 字）
+- 提取的危害数据（从响应 body 实际提取，**不**是分析推测）
 
 ### 23.2 二次利用必含 13+ CIA pattern 至少 1 条实际命中
 
@@ -1125,8 +1039,6 @@ def format_command(preset: dict) -> str:
     用户 2026-06-13: 主流程不能过拟合 WebGoat, 项目特异数据从 preset 注入。
     优点: 切项目只改 preset.json, 不改代码。
     """
-    key_files = preset.get("keyFiles", {})
-    codegraph = preset.get("codegraph", {})
     repl = {
         "__PROJECT_ROOT__": preset.get("projectRoot", ""),
         "__PROJECT_NAME__": preset.get("projectName", ""),
@@ -1140,11 +1052,6 @@ def format_command(preset: dict) -> str:
         "__SESSION_COOKIE_NAME__": preset.get("sessionCookieName", "JSESSIONID"),
         "__TEST_USER__": preset.get("testUser", ""),
         "__TEST_PASS__": preset.get("testPass", ""),
-        "__LOGIN_HTML__": key_files.get("loginHtml", ""),
-        "__SECURITY_CONFIG__": key_files.get("securityConfig", ""),
-        "__CONTROLLERS__": key_files.get("controllers", ""),
-        "__N_ROUTES__": str(codegraph.get("nRoutes", "?")),
-        "__N_METHODS__": str(codegraph.get("nMethods", "?")),
     }
     out = COMMAND_TEMPLATE
     for k, v in repl.items():
