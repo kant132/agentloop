@@ -1,0 +1,54 @@
+# 08-模块分析报告
+
+> **存放位置**：`loop_audit/modules/模块分析.md`
+>
+> **触发场景**：Phase 2 威胁分析（必加 `threat-model-analyst` skill 后输出）
+
+---
+
+## 一、模块清单
+
+| 模块 | 包前缀 | 协议 | 入口类 | 出口类 |
+|------|--------|------|--------|--------|
+| 用户管理 | `com.example.user` | REST | UserController | UserDao |
+| 订单管理 | `com.example.order` | REST + Dubbo | OrderController | OrderService |
+| 支付 | `com.example.pay` | REST | PayController | PayClient |
+| 权限 | `com.example.auth` | REST + JWT | AuthController | AuthService |
+| ... |
+
+## 二、模块调用关系
+
+> 用 Mermaid 或 drawio
+
+```mermaid
+graph LR
+    UserCtrl[UserController] --> UserSvc[UserService]
+    OrderCtrl[OrderController] --> OrderSvc[OrderService]
+    PayCtrl[PayController] --> PaySvc[PayService]
+    OrderSvc --> DubboProvider[(Dubbo: InventoryProvider)]
+    UserSvc --> UserDao[(MySQL: users)]
+    PaySvc --> PayClient[(HTTP: bank API)]
+```
+
+## 三、协议特征
+
+| 协议 | 模块 | 端口 | TLS | 鉴权 |
+|------|------|------|-----|------|
+| HTTPS 443 | Web 前端 → REST | 443 | ✅ | JWT |
+| Dubbo 20880 | Order → Inventory | 20880 | ❌ | 无 |
+| MySQL 3306 | 后端 → DB | 3306 | ❌ | pwd |
+| HTTP 8080 | Pay → bank | 8080 | ✅ | 证书 |
+
+## 四、攻击面
+
+- **外部 REST 入口**：269 个端点
+- **Dubbo 服务**：12 个（仅内网，无鉴权）
+- **定时任务**：5 个（无外部触发）
+- **MQ 消费者**：3 个（需消息级鉴权）
+
+## 五、风险聚焦
+
+1. 支付模块（资金）— 优先级 P0
+2. 用户模块（IDOR）— 优先级 P0
+3. 权限模块（鉴权）— 优先级 P0
+4. 订单模块（状态机）— 优先级 P1

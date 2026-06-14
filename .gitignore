@@ -1,37 +1,50 @@
-﻿# Python
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
-.pytest_cache/
-.coverage
-htmlcov/
-*.egg-info/
-*.egg
+*.so
 
-# IDE
-.idea/
+# Windows
+nul
+Thumbs.db
+desktop.ini
+
+# User private notes (excluded per user request)
+原始需求/
+_extract.py
+_extract_*.py
+_extracted_*.txt
+_existing_session_ids.txt
+_new_user_messages.md
+_raw_user_messages.txt
+count_user.py
+extract_messages.py
+extract_opencode.py
+extract_opencode_v2.py
+extract_sessions.py
+inspect_legacy.py
+
+# Skill test workspaces (process artifacts)
+skills/arthas-audit/test_workspace/
+skills/arthas-deploy/test_workspace/
+
+# Runtime outputs (regenerated each run)
+loop_audit/diag/*.py
+loop_audit/diag/.bak/
+loop_audit/routes/poc/.bak/
+loop_audit/routes/.bak/
+loop_audit/.cache/
+
+# Editor
 .vscode/
+.idea/
 *.swp
 *.swo
-*~
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Opencode session state (continuation tracking)
-.omo/run-continuation/
-.omo/evidence/
-
-# Temp files
-append_content.txt
-opencode_conversations_last_2days.md
-
-# Large binaries (keep small jars under tools/, exclude others)
-*.tar.gz
-*.zip
-!tools/arthas/client/arthas-bin.zip
 
 # Logs
 *.log
+
+# Opencode session cache
+.omo/

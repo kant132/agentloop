@@ -1,0 +1,14 @@
+# 11-subagent-failures.jsonl
+
+> **存放位置**：`loop_audit/feedback/subagent-failures.jsonl`
+>
+> **触发场景**：subagent 失败 / 超时 / 解析错误
+> **同类失败 ≥ 3 次** → 沉淀到 `行为准则/经验/`
+
+每行一个 JSON：
+
+```json
+{"ts": "2026-06-12T10:23:45", "role": "FWD-A", "endpoint_fqn": "com.example.UserController.search", "chain_id": "abc123", "attempt": 1, "failure_type": "timeout", "duration_sec": 3600, "error": "1h 无回复"}
+{"ts": "2026-06-12T10:25:12", "role": "FWD-B", "endpoint_fqn": "com.example.OrderController.create", "chain_id": "def456", "attempt": 2, "failure_type": "json_parse", "error": "missing field 'severity'"}
+{"ts": "2026-06-12T10:27:00", "role": "FWD-C", "endpoint_fqn": "com.example.PayController.refund", "chain_id": "ghi789", "attempt": 3, "failure_type": "stuck", "error": "反复问相同问题 5 次"}
+```

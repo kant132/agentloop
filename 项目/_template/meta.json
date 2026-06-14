@@ -1,0 +1,14 @@
+{
+  "groupId": "REPLACE_WITH_GROUP_ID",
+  "artifactId": "REPLACE_WITH_ARTIFACT_ID",
+  "version": "REPLACE_WITH_VERSION",
+  "scan_history": [],
+  "knowledge_hash": "INITIAL",
+  "created": "TEMPLATE",
+  "last_updated": "TEMPLATE",
+  "custom_annotations": [],
+  "business_exceptions": [],
+  "false_positive_patterns": [],
+  "high_value_classes": [],
+  "notes": "使用本模板时，将 REPLACE_* 替换为实际值；将本文件 cp 到 项目/{groupId}/meta.json"
+}

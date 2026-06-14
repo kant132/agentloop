@@ -1,0 +1,322 @@
+{
+  "ran_at": "2026-06-13T00:56:13",
+  "total": 42,
+  "passed": 40,
+  "failed": 0,
+  "error": 2,
+  "skipped": 0,
+  "coverage_percent": null,
+  "duration_sec": 0.209,
+  "failures": [
+    {
+      "tc": "TC-RSC-001",
+      "module": "test_scripts.test_redis_self_check",
+      "name": "test_tc_rsc_001_all_pass",
+      "status": "ERROR",
+      "reason": "sqlite3.OperationalError: no such table: method"
+    },
+    {
+      "tc": "TC-RSC-002",
+      "module": "test_scripts.test_redis_self_check",
+      "name": "test_tc_rsc_002_body_mismatch",
+      "status": "ERROR",
+      "reason": "sqlite3.OperationalError: no such table: method"
+    }
+  ],
+  "details": [
+    {
+      "tc": "TC-DR-001",
+      "module": "test_scripts.test_data_reconcile",
+      "name": "test_tc_dr_001_all_ok",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-DR-002",
+      "module": "test_scripts.test_data_reconcile",
+      "name": "test_tc_dr_002_chain_mismatch",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-FP-001",
+      "module": "test_scripts.test_finding_promoter",
+      "name": "test_tc_fp_001_record_score",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-FP-002",
+      "module": "test_scripts.test_finding_promoter",
+      "name": "test_tc_fp_002_3x85_promote",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-FP-003",
+      "module": "test_scripts.test_finding_promoter",
+      "name": "test_tc_fp_003_below_85_no_promote",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-FR-001",
+      "module": "test_scripts.test_force_rescan",
+      "name": "test_tc_fr_001_cd_modes",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-FR-002",
+      "module": "test_scripts.test_force_rescan",
+      "name": "test_tc_fr_002_with_a_fails",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-FR-003",
+      "module": "test_scripts.test_force_rescan",
+      "name": "test_tc_fr_003_redis_key",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-LP-001",
+      "module": "test_scripts.test_list_pruned",
+      "name": "test_tc_lp_001_read_jsonl",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-LP-002",
+      "module": "test_scripts.test_list_pruned",
+      "name": "test_tc_lp_002_by_rule_buckets",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-MC-001",
+      "module": "test_scripts.test_memurai_client",
+      "name": "test_tc_mc_001_ping_success",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-MC-002",
+      "module": "test_scripts.test_memurai_client",
+      "name": "test_tc_mc_002_set_get_roundtrip",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-MC-003",
+      "module": "test_scripts.test_memurai_client",
+      "name": "test_tc_mc_003_set_ex_clause",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-MC-004",
+      "module": "test_scripts.test_memurai_client",
+      "name": "test_tc_mc_004_mset_multi_keys",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-MC-005",
+      "module": "test_scripts.test_memurai_client",
+      "name": "test_tc_mc_005_delete_returns_count",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-MC-006",
+      "module": "test_scripts.test_memurai_client",
+      "name": "test_tc_mc_006_scan_iter_uses_scan",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-MC-007",
+      "module": "test_scripts.test_memurai_client",
+      "name": "test_tc_mc_007_pipe_setex_batch_single_subprocess",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-MC-008",
+      "module": "test_scripts.test_memurai_client",
+      "name": "test_tc_mc_008_command_failure_raises",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-MC-009",
+      "module": "test_scripts.test_memurai_client",
+      "name": "test_tc_mc_009_cli_path_missing_raises",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-PI-001",
+      "module": "test_scripts.test_preset_init",
+      "name": "test_tc_pi_001_pom",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-PI-002",
+      "module": "test_scripts.test_preset_init",
+      "name": "test_tc_pi_002_frameworks",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-PI-003",
+      "module": "test_scripts.test_preset_init",
+      "name": "test_tc_pi_003_draft_file",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-RBP-001",
+      "module": "test_scripts.test_redis_batch_prefetch",
+      "name": "test_tc_rbp_001_empty_chain",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-RBP-002",
+      "module": "test_scripts.test_redis_batch_prefetch",
+      "name": "test_tc_rbp_002_30_methods_one_pipe",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-RBP-003",
+      "module": "test_scripts.test_redis_batch_prefetch",
+      "name": "test_tc_rbp_003_chain_summary_key",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-RBP-004",
+      "module": "test_scripts.test_redis_batch_prefetch",
+      "name": "test_tc_rbp_004_sighash_auto_compute",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-RS-001",
+      "module": "test_scripts.test_redis_stats",
+      "name": "test_tc_rs_001_five_key_counts",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-RS-002",
+      "module": "test_scripts.test_redis_stats",
+      "name": "test_tc_rs_002_memory_info",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-RSC-001",
+      "module": "test_scripts.test_redis_self_check",
+      "name": "test_tc_rsc_001_all_pass",
+      "status": "ERROR",
+      "reason": "sqlite3.OperationalError: no such table: method"
+    },
+    {
+      "tc": "TC-RSC-002",
+      "module": "test_scripts.test_redis_self_check",
+      "name": "test_tc_rsc_002_body_mismatch",
+      "status": "ERROR",
+      "reason": "sqlite3.OperationalError: no such table: method"
+    },
+    {
+      "tc": "TC-RSC-003",
+      "module": "test_scripts.test_redis_self_check",
+      "name": "test_tc_rsc_003_no_keys",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SEC-001",
+      "module": "test_scripts.test_sqlite_extract_chain",
+      "name": "test_tc_sec_001_recursive_depth",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SEC-002",
+      "module": "test_scripts.test_sqlite_extract_chain",
+      "name": "test_tc_sec_002_cycle_protection",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SEC-003",
+      "module": "test_scripts.test_sqlite_extract_chain",
+      "name": "test_tc_sec_003_real_schema",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SEC-004",
+      "module": "test_scripts.test_sqlite_extract_chain",
+      "name": "test_tc_sec_004_left_join_count",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SEC-005",
+      "module": "test_scripts.test_sqlite_extract_chain",
+      "name": "test_tc_sec_005_resolve_entry",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SMHS-001",
+      "module": "test_scripts.test_sqlite_multi_hop_search",
+      "name": "test_tc_smhs_001_5hop_20join",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SMHS-002",
+      "module": "test_scripts.test_sqlite_multi_hop_search",
+      "name": "test_tc_smhs_002_multi_sink",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SMHS-003",
+      "module": "test_scripts.test_sqlite_multi_hop_search",
+      "name": "test_tc_smhs_003_custom_sql",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SPS-001",
+      "module": "test_scripts.test_sqlite_pattern_search",
+      "name": "test_tc_sps_001_sql_injection",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SPS-002",
+      "module": "test_scripts.test_sqlite_pattern_search",
+      "name": "test_tc_sps_002_rce",
+      "status": "PASS",
+      "reason": ""
+    },
+    {
+      "tc": "TC-SPS-003",
+      "module": "test_scripts.test_sqlite_pattern_search",
+      "name": "test_tc_sps_003_unknown_pattern",
+      "status": "PASS",
+      "reason": ""
+    }
+  ]
+}

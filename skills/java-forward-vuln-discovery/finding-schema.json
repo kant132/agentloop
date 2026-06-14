@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Java Forward Vuln Finding",
+  "description": "FWD-X subagent 输出的 finding JSON schema。严格遵循此 schema。",
+  "type": "object",
+  "required": ["chain_id", "endpoint", "fqn", "vuln_type", "severity", "evidence", "summary", "mode", "confidence"],
+  "properties": {
+    "chain_id": {
+      "type": "string",
+      "description": "调用链 ID，sha256(endpoint_fqn)[:16]"
+    },
+    "endpoint": {
+      "type": "string",
+      "description": "端点描述，如 POST /api/users/search"
+    },
+    "endpoint_fqn": {
+      "type": "string",
+      "description": "端点方法 fqn"
+    },
+    "fqn": {
+      "type": "string",
+      "description": "问题方法 fqn"
+    },
+    "method_name": {
+      "type": "string",
+      "description": "方法名"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D", "INFO"],
+      "description": "FWD 模式（A=数据流/B=鉴权/C=业务/D=状态/INFO=信息泄露）"
+    },
+    "vuln_type": {
+      "type": "string",
+      "description": "漏洞类型 ID，如 SQL_INJECTION, IDOR, MISSING_AUTH"
+    },
+    "vuln_subtype": {
+      "type": "string",
+      "description": "漏洞子类型，可选"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"],
+      "description": "严重性"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "置信度（0-1）"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "证据，含 file:line 引用，例 [\"UserController.java:42\", \"UserService.java:78\"]"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "中文一句话总结"
+    },
+    "chain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fqn": {"type": "string"},
+          "depth": {"type": "integer"},
+          "node_type": {"type": "string", "enum": ["endpoint", "service", "dao", "data", "external", "framework"]}
+        }
+      },
+      "description": "调用链节点（精简，仅 fqn + depth + node_type，不含完整调用链）"
+    },
+    "judgment": {
+      "type": "object",
+      "description": "判定结果，按 FWD 模式填不同字段",
+      "properties": {
+        "D1_sink": {"type": "string", "description": "FWD-A：危险 sink 类型"},
+        "D1_sanitizer_effective": {"type": "boolean"},
+        "D2_auth_state": {"type": "string", "enum": ["present", "missing", "bypassable"]},
+        "D3_business_rule": {"type": "string", "enum": ["enforced", "missing", "conditional"]},
+        "D3_missing_rule": {"type": "string"},
+        "D4_data_classification": {"type": "string"},
+        "D5_state_change": {"type": "boolean"}
+      }
+    },
+    "business_impact": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "业务影响（中文）"
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "利用前置条件，如 [\"需登录\", \"需内网IP\"]"
+    },
+    "poc_payload": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "PoC payload（验证用）"
+    },
+    "poc_status": {
+      "type": "string",
+      "enum": ["pending", "confirmed_vuln", "confirmed_safe", "inconclusive", "skipped_unreachable", "degraded"],
+      "description": "PoC 状态"
+    },
+    "poc_attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "payload": {"type": "string"},
+          "result": {"type": "string"},
+          "root_cause": {"type": "string"}
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "final"],
+      "description": "落盘状态（3x85 后变 final）"
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "标签，便于检索"
+    },
+    "similar_to_fp": {
+      "type": "string",
+      "description": "如命中假阳反例库，标记"
+    }
+  },
+  "additionalProperties": false
+}
