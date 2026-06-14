@@ -1,0 +1,130 @@
+---
+
+## 用户提供的原始设计对话记录(对话原文保留)
+
+> 以下内容直接从对话记录中保留,作为设计意图溯源。**不要修改这些原文**。
+
+### 对话1: SQL调用链思考(用户原文)
+
+> 这是我对其中一些细节的思考,你看看和现状的对比一下 -- 第一层
+> select n.id from edges e
+>          inner join  nodes n on n.id = e.target
+> where e.kind = 'calls' ;
+>
+> -- 第二层
+>
+> select n.id,n1.id from edges e
+>          inner join edges e1 on e.target = e1.source and e1.kind = 'calls'
+>          inner join  nodes n on n.id = e1.target
+>          inner join  nodes n1 on n1.id = e1.target
+> where e.kind = 'calls' and n.language = 'java';
+>
+> -- 通过id 找到对应的类的方法 , id后面统一做为hashkey;
+> select id,file_path, qualified_name, start_line -1 as start, end_line -1 as end from nodes where id = 'xxxx' and kind = 'method' and language = 'java';
+
+**AI解读**: 这是"分层inner join"思路的具体表达,体现的核心想法:
+- 用分层 JOIN 而不是 CTE 递归
+- nodes.id 作为 hashkey(后面统一做为hashkey)
+- 通过 id 反查方法元信息
+
+### 对话2: 澄清 - 实现思路而非全部(用户原文)
+
+> 需要指定起点,我给你的是实现思路,不是全部,你再反思对比一下
+
+**AI反思**(关键转折): 用户给的是实现思路,不是完整 SQL。AI 之前误解了这一点,需要重新抓本质:
+- CTE RECURSIVE (`脚本/chain/sqlite-extract-chain.py` 第 53-75 行)**已经实现了**用户的"分层inner join"思路
+- 不需要重写,只需补 sink 提取逻辑
+
+### 对话3: 澄清 - 只用 startLine 即可(用户原文)
+
+> 稍等一下,只使用start 行号,文件对应就可以了,$ java -jar target/java-method-call-extractor-1.0.0.jar test-data/SampleService.java test-data
+> [
+>   {"startLine": 9, "methodSignature": "public void addItem(String item)", "calledFQN": "java.util.List.add(item)"},
+>   {"startLine": 9, "methodSignature": "public void addItem(String item)", "calledFQN": "java.io.PrintStream.println(\"Added: \" + item)"},
+>   {"startLine": 14, "methodSignature": "public int countItems()", "calledFQN": "java.util.List.size()"},
+>   {"startLine": 18, "methodSignature": "public void processAll(List<String> input)", "calledFQN": "java.lang.String.length()"},
+>   {"startLine": 18, "methodSignature": "public void processAll(List<String> input)", "calledFQN": "com.example.SampleService.addItem(s.toUpperCase())"},
+>   {"startLine": 18, "methodSignature": "public void processAll(List<String> input)", "calledFQN": "java.lang.String.toUpperCase()"},
+>   {"startLine": 18, "methodSignature": "public void processAll(List<String> input)", "calledFQN": "java.io.PrintStream.println(\"Processed \" + input.size() + \" items\")"},
+>   {"startLine": 18, "methodSignature": "public void processAll(List<String> input)", "calledFQN": "java.util.List.size()"},
+>   {"startLine": 28, "meth…
+
+**AI解读**:
+- Method 关联只用 (file, startLine), method 名不参与匹配(避免 Java 重载干扰)
+- startLine 在文件中唯一(绝大多数情况)
+- startLine 是 1-based(CLI 输出), 而 codegraph `nodes.start_line` 是 0-based(需 +1 对齐)
+- 完整 FQN 信息在 calledFQN 字段
+
+### 对话4: Hashkey 策略选择(用户明确决策)
+
+> **Plan Task 1 的 sig_hash 函数应该按照哪个策略实现?**
+> "A: 改用 nodes.id (推荐)"
+
+**决策影响**:
+- `scanner_utils.py` 的 `sig_hash(fqn, params)` 改名为 `node_hash_key(node_id)` — 规范化 nodes.id 为字符串 key(无 md5)
+- Memurai cache key: `{groupId}:method:{nodes.id}`
+- Chains 文件: `chains/{nodes.id}.json`
+- `attack_surface_scanner.py` 暂保持 md5(留待后续 plan 迁移)
+
+### 对话5: Sink判定策略(用户在 README 中的思考)
+
+> sink点全路径查询,通过这个,tools/java-method-call-extractor-1.0.0.jar ,参考,通过start 和文件名 ,method名字,三者对应进行关联,取到所有非groupId的方法调用作为sink点
+
+**AI解读**(简化版):
+- 默认所有"非 groupId 开头的 calledFQN"都是 sink
+- 80/20 原则, 先跑通流程
+- 后续可加 sink 模式表精准匹配
+
+### 对话6: Method关联三要素(用户在对话中提及)
+
+> 通过start 和文件名 ,method名字,三者对应进行关联
+
+**AI解读**与澄清:
+- 用户提到方法名字参与关联,后来明确**只用 startLine + 文件名即可**
+- Method 名仅作显示用途
+- 关联公式: `(file_path, start_line_1based) → jar_output → calledFQNs`
+
+---
+
+## 用户与 AI 的补充澄清(已达成共识)
+
+### AI 反思1: CTE 就是你想要的
+
+`脚本/chain/sqlite-extract-chain.py` 中的 CTE RECURSIVE(L53-75)本质上就是用户想要的"分层inner join" + 防环路径追踪。不需要重写,只需补 sink 提取逻辑。
+
+### AI 反思2: nodes.id 是 hashkey 的真正载体
+
+用户决策从 md5 改为 nodes.id,意味着:
+- 原 `sig_hash` 函数签名错了(无法计算,因为 nodes.id 不是能算出来的)
+- 应改名为 `node_hash_key(node_id)` 或直接删除
+- 当前 plan 已按 `node_hash_key` 调整(Task 1 产出)
+
+### AI 反思3: method body 获取链路补充
+
+设计文档没说 body 文本怎么获得。用户 SQL 第三段补充了: `(file_path, start_line -1, end_line -1)` 从 nodes 表查出位置,再从源文件 slice 出方法体文本,然后用 `inject_sink_comment` 注入 sink 注释,最后写 Memurai。
+
+### AI 反思4: tools/ 目录路径 bug
+
+调研发现:
+- ❌ `third-tool/` 目录**不存在**
+- ✅ `thrid-tool/` (typo 命名)存在 — 含 javaparser/, arthas/, install.txt
+- ✅ `tools/` (正确命名)存在 — 含 javaparser-service/, attack-surface-scanner/, java-method-call-extractor-1.0.0.jar, jar-analyzer
+
+Plan 中已把所有 `third-tool/` 替换为正确的 `tools/`。
+
+### AI 反思5: 用户恢复状态确认
+
+用户说"设计文档被删了"和恢复相关讨论,最终确认:
+- ✅ 设计文档/暴露面扫描设计.md (已恢复 309 行)
+- ✅ 设计文档/chain-sql-engine.md (本文件,记录对话)
+- ✅ 脚本/ast/scanner_utils.py (已实现 123 行)
+- ⚠️ 部分源文件丢失(scripts/, test_scripts/),无法通过 git 恢复(项目非 git repo)
+
+---
+
+## 文件完整性签名
+
+- 创建时间: scripts-refactor plan 执行期间
+- 最后更新: 2026 年对话澄清之后
+- 内容溯源: 用户对话原文 + AI 反思与共识
+- 用途: 后续 chain-sql-engine plan化 时作为设计依据
