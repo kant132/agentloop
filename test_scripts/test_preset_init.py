@@ -36,7 +36,7 @@ class PresetInitTests(unittest.TestCase):
             self.assertIn("spring-boot", detect_frameworks(src))
 
     def test_tc_pi_003_draft_file(self):
-        """TC-PI-003: CLI 执行后 项目/{groupId}/preset.json.draft 存在。"""
+        """TC-PI-003: CLI 执行后 projects/{groupId}/preset.json.draft 存在。"""
         with tempfile.TemporaryDirectory() as tmp:
             project = os.path.join(tmp, "proj")
             os.makedirs(project)
@@ -46,7 +46,7 @@ class PresetInitTests(unittest.TestCase):
             os.makedirs(src)
             with open(os.path.join(src, "A.java"), "w", encoding="utf-8") as f:
                 f.write("package com.example.x;\nclass A {}")
-            # preset-init 写 "项目/{groupId}/preset.json.draft"（相对 CWD）
+            # preset-init 写 "projects/{groupId}/preset.json.draft"（相对 CWD）
             # 用 chdir 隔离
             cwd_orig = os.getcwd()
             try:

@@ -48,7 +48,7 @@ page.on('response', res => requests.push(`${res.status()} ${res.url()}`));
 
 ## 三、必读
 
-- `行为准则/必读/02-环境感知.md`
+- `conduct/必读/02-环境感知.md`
 - PoC subagent 必读
 
 ## 四、依赖

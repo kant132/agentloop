@@ -5,11 +5,11 @@ description: Java 代码白盒安全审计 Agent Loop 主入口。负责整体�
 
 # Java 白盒安全审计 Agent Loop — 主 skill
 
-> 本文件是 loop 的**主入口与编排规范**。所有 Phase 门控、调度规则、评分细则都引用子 skill 或 `行为准则/` 下的独立文档。
+> 本文件是 loop 的**主入口与编排规范**。所有 Phase 门控、调度规则、评分细则都引用子 skill 或 `conduct/` 下的独立文档。
 
 ## 一、7 大硬约束（必读）
 
-启动本 skill 之前，**必须**先读 `行为准则/必读/` 7 篇：
+启动本 skill 之前，**必须**先读 `conduct/必读/` 7 篇：
 
 1. `01-避免重复劳动.md` — Memurai 批预取（走 memurai-cli）+ sha256
 2. `02-环境感知.md` — PoC 三态门控
@@ -56,7 +56,7 @@ Phase 6 汇总与自优化循环
 
 ### 3.4 工具链
 - **Memurai**（Windows Redis 兼容，CLI 路径 `C:\Program Files\Memurai\memurai-cli.exe`）— 批预取 + 跨 subagent 共享
-- Python 3 + `脚本/` 下的工具（封装在 `脚本/redis/memurai_client.py`）
+- Python 3 + `scripts/` 下的工具（封装在 `scripts/redis/memurai_client.py`）
 - `codegraph` CLI（SQLite 直查）
 
 ## 四、Orchestrator 工作流（agent 控制，非脚本）
@@ -66,7 +66,7 @@ Phase 6 汇总与自优化循环
 ```python
 def start_loop(project_root, group_id):
     # 1. 启动检查
-    assert read("行为准则/必读/")  # 6 篇必读
+    assert read("conduct/必读/")  # 6 篇必读
     
     # 2. codegraph 初始化
     run("codegraph init && codegraph index", cwd=project_root)
@@ -77,10 +77,10 @@ def start_loop(project_root, group_id):
     assert memurai_ping()  # 走 memurai-cli.exe -h localhost -p 6379 PING
     
     # 4. 自检
-    run("python 脚本/redis/redis-self-check.py --group-id {group_id} ...")
+    run("python scripts/redis/redis-self-check.py --group-id {group_id} ...")
     
     # 5. 加载项目特有知识
-    project_knowledge = read("项目/{group_id}/")  # 如不存在则从 _template 复制
+    project_knowledge = read("projects/{group_id}/")  # 如不存在则从 _template 复制
     
     # 6. 进入 Phase 1
     phase1(project_root, group_id)
@@ -109,7 +109,7 @@ def start_loop(project_root, group_id):
   └→ 三哲学自检（马斯克/康德/苏格拉底）必含
 ```
 
-详见 `rules/02-scoring.md`（细化） + `行为准则/必读/06-三哲学自检模板.md`。
+详见 `rules/02-scoring.md`（细化） + `conduct/必读/06-三哲学自检模板.md`。
 
 ## 五、5 项结束条件
 
@@ -134,6 +134,6 @@ def start_loop(project_root, group_id):
 | 预置规则 | `rules/07-preset-rules.md` | groupId / 框架 / 注解 / 包白名单（加速扫描） |
 | 子 skill 入口 | `../java-forward-vuln-discovery/SKILL.md` | Phase 5 |
 | 威胁建模 | `../threat-model-analyst/SKILL.md` | Phase 2 |
-| 行为规范 | `../../../行为准则/必读/` | 6 篇硬约束 |
-| 漏洞类型库 | `../../../类型/` | FWD-X 判定基础 |
-| 工具脚本 | `../../../脚本/` | Python 工具 |
+| 行为规范 | `../../../conduct/必读/` | 6 篇硬约束 |
+| 漏洞类型库 | `../../../types/` | FWD-X 判定基础 |
+| 工具脚本 | `../../../scripts/` | Python 工具 |

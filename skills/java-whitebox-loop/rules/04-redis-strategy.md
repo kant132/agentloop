@@ -3,7 +3,7 @@
 > 详细 key 设计、TTL、批预取、一致性自检
 >
 > **运行时通过 `C:\Program Files\Memurai\memurai-cli.exe` 访问**（不再依赖 pip install redis）。
-> 封装脚本：`脚本/redis/memurai_client.py`（提供 set/get/mset/setex/expire/delete/scan_iter/ping/info）
+> 封装脚本：`scripts/redis/memurai_client.py`（提供 set/get/mset/setex/expire/delete/scan_iter/ping/info）
 
 ## 一、Key Schema（前缀：项目隔离）
 
@@ -47,7 +47,7 @@ audit:global
 
 **subagent 启动前**：
 ```bash
-python 脚本/redis/redis-batch-prefetch.py \
+python scripts/redis/redis-batch-prefetch.py \
   --chain chain.json \
   --group-id com.example.x \
   --commit HEAD
@@ -66,7 +66,7 @@ python 脚本/redis/redis-batch-prefetch.py \
 ## 四、一致性自检（启动时）
 
 ```bash
-python 脚本/redis/redis-self-check.py \
+python scripts/redis/redis-self-check.py \
   --group-id com.example.x \
   --commit HEAD \
   --codegraph-db codegraph.db
@@ -92,7 +92,7 @@ python 脚本/redis/redis-self-check.py \
 
 ## 七、性能与限制
 
-封装层（`脚本/redis/memurai_client.py`）充分利用 memurai-cli 的高阶特性：
+封装层（`scripts/redis/memurai_client.py`）充分利用 memurai-cli 的高阶特性：
 
 | 场景 | 实现 | 子进程次数 |
 |------|------|-----------|

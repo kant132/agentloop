@@ -9,14 +9,14 @@
 | 项目 groupId | 需扫描全 pom.xml 推断 | 启动时填入，直接用 |
 | 框架识别 | 需扫依赖、注解、配置 | 启动时填入 `spring-boot`，跳过识别 |
 | 自定义注解 | 需扫所有 @Xxx 找内部注解 | 启动时填入 `@Inner, @OpenApi` |
-| 业务规则特例 | 需人工总结后填入 | 启动时从 `项目/{groupId}/` 加载 |
+| 业务规则特例 | 需人工总结后填入 | 启动时从 `projects/{groupId}/` 加载 |
 | 包前缀 | 需统计 import 找主包 | 启动时填入 `com.example` |
 
 **加速效果**：每端点节省 5-10 秒 = 200 端点 = 节省 15-30 分钟。
 
 ## 二、预置规则 Schema
 
-存到 `项目/{groupId}/preset.json`：
+存到 `projects/{groupId}/preset.json`：
 
 ```json
 {
@@ -83,10 +83,10 @@
     "com.fasterxml.jackson."
   ],
   "tech_stack_vuln_whitelist": {
-    "spring-boot": ["类型/注入类/SQL注入.md", "类型/鉴权类/缺失鉴权.md"],
-    "spring-data-jpa": ["类型/注入类/SQL注入.md"],
-    "dubbo": ["类型/反序列化/Java原生反序列化.md"],
-    "kafka": ["类型/反序列化/Java原生反序列化.md"]
+    "spring-boot": ["types/注入类/SQL注入.md", "types/鉴权类/缺失鉴权.md"],
+    "spring-data-jpa": ["types/注入类/SQL注入.md"],
+    "dubbo": ["types/反序列化/Java原生反序列化.md"],
+    "kafka": ["types/反序列化/Java原生反序列化.md"]
   }
 }
 ```
@@ -95,7 +95,7 @@
 
 ```python
 def load_preset(group_id):
-    preset_path = f"项目/{group_id}/preset.json"
+    preset_path = f"projects/{group_id}/preset.json"
     if not exists(preset_path):
         return None  # 启动扫描识别模式
     
@@ -124,7 +124,7 @@ def load_preset(group_id):
 - 直接：`preset.framework_skip_packages` → 不进入这些包的链
 
 ### 4.5 漏洞类型白名单加速
-- 无需：加载全部 `类型/` 24 个文件
+- 无需：加载全部 `types/` 24 个文件
 - 直接：`preset.tech_stack_vuln_whitelist[primary]` → 只加载相关子集
 
 ## 五、缺失时的回退
@@ -138,7 +138,7 @@ def auto_detect_preset(project_root):
     # 2. 扫 src/main/java 找主包前缀
     # 3. 扫 import 找主流框架
     # 4. 扫 @Xxx 找候选自定义注解
-    # 5. 写项目/{groupId}/preset.json.draft（待人工确认）
+    # 5. 写projects/{groupId}/preset.json.draft（待人工确认）
 ```
 
 ## 六、跨项目共享
@@ -154,7 +154,7 @@ def auto_detect_preset(project_root):
 |------|---------|---------|
 | 写入时机 | 启动前 + 第一次扫描后 | 每轮 Loop 结束 |
 | 内容 | 项目元信息（静态） | 经验教训（动态） |
-| 路径 | `项目/{groupId}/preset.json` | `loop_audit/知识沉淀-round{N}.md` |
+| 路径 | `projects/{groupId}/preset.json` | `loop_audit/知识沉淀-round{N}.md` |
 | 加载 | orchestrator 启动时 | FWD subagent 启动时 |
 | 误用 | 当作"事实"使用 | 当作"参考"使用 |
 
@@ -162,7 +162,7 @@ def auto_detect_preset(project_root):
 
 ```bash
 # 第一次扫描前生成草案
-python 脚本/audit/preset-init.py --project-root ../target-project --group-id com.example.x
-# 输出：项目/com.example.x/preset.json.draft
+python scripts/audit/preset-init.py --project-root ../target-project --group-id com.example.x
+# 输出：projects/com.example.x/preset.json.draft
 # 人工 review 后改名为 preset.json
 ```

@@ -62,7 +62,7 @@
 2. 枚举 REST / RPC / Servlet / WebSocket / GraphQL / MQ / 定时任务入口
 3. 提取方法签名、参数、所属 Controller、保护状态（**初判**）
 4. 与 02-全景报告交叉对账
-5. **L1 端点级剪枝**（来自 `行为准则/必读/07`）：
+5. **L1 端点级剪枝**（来自 `conduct/必读/07`）：
    - 应用 7 条 L1 规则（无参数 / 数字参数 / Filter 覆盖 / 内部接口 / 健康检查 / API 文档 / 未识别）
    - 命中 → 写 `loop_audit/pruning-log.jsonl` + 跳过 Phase 5
    - 不命中 → 进入 Phase 5 分析
@@ -76,7 +76,7 @@
 - `loop_audit/external_endpoints.jsonl`
 - `loop_audit/外部调用点清单.md`
 - `loop_audit/pruning-log.jsonl`（被剪枝的端点）
-- `项目/{groupId}/preset.json`（如缺失则用 `preset-init.py` 生成草案）
+- `projects/{groupId}/preset.json`（如缺失则用 `preset-init.py` 生成草案）
 
 **流转**：端点清单完整 + 剪枝桶 + 优先级分桶 → Phase 5
 

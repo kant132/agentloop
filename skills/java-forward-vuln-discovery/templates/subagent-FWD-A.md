@@ -20,13 +20,13 @@
 ## 必读
 
 启动时必读：
-- `行为准则/必读/01-避免重复劳动.md`
-- `行为准则/必读/04-中文输出硬约束.md`
-- `行为准则/必读/05-不写修复硬约束.md`
-- `行为准则/必读/07-剪枝逻辑硬约束.md` — **L2 链级每层消毒检查**
-- `类型/注入类/SQL注入.md`（及同类，按需加载）
-- `类型/反序列化/`
-- `类型/文件操作/`
+- `conduct/必读/01-避免重复劳动.md`
+- `conduct/必读/04-中文输出硬约束.md`
+- `conduct/必读/05-不写修复硬约束.md`
+- `conduct/必读/07-剪枝逻辑硬约束.md` — **L2 链级每层消毒检查**
+- `types/注入类/SQL注入.md`（及同类，按需加载）
+- `types/反序列化/`
+- `types/文件操作/`
 - `finding-schema.json`
 
 ## 输入
@@ -42,7 +42,7 @@
   ],
   "chain_id": "abc123",
   "prefetch_key": "audit:gid:commit:ch:prefetch:abc123",
-  "rule_files": ["类型/注入类/SQL注入.md", "类型/反序列化/Java原生反序列化.md"]
+  "rule_files": ["types/注入类/SQL注入.md", "types/反序列化/Java原生反序列化.md"]
 }
 ```
 
@@ -63,7 +63,7 @@ GET audit:{gid}:commit:{ch}:method:{fqn}#{sigHash}
 
 1. **数据流识别**：上游传给 N 什么值？
 2. **消毒检测**：N 内部对该值做了什么？
-   - 调用了消毒器？→ 检查 `行为准则/必读/07` § 3.2 清单
+    - 调用了消毒器？→ 检查 `conduct/必读/07` § 3.2 清单
      - PreparedStatement + setXxx / MyBatis #{} / Hibernate setParameter
      - HTML Encode / URL Encode
      - Path.normalize / FilenameUtils.getName
@@ -175,4 +175,4 @@ SET audit:{gid}:commit:{ch}:finding:{chainId}:draft
 - [ ] chain 数组不含完整调用链，仅节点信息
 - [ ] 无 `remediation` / `fix` / `how_to_fix` 字段
 - [ ] `mode` = "A"
-- [ ] `vuln_type` 在 `类型/注入类/` 列表中
+- [ ] `vuln_type` 在 `types/注入类/` 列表中

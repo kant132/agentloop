@@ -30,7 +30,7 @@
 - 1 小时无回复 → kill
 - kill 前 dump 进度到 Memurai
 - 失败 subagent 写 `loop_audit/feedback/subagent-failures.jsonl`
-- 同类失败 ≥ 3 次 → 沉淀到 `行为准则/经验/`
+- 同类失败 ≥ 3 次 → 沉淀到 `conduct/经验/`
 
 ## 四、详细策略
 

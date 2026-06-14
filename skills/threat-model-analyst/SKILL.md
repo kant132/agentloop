@@ -16,7 +16,7 @@ description: 威胁建模分析子 skill。Phase 2 必加。执行 STRIDE + 攻�
 
 ## 二、必读
 
-- `行为准则/必读/04-中文输出硬约束.md`
+- `conduct/必读/04-中文输出硬约束.md`
 
 ## 三、输入
 

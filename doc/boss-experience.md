@@ -252,7 +252,7 @@ ps -ef | grep opencode | awk '{print $2}' | xargs kill -9 2>/dev/null
 cd "D:/wiki/good-skill/agentloop"
 MAX_ROUNDS=$((1 + $(ls D:/code/WebGoat-2025.3/loop_audit/loop-log/cross-50r/ | grep -c "round.*json")))
 MAX_ROUNDS=$((MAX_ROUNDS > 50 ? 50 : MAX_ROUNDS))
-python 脚本/audit/cross-agent-50r.py 2>&1 | tail -20
+python scripts/audit/cross-agent-50r.py 2>&1 | tail -20
 
 # 4. 看结果
 cat D:/code/WebGoat-2025.3/loop_audit/loop-log/cross-50r/summary.json
@@ -345,10 +345,10 @@ KEEP 模式（不删 loop 结果）：
 | `doc/SDD.md` | 软件设计文档（opencode 不读）|
 | `doc/TDD.md` | 测试设计文档 |
 | `doc/atomic-requirements.md` | 60+ 条原子需求 |
-| `脚本/audit/cross-agent-50r.py` | 50 轮 daemon（**老板唯一脚本**）|
-| `脚本/redis/memurai_client.py` | memurai 封装（**老板写的**基础设施，opencode 调）|
-| `脚本/audit/verify-endpoint-coverage.py` | P5.4 校验器（**老板写的**）|
-| `脚本/audit/batch-generate-route-reports.py` | 批量生成器（**老板写的**，开 opencode 用）|
+| `scripts/audit/cross-agent-50r.py` | 50 轮 daemon（**老板唯一脚本**）|
+| `scripts/redis/memurai_client.py` | memurai 封装（**老板写的**基础设施，opencode 调）|
+| `scripts/audit/verify-endpoint-coverage.py` | P5.4 校验器（**老板写的**）|
+| `scripts/audit/batch-generate-route-reports.py` | 批量生成器（**老板写的**，开 opencode 用）|
 
 > **重要**：上面 3 个脚本是**工具基础设施**（不是任务），可保留。但**任何新的 task-specific 脚本**必须 opencode 写。
 
@@ -403,10 +403,10 @@ P5.4 只检查**数量**：`hi + lo == ep_lines`。**它不检查内容质量**�
 
 ```bash
 # 1. P5.4 + 矛盾扫
-python 脚本/audit/audit-poc-quality.py
+python scripts/audit/audit-poc-quality.py
 
 # 2. 20% OUTPUT 文件抽样（用户 2026-06-13 修正：20% 而非 30%）
-python 脚本/audit/sample-poc-for-boss.py \
+python scripts/audit/sample-poc-for-boss.py \
   --poc-dir D:/code/WebGoat-2025.3/loop_audit/routes/poc \
   --output-dir D:/code/WebGoat-2025.3/loop_audit/loop-log/cross-50r \
   --round-label "Round N" \
@@ -414,7 +414,7 @@ python 脚本/audit/sample-poc-for-boss.py \
 # 输出 boss-samples.md（13 样本）+ process-samples.md（5% opencode 过程）
 
 # 3. 3 哲学自检（马斯克/康德/苏格拉底）
-python 脚本/audit/three-philosophy-check.py \
+python scripts/audit/three-philosophy-check.py \
   --poc-dir D:/code/WebGoat-2025.3/loop_audit/routes/poc \
   --output D:/code/WebGoat-2025.3/loop_audit/loop-log/cross-50r/round{N}-philosophy.md
 # 老板必手填 top 5 / bottom 5 / 不知道的 3 件事
@@ -516,11 +516,11 @@ COMMAND = """
 
 ```bash
 # 文件内标记
-python 脚本/redis/redis-status-tracker.py mark-finished-in-file \
+python scripts/redis/redis-status-tracker.py mark-finished-in-file \
   --path D:/.../poc/是问题_严重_Ping.logRequest-sink-round007.md
 
 # Redis 标记
-python 脚本/redis/redis-status-tracker.py mark-file \
+python scripts/redis/redis-status-tracker.py mark-file \
   --fqn "com.example.UserController" --method search \
   --sig-hash a1b2c3d4 --status finished \
   --chain-count 5 \
@@ -538,7 +538,7 @@ python 脚本/redis/redis-status-tracker.py mark-file \
 - HUNG: 跑了很久无 output
 
 ```bash
-python 脚本/audit/sample-poc-for-boss.py \
+python scripts/audit/sample-poc-for-boss.py \
   --poc-dir D:/.../routes/poc \
   --output-dir D:/.../loop-log/cross-50r \
   --round-label "Round N" \
@@ -552,7 +552,7 @@ python 脚本/audit/sample-poc-for-boss.py \
 老板每轮必跑 3 哲学（马斯克/康德/苏格拉底），并手填模板：
 
 ```bash
-python 脚本/audit/three-philosophy-check.py \
+python scripts/audit/three-philosophy-check.py \
   --poc-dir D:/.../routes/poc \
   --output D:/.../loop-log/cross-50r/round{N}-philosophy.md
 # 老板读输出，必手填：
@@ -744,7 +744,7 @@ COMMAND += """
 新增 **第 7 项 CIA 证据检查**：
 
 ```bash
-python 脚本/audit/verify-opencode-compliance.py --diag-dir .../diag
+python scripts/audit/verify-opencode-compliance.py --diag-dir .../diag
 # 输出新增：
 #   --- CIA 证据检查（200 OK ≠ 成功，必证明 CIA 影响）---
 #   [OK] CIA 证据: C=4 I=0 A=1 (total 5 个)

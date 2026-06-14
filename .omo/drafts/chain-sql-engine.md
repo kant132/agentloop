@@ -54,7 +54,7 @@ WHERE file_path = :file
 
 ---
 
-### 2. `脚本/chain/sqlite-extract-chain.py` (已存在, CTE 模式正确)
+### 2. `scripts/chain/sqlite-extract-chain.py` (已存在, CTE 模式正确)
 
 **已实现**分层递归查询,就是用户想要的"分层 inner join":
 ```sql
@@ -74,7 +74,7 @@ SELECT id, qualified_name, depth, file_path, start_line FROM chain ORDER BY dept
 
 ---
 
-### 3. `脚本/chain/sqlite-multi-hop-search.py` (已存在, **确认有问题**)
+### 3. `scripts/chain/sqlite-multi-hop-search.py` (已存在, **确认有问题**)
 
 **L3 人工批注**: "这个实现有问题,应该是分层innerjoin"
 
@@ -88,7 +88,7 @@ SELECT id, qualified_name, depth, file_path, start_line FROM chain ORDER BY dept
 
 ---
 
-### 4. `tools/attack-surface-scanner/attack_surface_scanner.py` (即将在重构中迁入脚本/ast/)
+### 4. `tools/attack-surface-scanner/attack_surface_scanner.py` (即将在重构中迁入scripts/ast/)
 
 现状: 用 ast-grep 扫 Java 注解,产出 (注解FQN, file, line), 用 md5 当 hashkey。
 目标: 改用 codegraph nodes.id 当 hashkey,需要补一步反查:
@@ -178,11 +178,11 @@ def extract_method_calls_for_node(node_id, codegraph_db, groupId, jar_path):
 ## 范围边界(本次 draft 不实施, 记录用途)
 
 ### 本次 draft (chain-sql-engine) 范围 (未来)
-- ✏️ 新建 `脚本/chain/method_calls_extractor.py`(Python 封装 jar 调用 + file/startLine 关联)
-- ✏️ 新建 `脚本/chain/chain_builder.py`(整合 sqlite-extract-chain + method_calls_extractor + sink 提取 + Memurai 写入 + chains JSON 输出)
-- ✏️ 调整 `脚本/ast/attack_surface_scanner.py` 输出节点 id 而非 md5 hash(需要 codegraph 反查)
-- ❌ 删除 `脚本/chain/sqlite-multi-hop-search.py`(LEFT JOIN 模板,已被 CTE 完全替代)
-- ❌ 删除 `脚本/ast/scanner_utils.py` 中的 `node_hash_key`(直接用 nodes.id,不需要规范化函数)
+- ✏️ 新建 `scripts/chain/method_calls_extractor.py`(Python 封装 jar 调用 + file/startLine 关联)
+- ✏️ 新建 `scripts/chain/chain_builder.py`(整合 sqlite-extract-chain + method_calls_extractor + sink 提取 + Memurai 写入 + chains JSON 输出)
+- ✏️ 调整 `scripts/ast/attack_surface_scanner.py` 输出节点 id 而非 md5 hash(需要 codegraph 反查)
+- ❌ 删除 `scripts/chain/sqlite-multi-hop-search.py`(LEFT JOIN 模板,已被 CTE 完全替代)
+- ❌ 删除 `scripts/ast/scanner_utils.py` 中的 `node_hash_key`(直接用 nodes.id,不需要规范化函数)
 
 ### 本 draft 明确不做
 - ❌ 不引入新数据库(继续用 SQLite + Memurai)
@@ -196,7 +196,7 @@ def extract_method_calls_for_node(node_id, codegraph_db, groupId, jar_path):
 ```
 scripts-refactor (当前)
 ├── 建立 scanner_utils.py (含 node_hash_key, inject_sink_comment, classify_route, validate)
-├── 把 tools/attack-surface-scanner/*.py 迁入脚本/ast/(暂不改 hashkey 策略)
+├── 把 tools/attack-surface-scanner/*.py 迁入scripts/ast/(暂不改 hashkey 策略)
 └── thrid-tool typo 合并到 tools/ → 修正所有引用
     │
     ▼ (scripts-refactor 完成后)

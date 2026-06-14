@@ -19,16 +19,16 @@ description: Java 项目前向漏洞发现子 skill。从外部端点出发，�
 
 ## 二、必读（启动前）
 
-- `行为准则/必读/01-避免重复劳动.md` — Memurai 批预取（走 memurai-cli.exe）
-- `行为准则/必读/03-工具选择边界.md` — grep / codegraph SQL / ast-grep / Memurai
-- `行为准则/必读/04-中文输出硬约束.md`
-- `行为准则/必读/05-不写修复硬约束.md`
-- `行为准则/必读/07-剪枝逻辑硬约束.md` — **L1 端点级 + L2 链级每层消毒 + L3 跨轮次**
-- `类型/攻击模式模板.json` — 业务×攻击模式映射
+- `conduct/必读/01-避免重复劳动.md` — Memurai 批预取（走 memurai-cli.exe）
+- `conduct/必读/03-工具选择边界.md` — grep / codegraph SQL / ast-grep / Memurai
+- `conduct/必读/04-中文输出硬约束.md`
+- `conduct/必读/05-不写修复硬约束.md`
+- `conduct/必读/07-剪枝逻辑硬约束.md` — **L1 端点级 + L2 链级每层消毒 + L3 跨轮次**
+- `types/攻击模式模板.json` — 业务×攻击模式映射
 - `sql-cheatsheet.md` — codegraph SQLite 语法
 - `finding-schema.json` — 输出 JSON schema
 - `redis-key-schema.json` — Memurai key 设计
-- `项目/{groupId}/preset.json` — 预置规则（groupId / 框架 / 注解）
+- `projects/{groupId}/preset.json` — 预置规则（groupId / 框架 / 注解）
 
 ## 三、4 种 FWD 模式（每端点并行启动 4 个 subagent）
 
@@ -50,7 +50,7 @@ P2 端点 = 必跑 A
 
 ```python
 def analyze_endpoint(endpoint_fqn, group_id, commit, priority):
-    # 0. L1 端点级剪枝（来自 行为准则/必读/07）
+    # 0. L1 端点级剪枝（来自 conduct/必读/07）
     prune = l1_prune(endpoint_fqn)
     if prune and not human_override:
         # 记录剪枝日志，跳过整个端点
@@ -58,16 +58,16 @@ def analyze_endpoint(endpoint_fqn, group_id, commit, priority):
         return None
 
     # 1. SQLite 一次查整条调用链（CTE RECURSIVE + 环检测）
-    chain = run_script("脚本/chain/sqlite-extract-chain.py",
+    chain = run_script("scripts/chain/sqlite-extract-chain.py",
                        db="codegraph.db", entry=endpoint_fqn, depth=20)
 
     # 2. 启动级 Memurai 自检（一次性）
     if not already_checked(group_id, commit):
-        run_script("脚本/redis/redis-self-check.py", ...)
+        run_script("scripts/redis/redis-self-check.py", ...)
 
     # 3. 批量预取 chain 方法到 Memurai
     chain_id = sha256(endpoint_fqn)[:16]
-    run_script("脚本/redis/redis-batch-prefetch.py",
+    run_script("scripts/redis/redis-batch-prefetch.py",
                chain=chain, group_id=group_id, commit=commit, chain_id=chain_id)
 
     # 4. 启动 4 个 FWD subagent（A+B+C+D）+ FWD-INFO（5 个）
@@ -82,7 +82,7 @@ def analyze_endpoint(endpoint_fqn, group_id, commit, priority):
                     "chain": chain,
                     "chain_id": chain_id,
                     "prefetch_key": f"audit:{group_id}:commit:{commit}:prefetch:{chain_id}",
-                    "rule_files": load_relevant_types(mode),  # 从 类型/ 加载
+                    "rule_files": load_relevant_types(mode),  # 从 types/ 加载
                     "pruning": prune,  # 告知 subagent 已做 L1 剪枝
                 }
             )
@@ -97,7 +97,7 @@ def analyze_endpoint(endpoint_fqn, group_id, commit, priority):
         record_score(chain_id, round_n, score)
 
     # 7. 3x85 检查 + 落盘
-    run_script("脚本/audit/finding-promoter.py", chain_id, check=True)
+    run_script("scripts/audit/finding-promoter.py", chain_id, check=True)
 ```
 
 ### 4.2 L1 端点级剪枝（前置）
@@ -144,7 +144,7 @@ def l1_prune(endpoint_fqn):
 - 即便该端点被 P-L1-001 / P-L1-002 剪过
 
 ```bash
-python 脚本/audit/force-rescan.py \
+python scripts/audit/force-rescan.py \
   --endpoint "GET /api/foo" \
   --modes "C,D" \
   --group-id com.example.x
@@ -163,27 +163,27 @@ python 脚本/audit/force-rescan.py \
 ## 五、4 模式详细说明
 
 ### 5.1 FWD-A（数据流）
-- 加载：`类型/注入类/` + `类型/反序列化/` + `类型/文件操作/` 部分
+- 加载：`types/注入类/` + `types/反序列化/` + `types/文件操作/` 部分
 - 判定：每节点过 D1（危险 sink）+ sanitizer 检测
 - 终止：命中 sink / 剪枝 / 深度 20
 
 ### 5.2 FWD-B（鉴权）
-- 加载：`类型/鉴权类/`
+- 加载：`types/鉴权类/`
 - 判定：每节点过 D2（鉴权状态）
 - 终止：完整覆盖 / 找到所有条件分支 / 深度 20
 
 ### 5.3 FWD-C（业务）
-- 加载：`类型/业务逻辑/`（9 类业务域）
+- 加载：`types/业务逻辑/`（9 类业务域）
 - 判定：每节点过 D3（业务规则强制）
 - 终止：业务流结束 / 深度 20
 
 ### 5.4 FWD-D（状态）
-- 加载：`类型/业务逻辑/状态机绕过.md` + `支付绕过.md`
+- 加载：`types/业务逻辑/状态机绕过.md` + `支付绕过.md`
 - 判定：状态转换合法性
 - 终止：状态闭环 / 深度 20
 
 ### 5.5 FWD-INFO
-- 加载：`类型/信息泄露/`
+- 加载：`types/信息泄露/`
 - 判定：返回值 / 日志 / 异常
 - 终止：找到所有出口 / 深度 20
 
@@ -204,7 +204,7 @@ python 脚本/audit/force-rescan.py \
 
 subagent 启动后**不直接调 codegraph**，全程读 Memurai。
 
-> 工具封装在 `脚本/redis/memurai_client.py`，统一通过 `C:\Program Files\Memurai\memurai-cli.exe` 调用；
+> 工具封装在 `scripts/redis/memurai_client.py`，统一通过 `C:\Program Files\Memurai\memurai-cli.exe` 调用；
 > 不依赖 `pip install redis`。
 
 详见 `rules/04-redis-strategy.md`（父 skill）。
@@ -230,6 +230,6 @@ subagent 启动后**不直接调 codegraph**，全程读 Memurai。
 - `finding-schema.json` — finding 输出 schema
 - `redis-key-schema.json` — Memurai key 设计（保留文件名兼容）
 - `templates/` — 4 + 1 = 5 个 subagent prompt 模板
-- `../../../类型/` — 漏洞类型库
-- `../../../脚本/` — Python 工具
-- `../../../行为准则/必读/` — 硬约束
+- `../../../types/` — 漏洞类型库
+- `../../../scripts/` — Python 工具
+- `../../../conduct/必读/` — 硬约束

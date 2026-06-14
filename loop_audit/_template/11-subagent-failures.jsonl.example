@@ -3,7 +3,7 @@
 > **存放位置**：`loop_audit/feedback/subagent-failures.jsonl`
 >
 > **触发场景**：subagent 失败 / 超时 / 解析错误
-> **同类失败 ≥ 3 次** → 沉淀到 `行为准则/经验/`
+> **同类失败 ≥ 3 次** → 沉淀到 `conduct/经验/`
 
 每行一个 JSON：
 

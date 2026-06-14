@@ -231,9 +231,9 @@ WHERE m0.kind = 'method' AND m0.qualified_name = :entry_fqn
 
 ## 六、参考
 
-- 工具脚本: `脚本/chain/sqlite-extract-chain.py`（CTE RECURSIVE + LEFT JOIN 双模式）
-- 工具脚本: `脚本/chain/sqlite-pattern-search.py`（6 类 sink 模式）
-- 工具脚本: `脚本/chain/sqlite-multi-hop-search.py`（5 模板最多 20 JOIN）
+- 工具脚本: `scripts/chain/sqlite-extract-chain.py`（CTE RECURSIVE + LEFT JOIN 双模式）
+- 工具脚本: `scripts/chain/sqlite-pattern-search.py`（6 类 sink 模式）
+- 工具脚本: `scripts/chain/sqlite-multi-hop-search.py`（5 模板最多 20 JOIN）
 - 端到端测试: `test_webgoat.py`（6 步测试套件）
 - 测试报告: `test-output/test-report.json`
 - codegraph 文档: `doc/codegraph-usage-guide.md`

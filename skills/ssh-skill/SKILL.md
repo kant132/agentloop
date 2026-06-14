@@ -60,7 +60,7 @@ ssh -L 13306:localhost:3306 user@host
 
 ## 三、必读
 
-- `行为准则/必读/02-环境感知.md`（PoC 三态门控）
+- `conduct/必读/02-环境感知.md`（PoC 三态门控）
 
 ## 四、依赖
 

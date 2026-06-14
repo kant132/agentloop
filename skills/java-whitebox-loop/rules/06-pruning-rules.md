@@ -1,6 +1,6 @@
 # 剪枝规则（详细）
 
-> 7 条主剪枝规则 + 每层消毒检查 + 跨轮次剪枝。详见 `行为准则/必读/07-剪枝逻辑硬约束.md`。
+> 7 条主剪枝规则 + 每层消毒检查 + 跨轮次剪枝。详见 `conduct/必读/07-剪枝逻辑硬约束.md`。
 > 本文件是规则定义与命中统计。
 
 ## 一、7 条 L1 端点级剪枝规则
@@ -17,7 +17,7 @@
 
 ## 二、L2 链级剪枝（每层消毒）
 
-详见 `行为准则/必读/07-剪枝逻辑硬约束.md` § 三。
+详见 `conduct/必读/07-剪枝逻辑硬约束.md` § 三。
 
 每节点判定：
 1. 数据流是什么？
@@ -67,10 +67,10 @@ tail -30 loop_audit/pruning-log.jsonl
 
 ```bash
 # 列出被剪枝的端点
-python 脚本/audit/list-pruned.py --group-id com.example.x
+python scripts/audit/list-pruned.py --group-id com.example.x
 
 # 强制重扫
-python 脚本/audit/force-rescan.py \
+python scripts/audit/force-rescan.py \
   --endpoint "GET /api/foo" \
   --modes "C,D" \
   --group-id com.example.x

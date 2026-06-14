@@ -153,7 +153,7 @@
   r = prefetch_chain(cli, [], "g", "c", "chain-x")
   self.assertEqual(r["methods_prefetched"], 0); cli.pipe_setex_batch.assert_not_called()
   ```
-- **真实场景引用**：空项目/无效端点的优雅降级
+- **真实场景引用**：空projects/无效端点的优雅降级
 
 ### TC-RBP-002: 30 个方法走 --pipe 一次
 - **目的**：30 个方法的 chain 触发 1 次 `pipe_setex_batch`
@@ -591,10 +591,10 @@
 - **真实场景引用**：P2.3「输出技术栈」
 
 ### TC-PI-003: 输出 .draft 文件
-- **目的**：CLI 执行后 `项目/{groupId}/preset.json.draft` 存在
+- **目的**：CLI 执行后 `projects/{groupId}/preset.json.draft` 存在
 - **前置条件**：tmp project 含 pom.xml 和 src
 - **输入**：`python preset-init.py --project-root tmp`
-- **预期**：`Path("项目/g/preset.json.draft").exists()`
+- **预期**：`Path("projects/g/preset.json.draft").exists()`
 - **实现片段**：
   ```python
   r = subprocess.run([sys.executable,"preset-init.py","--project-root",str(tmp_project)], capture_output=True)
@@ -612,9 +612,9 @@
 import os, sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, os.path.join(ROOT, "脚本"))
-sys.path.insert(0, os.path.join(ROOT, "脚本/redis"))
-sys.path.insert(0, os.path.join(ROOT, "脚本/chain"))
-sys.path.insert(0, os.path.join(ROOT, "脚本/audit"))
+sys.path.insert(0, os.path.join(ROOT, "scripts/redis"))
+sys.path.insert(0, os.path.join(ROOT, "scripts/chain"))
+sys.path.insert(0, os.path.join(ROOT, "scripts/audit"))
 
 FIXTURE_DB = os.path.join(ROOT, "doc/fixtures/codegraph-fake.db")
 ```

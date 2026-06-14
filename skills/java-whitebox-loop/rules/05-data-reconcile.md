@@ -23,10 +23,10 @@
 
 → 端点×方法 笛卡尔积 = N 个报告，全部去 `routes/{高风险端点,中低险端点}/`
 
-**校验脚本**：`脚本/audit/verify-endpoint-coverage.py`
+**校验脚本**：`scripts/audit/verify-endpoint-coverage.py`
 
 ```bash
-python 脚本/audit/verify-endpoint-coverage.py \
+python scripts/audit/verify-endpoint-coverage.py \
   --endpoints loop_audit/external_endpoints/端点.jsonl \
   --high-risk-dir loop_audit/routes/高风险端点/ \
   --mid-low-risk-dir loop_audit/routes/中低险端点/
@@ -50,14 +50,14 @@ python 脚本/audit/verify-endpoint-coverage.py \
 
 ```bash
 # 主对账（item 1-7, +9）
-python 脚本/audit/data-reconcile.py \
+python scripts/audit/data-reconcile.py \
   --findings loop_audit/findings.jsonl \
   --endpoints loop_audit/external_endpoints/端点.jsonl \
   --group-id com.example.x \
   --commit HEAD
 
 # 端点报告覆盖率（item 8，**新增**）
-python 脚本/audit/verify-endpoint-coverage.py \
+python scripts/audit/verify-endpoint-coverage.py \
   --endpoints loop_audit/external_endpoints/端点.jsonl \
   --high-risk-dir loop_audit/routes/高风险端点/ \
   --mid-low-risk-dir loop_audit/routes/中低险端点/
