@@ -191,11 +191,10 @@ _IMPORT_RE = re.compile(r"^\s*import\s+(static\s+)?([\w.]+)(?:\.\*)?\s*;\s*$")
 
 
 def collect_imports(project_root: Path) -> Dict[str, Dict[str, str]]:
-    """Build a mapping ``file_path -> { simple_name -> fqn }`` from Java sources.
+    """Build ``file_path -> { simple_name -> fqn }`` from Java sources.
 
-    Also handles ``import x.y.*`` wildcard imports by setting the special key
-    ``"*"`` to the package FQN. Skips ``import static`` imports (they are
-    rarely relevant for annotations).
+    Handles wildcard imports (``import x.y.*``) via the special key ``"*"``.
+    Skips ``import static``.
     """
     imports: Dict[str, Dict[str, str]] = {}
     files = list(project_root.rglob("*.java"))
@@ -231,10 +230,8 @@ def collect_imports(project_root: Path) -> Dict[str, Dict[str, str]]:
 def resolve_fqn(annotation_name: str, file_imports: Dict[str, str]) -> str:
     """Resolve an annotation short / partially-qualified name to its FQN.
 
-    Lookup order:
-        1. Exact simple-name match in this file's imports
-        2. Wildcard import (``import x.y.*``)
-        3. The original name as-is (already FQN, or unknown)
+    Lookup order: (1) exact simple-name match in imports, (2) wildcard import,
+    (3) name-as-is if already dotted.
     """
     if not annotation_name:
         return annotation_name
@@ -980,17 +977,11 @@ def classify_annotations_by_group(
     annotations: List[Dict[str, Any]],
     group_id: str,
 ) -> None:
-    """Mutate ``annotations`` in-place: tag each with ``annotation_source``.
-
-    ``project_specific`` if FQN starts with ``group_id + "."``, else ``public``.
-    """
+    """Tag each annotation in-place: ``project_specific`` (FQN starts with ``group_id.``) else ``public``."""
     prefix = f"{group_id}." if group_id else ""
     for ann in annotations:
         fqn = ann.get("fqn", "") or ""
-        if prefix and fqn.startswith(prefix):
-            ann["annotation_source"] = "project_specific"
-        else:
-            ann["annotation_source"] = "public"
+        ann["annotation_source"] = "project_specific" if (prefix and fqn.startswith(prefix)) else "public"
         ann["classification"] = ann["annotation_source"]
 
 
