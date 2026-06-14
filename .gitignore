@@ -1,0 +1,37 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Opencode session state (continuation tracking)
+.omo/run-continuation/
+.omo/evidence/
+
+# Temp files
+append_content.txt
+opencode_conversations_last_2days.md
+
+# Large binaries (keep small jars under tools/, exclude others)
+*.tar.gz
+*.zip
+!tools/arthas/client/arthas-bin.zip
+
+# Logs
+*.log
