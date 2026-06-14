@@ -1,5 +1,26 @@
 ﻿# Draft: 调用链引擎 — 后续 plan(scripts-refactor 完成后启动)
 
+
+-- 第一层
+select n.id from edges e
+         inner join  nodes n on n.id = e.target
+where e.kind = 'calls' ;
+
+-- 第二层
+
+select n.id,n1.id from edges e
+         inner join edges e1 on e.target = e1.source and e1.kind = 'calls'
+         inner join  nodes n on n.id = e1.target
+         inner join  nodes n1 on n1.id = e1.target
+where e.kind = 'calls' and n.language = 'java';
+
+-- 通过id 找到对应的类的方法 , id后面统一做为hashkey;
+select id,file_path, qualified_name, start_line -1 as start, end_line -1 as end from nodes where id = 'xxxx' and kind = 'method' and language = 'java';
+
+select distinct  kind from edges where kind = 'calls';
+
+
+
 ## 背景
 
 本 draft 是为 **scripts-refactor** 完成后的下一步工作记录的思路。不是本次重构的范围。
