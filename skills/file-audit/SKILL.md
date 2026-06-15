@@ -1,244 +1,84 @@
 ---
 name: file-audit
-description: "文件类操作安全审计子 agent 专用 skill。审计文件上传、下载、读取、删除、解压、存储、权限等文件相关操作的安全漏洞。使用 arthas 动态验证。触发词：'文件审计'、'file audit'、'上传审计'、'文件下载审计'、'文件操作安全'、'file upload audit'、'文件路径遍历'。"
+description: "文件类操作安全审计。审计文件上传、下载、读取、删除、解压、存储、权限。触发词：'文件审计'、'file audit'、'上传审计'。"
 ---
-
-## Integration with New Architecture (2026-06-15)
-
-### Dispatch Context
-
-Experts are now called by **endpoint-supervisor** (not boss). Supervisor provides:
-
-```json
-{
-  "chain_data": {
-    "fqn": "...",
-    "chain": [{"fqn", "file", "start_line", "end_line", "body", "sinks": [...]}],
-    "sig_hash": "abc123..."
-  },
-  "analyst_result": {
-    "dimensions": {
-      "input_tracing": "user_controlled|derived_from_user|internal_only",
-      "sanitization": "none|partial|complete",
-      "authorization": "present_and_strict|present_but_weak|missing_or_bypassable",
-      "branch_logic": "normal|race_condition|state_bypass|numeric_overflow",
-      "info_leakage": "low_risk|medium_risk|high_risk"
-    }
-  },
-  "sink_table": {"categories": [{"name", "fqns", "severity"}]},
-  "sanitizer_table": {"categories": [{"name", "fqns", "effectiveness"}]},
-  "loop_audit_dir": "D:\\agentloop\\projects\\{groupId}\\loop_audit",
-  "group_id": "org.owasp.webgoat",
-  "chain_id": "abc123..."
-}
-```
-
-### Preset Knowledge (read at start)
-
-- `projects/_template/06-通用安全知识.md` — 10 大类 sink + 6 类业务逻辑
-- `projects/_template/07-Sink表.json` — 39 sinks (16 categories), each with `cwe_id`, `owasp`, `dangerous_args`, `applies_to_sinks`
-- `projects/_template/08-Sanitizer表.json` — 28 sanitizers (8 categories), each with `effectiveness`, `confidence`, `applies_to_sinks`
-
-### Chain Body Annotations
-
-Method bodies in `chain_data.chain[*].body` have inline comments:
-```java
-public AttackResult completed(@RequestParam String userid) {
-    // sink: java.sql.Statement.executeQuery
-    Statement s = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE);
-    ...
-}
-```
-
-`// sink: <FQN>` markers indicate **non-groupId third-party calls** (per `method_calls_extractor.py` L102). Prioritize analysis of sink-annotated lines.
-
-### Findings Output Contract
-
-Write to `Memurai {group_id}:audit:finding:{chain_id}:draft`:
-
-```json
-{
-  "finding_id": "auto-uuid",
-  "chain_id": "abc123...",
-  "fqn": "org.owasp.webgoat.lessons.sqlinjection.advanced.SqlInjectionLesson6b.completed",
-  "vuln_type": "SQL_INJECTION",
-  "vuln_subtype": "UNION_BASED",
-  "severity": "high",
-  "method": "completed",
-  "endpoint": "/SqlInjection/attack6b",
-  "evidence": {
-    "source_line": 24,
-    "sink_line": 30,
-    "taint_flow": "userid → stmt.executeQuery(userid)",
-    "payload": "' UNION SELECT username, password FROM users --"
-  },
-  "cvss_estimate": 8.6,
-  "poc_status": "pending",
-  "expert_skill": "injection-audit",
-  "timestamp": "2026-06-15T..."
-}
-```
-
-Severity enum: `critical | high | medium | low | info`
-poc_status enum: `pending | verified | rejected | skipped`
-
-Critical/High findings must set `poc_status: "pending"` so `poc-monitor.py` picks them up.
-
-### Self-Evolution Integration
-
-Expert doesn't call self_evolution directly. Experience flows:
-1. Expert writes findings to Memurai `{groupId}:audit:finding:{chainId}:draft`
-2. Supervisor promotes to `final` and writes `{groupId}:sup:exp:{chain_id}`
-3. Daemon's `self_evolution.merge_knowledge_from_memurai` pulls into `knowledge.json`
-4. Next round's expert loads `knowledge.json` at startup via:
-
-```python
-import json
-k = json.load(open(f"{loop_audit_dir}/knowledge.json"))
-for past_finding in k.get("findings", []):
-    if past_finding["vuln_type"] == my_vuln_type:
-        add_to_context(past_finding["evidence"])  # learn from past
-```
-
-### Tool Priority
-
-- **Codegraph SQL** for all chain/edge queries (NEVER ast-grep for call graph walking)
-- **ast-grep** only for initial annotation discovery (Phase A)
-- **Memurai** for cross-agent state sharing
-- **JavaParser service** (via javaparser-service.jar) for third-party call resolution
-
-### Hard Constraint: non-groupId = sink
-
-`method_calls_extractor.py` L102: `return not called_fqn.startswith(group_id + ".")`. All findings must identify at least one sink matching this rule. If the vulnerability is purely internal (no third-party sink), expert must explicitly set `sinks: []` and mark `vuln_type` as `internal_logic_flaw` or `business_rule_violation`.
-
-### Expert-Specific: file-audit
-
-Specializes in finding vulnerabilities involving file I/O:
-- Path traversal (`new File(userInput)`, `Path.of(userInput)` with `..`)
-- Arbitrary file upload (missing extension/MIME validation)
-- File name injection (writing to user-controlled file name)
-- Symlink following (`FileInputStream` without canonical path check)
-- ZIP bomb / ZIP slip (extracting entries with `../` in name)
-
-Analyst's `authorization` field signals whether to check file-level access control (if `present_and_strict` → lower risk; if `missing_or_bypassable` → higher risk).
 
 # 文件类操作安全审计
 
-## 输入
+专注：上传/下载/读取/删除/解压/存储/权限相关的文件操作漏洞。
 
-上游提供的文件操作接口描述或调用链。
+## 思路
 
-## 审计流程（3 步强制执行，不可跳过）
+文件名不可信、扩展名不可信、解压后的路径不可信。每种文件类型有各自风险。必须验证每步约束被实际执行而非只被声明。
 
-### 1. 文件操作入口发现（arthas 强制）
+## 步骤（3 步强制）
 
-用 arthas `watch` 观察文件操作的入口方法，记录：
-- 实际接收到的文件名、路径、大小、类型声明
-- 数据来源是否可信（全部来自用户还是可以信任服务端）
-- 文件存储路径是沙箱内 vs 任意路径
-- 文件名是否规范化处理了（去特殊字符、去路径成分）
+### 1. 文件操作入口发现（arthas）
+
+`watch` 观察入口方法，记录：
+- 实际接收的文件名、路径、大小、类型
+- 数据来源是否用户可控
+- 存储路径：沙箱内 vs 任意路径
+- 文件名规范化处理情况
 
 ### 2. 约束审计
 
-检查每项文件操作约束的实际执行，用 arthas 验证：
-- 文件名校验：路径遍历（`../../`）、特殊字符、目录跳转
-- 文件大小限制：是否有效，是否可被并发绕过
-- 文件类型校验：扩展名 vs MIME vs Magic Number 是否一致
-- 存储隔离：不同用户的文件是否在隔离目录
-- 权限控制：谁能对谁的文件做什么操作
-
-用 `watch` 观察文件操作方法的实际参数，确认约束真的被执行。
+用 arthas 验证每项约束的实际执行：
+- 文件名校验：路径遍历、特殊字符
+- 大小限制：是否有效、可否并发绕过
+- 类型校验：扩展名 vs MIME vs Magic Number 一致性
+- 存储隔离：不同用户的文件是否隔离
+- 权限控制：谁能对谁的文件做什么
 
 ### 3. 构造与验证
 
-针对发现的约束薄弱点，构造最小 payload：
-- curl 构造文件操作请求，arthas watch 文件操作方法
-- 确认文件操作约束确实被绕过
-- 失败时：记录尝试和失败原因
+针对薄弱约束构造 payload → curl 请求 → arthas watch → 确认绕过。失败时记录原因。
 
-## 文件类型相关风险（按类型逐一排查）
+## 按文件类型排查
 
-### 图片文件（JPEG/PNG/GIF/SVG/WebP）
-- 场景：用户头像、产品图片、证件照、资料图片
-- 坑点：SVG 含 JS 导致 XSS、EXIF 元数据嵌入恶意内容、图片炸弹（精心构造的尺寸导致解析器 DoS）
+- **图片**：SVG 含 JS(XSS)、EXIF 嵌入恶意内容、图片炸弹(DoS)
+- **文档**：PDF 含 JS/表单、Office 宏、Excel 公式 SSTI、引用外部资源(SSRF)
+- **压缩**：ZipSlip(路径穿越)、压缩炸弹、符号链接、嵌套 DoS
+- **可执行**：是否实际执行？沙箱？权限？结果回传？
+- **数据**：CSV 公式注入、XXE、JSON 反序列化、YAML 代码执行、大文件 OOM
+- **音视频**：格式伪造、元数据、解析器漏洞(FFmpeg/ImageMagick)
+- **临时文件**：文件名可预测？权限？清理？并发覆盖？
 
-### 文档文件（PDF/DOCX/XLSX/PPTX/ODF）
-- 场景：合同上传、报告提交、模板导出
-- 坑点：PDF 含 JS 和表单提交、Office 宏执行、模板注入（通过 Excel 公式的 SSTI）、文档引用外部资源（SSRF）
+## 按操作类型排查
 
-### 压缩文件（ZIP/TAR/GZ/7Z/RAR）
-- 场景：批量上传、数据导出、备份导入
-- 坑点：ZipSlip（路径穿越写任意文件）、压缩炸弹（递归或大量解压）、符号链接指向系统文件、嵌入压缩导致递归 DoS
+### 上传
+- 扩展名黑名单不全(.php5/.phtml/.jspf)
+- 只校验扩展名不校验内容
+- Magic Number 可伪造
+- 上传目录有执行权限
 
-### 可执行文件（EXE/MSI/SH/BAT/PS1/JAR/APK）
-- 场景：用户自定义脚本、插件、自动化操作
-- 坑点：是否真的执行？执行环境是否沙箱？执行时的权限限制？执行结果是否回传？
+### 下载
+- 文件名用户可控(CRLF injection)
+- 下载权限未校验(IDOR)
+- 无过期时间
 
-### 数据文件（CSV/JSON/XML/YAML）
-- 场景：数据导入导出、配置上传、日志上传
-- 坑点：CSV 注入（公式注入）、XML XXE、JSON 反序列化、YAML 代码执行、大文件导致内存耗尽
+### 读/写
+- 路径未规范化(`../`、`~`、绝对路径)
+- 读写权限未隔离
 
-### 音视频文件（MP3/MP4/AVI/MOV）
-- 场景：音视频上传、录音信息、直插录像
-- 坑点：格式伪造、嵌入元数据、音视频解析器漏洞（FFmpeg/ImageMagick）、文件上传时断点续传
+### 删除
+- 权限未校验、路径未规范化
+- 软删除 vs 硬删除不一致
 
-### 临时文件
-- 场景：分片上传、编辑中间文件、日志临时
-- 坑点：临时文件名是否可预测？临时目录权限？程序异常退出是否清理临时文件？并发写入导致覆盖？
+### 解压
+- 解压前未检查总大小(炸弹)
+- ZipSlip(`../../malicious.sh`)
+- 符号链接未检查
 
-## 常见坑（按操作类型，逐一检查）
-
-### 文件上传
-- 扩展名黑名单不全（.php5、.phtml、.jspf 等）
-- 只校验扩展名不校验内容（图片后缀藏 WebShell）
-- Magic Number 可被伪造（文件头拼接）
-- 上传后的文件未做病毒扫描或内容审查
-- 上传目录有执行权限（Web 服务器配置允许脚本执行）
-- 重复上传同名文件未做冲突处理
-- 分片上传状态不协调（同一文件不同内容）
-
-### 文件下载
-- 文件名来自用户输入（HTTP 响应头注入 / CRLF injection）
-- 下载权限未校验（通过 ID 遍历下载他人文件）
-- 大文件下载未限流或限速导致 OOM
-- 下载链接无过期时间控制
-- 文件路径包含 `../etc/passwd` 类注入
-
-### 文件读取 / 写入
-- 文件路径未规范化（`./`、`../`、`~`、绝对路径绕过）
-- 读写权限未隔离（上传的文件可被其他用户读取）
-- 文件锁缺失导致并发写入冲突
-- 大文件读取未分块导致内存耗尽
-- 文件内容未校验导致解析器被利用
-
-### 文件删除
-- 删除前未校验权限（任意用户删除他人文件）
-- 删除路径未规范化（`../` 删除系统文件）
-- 软删除 vs 硬删除不一致（数据库记录删了但文件还在，或反之）
-- 删除失败未回滚
-
-### 压缩 / 解压
-- 解压前未检查压缩前总大小（压缩炸弹）
-- 解压路径未规范化（ZipSlip：`../../malicious.sh`）
-- 解压后的符号链接未检查或限制
-- 嵌套压缩未限制深度导致 DoS
-- 解压过程超时未完成
-
-### 存储相关
-- 用户配额只限制了大小没限制 inode 数量
-- 读写并发导致读写冲突（写一半被读）
-- 临时文件未清理
-- 删除文件句柄未释放（删除无效）
-
-### 权限与隔离
-- 多租户场景文件路径未做租户前缀
-- 文件 ID 全局可猜测
-- 文件共享链接的鉴权范围或有效期
-- 继承文件权限导致越权
+### 存储/权限
+- 配额只限制大小没限制 inode
+- 文件 ID 全局可猜
+- 共享链接鉴权范围/有效期
 
 ## 禁止行为
-- 只校验扩展名不校验内容（扩展名是用户给的，不可信）
-- 不检查客户端提供的 Content-Type 和 Content-Length
-- 不验证解压后的路径和内容安全性
-- 只看上传成功路径忽略异常/失败时的临时文件是否被清理
-- 假设文件只在沙箱内，但不验证路径遍历逻辑
+
+- 只校验扩展名不校验内容
+- 不检查 Content-Type 和 Content-Length
+- 不验证解压后路径和内容安全性
+- 忽略异常/失败时的临时文件清理
+- 假设文件只在沙箱内但不验证路径遍历逻辑
