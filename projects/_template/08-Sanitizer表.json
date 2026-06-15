@@ -1,0 +1,522 @@
+{
+  "$schema": "sanitizer-catalog",
+  "version": "1.0",
+  "description": "通用 Java 消毒器清单 - 标记这些模式时不视为漏洞(高置信),但仍需审计调用顺序",
+  "maintained_in": "projects/_template/06-通用安全知识.md §2",
+  "sources": [
+    "OWASP ASVS 4.0 §5 (Validation, Sanitization, Encoding)",
+    "OWASP CheatSheet Series",
+    "Spring Security Reference",
+    "Jakarta Bean Validation 3.0",
+    "Apache Commons Documentation"
+  ],
+  "warning": "看到消毒器 ≠ 安全(per requirements/预置经验规则.md §1.2)。必须验证:1) 消毒器真的被调用 2) 调用顺序在 sink 之前 3) 消毒器真的有效(参数完整、未被包装绕过)",
+  "sanitizers": [
+    {
+      "id": "san-sql-preparedstatement-setstring",
+      "category": "sql",
+      "cwe_id": "CWE-89",
+      "fqns": [
+        "java.sql.PreparedStatement.setString",
+        "java.sql.PreparedStatement.setInt",
+        "java.sql.PreparedStatement.setLong",
+        "java.sql.PreparedStatement.setDouble",
+        "java.sql.PreparedStatement.setFloat",
+        "java.sql.PreparedStatement.setBoolean",
+        "java.sql.PreparedStatement.setObject",
+        "java.sql.PreparedStatement.setNull",
+        "java.sql.PreparedStatement.setTimestamp",
+        "java.sql.PreparedStatement.setDate",
+        "java.sql.PreparedStatement.setBytes"
+      ],
+      "description": "PreparedStatement 参数绑定,SQL 含 ? 占位符且 setXxx 调用 = 强消毒",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-sql-jdbc-statement", "sink-sql-jdbc-preparestatement-concat"],
+      "required_conditions": [
+        "SQL 字符串必须含 ? 占位符",
+        "setXxx 的 index 与 ? 位置一一对应",
+        "setXxx 必须在 executeQuery/execute 之前调用",
+        "SQL 字符串本身不能含拼接(必须纯字面量 + ?)"
+      ],
+      "common_failure_modes": [
+        "SQL 已拼接后 prepareStatement(无效)",
+        "setXxx index 错位",
+        "setXxx 未调用就 execute"
+      ]
+    },
+    {
+      "id": "san-sql-jdbctemplate-varargs",
+      "category": "sql",
+      "cwe_id": "CWE-89",
+      "fqns": [
+        "org.springframework.jdbc.core.JdbcTemplate.query",
+        "org.springframework.jdbc.core.JdbcTemplate.update"
+      ],
+      "description": "JdbcTemplate.query(sql, Object[] args, RowMapper) - args 数组自动参数化",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-sql-jdbctemplate"],
+      "required_conditions": [
+        "第二个参数必须是 Object[] 数组",
+        "SQL 字符串含 ? 占位符",
+        "args 数组元素顺序与 ? 一致"
+      ],
+      "common_failure_modes": [
+        "query(sql, args, rowMapper) 但 args 只有一个元素 - 仍可能拼接"
+      ]
+    },
+    {
+      "id": "san-sql-namedparamjdbctemplate",
+      "category": "sql",
+      "cwe_id": "CWE-89",
+      "fqns": [
+        "org.springframework.jdbc.core.NamedParameterJdbcTemplate.query",
+        "org.springframework.jdbc.core.NamedParameterJdbcTemplate.update"
+      ],
+      "description": "NamedParameterJdbcTemplate - :name 占位 + SqlParameterSource/Map 参数 = 强消毒",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-sql-jdbctemplate"],
+      "required_conditions": [
+        "SQL 含 :name 占位符",
+        "第二参数是 Map<String,?> 或 SqlParameterSource",
+        "Map keys 覆盖所有 :name"
+      ]
+    },
+    {
+      "id": "san-sql-jpa-setparameter",
+      "category": "sql",
+      "cwe_id": "CWE-89",
+      "fqns": [
+        "javax.persistence.Query.setParameter",
+        "jakarta.persistence.Query.setParameter",
+        "javax.persistence.TypedQuery.setParameter",
+        "org.hibernate.query.Query.setParameter"
+      ],
+      "description": "JPA/Hibernate setParameter - :name/?N 占位 + 参数对象 = 强消毒",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-sql-jpa-native"],
+      "required_conditions": [
+        "createQuery/createNativeQuery 字符串已用占位符",
+        "setParameter 在 execute 之前调用",
+        "createQuery 的 SQL 字符串本身不能含拼接"
+      ]
+    },
+    {
+      "id": "san-sql-mybatis-hash-placeholder",
+      "category": "sql",
+      "cwe_id": "CWE-89",
+      "fqns": [],
+      "description": "MyBatis XML/注解中 #{} 占位符 = 强消毒;${} 字符串替换 = 无效消毒",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-sql-mybatis-provider"],
+      "required_conditions": [
+        "XML mapper 或 @Select 注解中必须用 #{} 而非 ${}",
+        "Provider 方法体内也必须用 #{}"
+      ],
+      "common_failure_modes": [
+        "order by ${column} - 故意用 ${} 注入列名 = 应 SQL 注入审计"
+      ]
+    },
+    {
+      "id": "san-xss-htmlutils",
+      "category": "xss",
+      "cwe_id": "CWE-79",
+      "fqns": [
+        "org.springframework.web.util.HtmlUtils.htmlEscape"
+      ],
+      "description": "Spring HtmlUtils.htmlEscape - HTML 上下文转义",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-xss-servlet-writer"],
+      "required_conditions": [
+        "必须在 write/println 之前调用",
+        "仅适用于 HTML 上下文;JS/URL/属性上下文需其他消毒"
+      ]
+    },
+    {
+      "id": "san-xss-escapehtml4",
+      "category": "xss",
+      "cwe_id": "CWE-79",
+      "fqns": [
+        "org.apache.commons.text.StringEscapeUtils.escapeHtml4",
+        "org.apache.commons.lang3.StringEscapeUtils.escapeHtml4"
+      ],
+      "description": "Apache Commons escapeHtml4 - HTML 上下文转义",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-xss-servlet-writer"],
+      "required_conditions": [
+        "必须在 write 之前调用"
+      ],
+      "notes": "commons-lang3 3.6 后 StringEscapeUtils 已 deprecated,推荐 commons-text"
+    },
+    {
+      "id": "san-xss-owasp-encoder",
+      "category": "xss",
+      "cwe_id": "CWE-79",
+      "fqns": [
+        "org.owasp.encoder.Encode.forHtml",
+        "org.owasp.encoder.Encode.forHtmlContent",
+        "org.owasp.encoder.Encode.forJavaScript",
+        "org.owasp.encoder.Encode.forUriComponent"
+      ],
+      "description": "OWASP Java Encoder - 按上下文细分的转义(forHtml/forJavaScript/forUriComponent 等)",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-xss-servlet-writer"]
+    },
+    {
+      "id": "san-xss-thymeleaf-th-text",
+      "category": "xss",
+      "cwe_id": "CWE-79",
+      "fqns": [],
+      "description": "Thymeleaf th:text 默认 HTML 转义;th:utext 关闭转义",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-xss-thymeleaf-utext"],
+      "required_conditions": [
+        "必须是 th:text 而非 th:utext"
+      ]
+    },
+    {
+      "id": "san-xxe-disallow-doctype",
+      "category": "xxe",
+      "cwe_id": "CWE-611",
+      "fqns": [
+        "javax.xml.parsers.DocumentBuilderFactory.setFeature",
+        "javax.xml.parsers.SAXParserFactory.setFeature",
+        "javax.xml.transform.TransformerFactory.setFeature"
+      ],
+      "description": "XML 解析器安全配置 - setFeature('http://apache.org/xml/features/disallow-doctype-decl', true) + 禁用外部实体",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-xxe-documentbuilder"],
+      "required_conditions": [
+        "必须 4 个 setFeature 都设置:disallow-doctype-decl + external-general-entities + external-parameter-entities + load-external-dtd",
+        "必须 setXIncludeAware(false)",
+        "必须 setExpandEntityReferences(false)",
+        "必须在 parse() 之前调用"
+      ]
+    },
+    {
+      "id": "san-path-filenameutils-getname",
+      "category": "path_traversal",
+      "cwe_id": "CWE-22",
+      "fqns": [
+        "org.apache.commons.io.FilenameUtils.getName",
+        "org.apache.commons.io.FilenameUtils.getBaseName"
+      ],
+      "description": "FilenameUtils.getName - 取最后一段,移除路径前缀",
+      "effectiveness": "medium",
+      "confidence": "medium",
+      "applies_to_sinks": ["sink-path-file-constructor", "sink-path-paths"],
+      "required_conditions": [
+        "必须配合 getCanonicalPath + 前缀校验防止符号链接绕过"
+      ],
+      "common_failure_modes": [
+        "未做规范化和前缀校验,symlink 可绕过"
+      ]
+    },
+    {
+      "id": "san-path-canonical-prefix-check",
+      "category": "path_traversal",
+      "cwe_id": "CWE-22",
+      "fqns": [
+        "java.io.File.getCanonicalPath",
+        "java.nio.file.Path.toRealPath",
+        "java.nio.file.Path.normalize"
+      ],
+      "description": "getCanonicalPath/normalize + 前缀校验 - 标准化后比对 baseDir 前缀",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-path-file-constructor", "sink-path-paths"],
+      "required_conditions": [
+        "必须 toRealPath 或 getCanonicalPath(解析符号链接)",
+        "必须 startsWith(baseDir.getCanonicalPath() + File.separator),而不是简单的 startsWith"
+      ]
+    },
+    {
+      "id": "san-input-pattern-matches",
+      "category": "input_validation",
+      "cwe_id": "CWE-20",
+      "fqns": [
+        "java.util.regex.Pattern.matches"
+      ],
+      "description": "Pattern.matches 白名单正则 - 仅白名单形式才有效",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["*"],
+      "required_conditions": [
+        "必须白名单(允许的字符集),不是黑名单",
+        "正则必须锚定 ^...$ 或全匹配模式"
+      ],
+      "common_failure_modes": [
+        "黑名单正则易绕过",
+        "正则缺失锚定"
+      ]
+    },
+    {
+      "id": "san-input-bean-validation-pattern",
+      "category": "input_validation",
+      "cwe_id": "CWE-20",
+      "fqns": [
+        "jakarta.validation.constraints.Pattern",
+        "javax.validation.constraints.Pattern",
+        "jakarta.validation.constraints.Size",
+        "jakarta.validation.constraints.Min",
+        "jakarta.validation.constraints.Max",
+        "jakarta.validation.constraints.NotNull",
+        "jakarta.validation.constraints.NotBlank",
+        "jakarta.validation.constraints.NotEmpty"
+      ],
+      "description": "Bean Validation 注解 - @Pattern/@Size/@Min/@Max/@NotNull/@NotBlank",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["*"],
+      "required_conditions": [
+        "Controller 方法参数必须 @Valid",
+        "必须有 @Pattern 的正则",
+        "@Size/@Min/@Max 仅校验范围,需配合 @Pattern"
+      ]
+    },
+    {
+      "id": "san-input-parse-int",
+      "category": "input_validation",
+      "cwe_id": "CWE-20",
+      "fqns": [
+        "java.lang.Integer.parseInt",
+        "java.lang.Long.parseLong",
+        "java.lang.Double.parseDouble",
+        "java.lang.Short.parseShort"
+      ],
+      "description": "Integer.parseInt 等强类型转换 - 转换失败抛 NumberFormatException = 实际安全",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["*"],
+      "required_conditions": [
+        "必须捕获 NumberFormatException(否则返回 500 = 实际安全)",
+        "转换后必须再校验范围"
+      ]
+    },
+    {
+      "id": "san-input-enum-valueof",
+      "category": "input_validation",
+      "cwe_id": "CWE-20",
+      "fqns": [
+        "java.lang.Enum.valueOf"
+      ],
+      "description": "Enum.valueOf 白名单 - 枚举值必须已声明",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["*"],
+      "required_conditions": [
+        "枚举类型必须固定(不能运行时新增)",
+        "未声明的值抛 IllegalArgumentException = 实际安全"
+      ]
+    },
+    {
+      "id": "san-input-spring-requestparam",
+      "category": "input_validation",
+      "cwe_id": "CWE-20",
+      "fqns": [],
+      "description": "Spring @RequestParam - 自动类型转换",
+      "effectiveness": "weak",
+      "confidence": "medium",
+      "applies_to_sinks": ["*"],
+      "required_conditions": [
+        "类型为基本类型(int/long)时,框架自动 parseInt = 实际安全",
+        "类型为 String 时,不转义 HTML/URL"
+      ],
+      "notes": "@RequestParam 本身不是消毒器,仅类型转换。String 类型需额外消毒"
+    },
+    {
+      "id": "san-auth-preauthorize",
+      "category": "authorization",
+      "cwe_id": "CWE-862",
+      "fqns": [
+        "org.springframework.security.access.prepost.PreAuthorize"
+      ],
+      "description": "Spring Security @PreAuthorize - 方法级鉴权",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-auth-missing"],
+      "required_conditions": [
+        "必须在 @EnableMethodSecurity 启用(2.7+ 默认开启)",
+        "必须配合 SecurityFilterChain Bean"
+      ]
+    },
+    {
+      "id": "san-auth-secured",
+      "category": "authorization",
+      "cwe_id": "CWE-862",
+      "fqns": [
+        "org.springframework.security.annotation.Secured"
+      ],
+      "description": "Spring Security @Secured - 旧版方法级鉴权",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-auth-missing"],
+      "required_conditions": [
+        "必须 @EnableGlobalMethodSecurity(securedEnabled=true) 启用"
+      ]
+    },
+    {
+      "id": "san-auth-rolesallowed",
+      "category": "authorization",
+      "cwe_id": "CWE-862",
+      "fqns": [
+        "jakarta.annotation.security.RolesAllowed",
+        "javax.annotation.security.RolesAllowed",
+        "org.apache.shiro.authz.annotation.RequiresRoles"
+      ],
+      "description": "JSR-250 @RolesAllowed / Shiro @RequiresRoles - 角色检查",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-auth-missing"]
+    },
+    {
+      "id": "san-auth-requirespermissions",
+      "category": "authorization",
+      "cwe_id": "CWE-862",
+      "fqns": [
+        "org.apache.shiro.authz.annotation.RequiresPermissions",
+        "org.springframework.security.access.prepost.PreAuthorize"
+      ],
+      "description": "Shiro @RequiresPermissions / Spring @PreAuthorize - 权限检查",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-auth-missing"]
+    },
+    {
+      "id": "san-deser-objectinputfilter",
+      "category": "deserialization",
+      "cwe_id": "CWE-502",
+      "fqns": [
+        "java.io.ObjectInputFilter.Config.setSerialFilterFactory",
+        "java.io.ObjectInputStream.setObjectInputFilter"
+      ],
+      "description": "ObjectInputFilter 白名单 - 仅允许特定类反序列化",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-deser-objectinputstream"],
+      "required_conditions": [
+        "必须在 readObject 之前调用 setObjectInputFilter",
+        "Filter 必须白名单(仅允许明确类)"
+      ]
+    },
+    {
+      "id": "san-crypto-bcrypt",
+      "category": "crypto",
+      "cwe_id": "CWE-916",
+      "fqns": [
+        "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder.matches",
+        "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder.encode"
+      ],
+      "description": "BCrypt - 自适应哈希 + 内置 salt",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-crypto-md5"],
+      "required_conditions": [
+        "cost factor ≥ 10(12 推荐)",
+        "每个密码自动生成独立 salt"
+      ],
+      "notes": "matches(rawPassword, hashedPassword) 必须按此顺序"
+    },
+    {
+      "id": "san-crypto-scrypt-argon2",
+      "category": "crypto",
+      "cwe_id": "CWE-916",
+      "fqns": [
+        "org.springframework.security.crypto.scrypt.SCryptPasswordEncoder",
+        "org.bouncycastle.crypto.generators.Argon2BytesGenerator",
+        "de.mkammerer.argon2.Argon2Factory.create"
+      ],
+      "description": "SCrypt / Argon2 - 现代密码哈希算法",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-crypto-md5"]
+    },
+    {
+      "id": "san-crypto-securerandom",
+      "category": "crypto",
+      "cwe_id": "CWE-330",
+      "fqns": [
+        "java.security.SecureRandom.nextBytes",
+        "java.security.SecureRandom.nextInt",
+        "java.security.SecureRandom.nextLong"
+      ],
+      "description": "SecureRandom - 密码学安全随机数",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-crypto-weak-rng"],
+      "required_conditions": [
+        "必须用 SecureRandom 而非 Random/Math.random()"
+      ]
+    },
+    {
+      "id": "san-ssrf-url-allowlist",
+      "category": "ssrf",
+      "cwe_id": "CWE-918",
+      "fqns": [
+        "java.net.InetAddress.getByName"
+      ],
+      "description": "URL 解析后校验 IP 是否在内网白名单/黑名单内",
+      "effectiveness": "medium",
+      "confidence": "medium",
+      "applies_to_sinks": [
+        "sink-ssrf-url",
+        "sink-ssrf-resttemplate",
+        "sink-ssrf-webclient",
+        "sink-ssrf-okhttp"
+      ],
+      "required_conditions": [
+        "必须解析 URL → host → IP(InetAddress.getByName)",
+        "必须校验 IP 不在 127.0.0.0/8、10.0.0.0/8、172.16.0.0/12、192.168.0.0/16、169.254.0.0/16、0.0.0.0/8 内",
+        "必须再次解析 IP 防 DNS rebinding",
+        "协议必须限制 http/https(拒绝 file/gopher/jar)"
+      ],
+      "common_failure_modes": [
+        "仅校验 host 字符串(易被域名绕过)",
+        "未防 DNS rebinding"
+      ]
+    },
+    {
+      "id": "san-nosql-mongo-typed",
+      "category": "nosql",
+      "cwe_id": "CWE-943",
+      "fqns": [
+        "com.mongodb.client.model.Filters.eq",
+        "org.springframework.data.mongodb.core.query.Criteria.where",
+        "org.springframework.data.mongodb.core.query.Query"
+      ],
+      "description": "Mongo 查询用 Filters.eq/Criteria.where(is(...)) 单值绑定,避免 Document 字符串拼接",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-nosql-mongo"],
+      "required_conditions": [
+        "必须用 Filters/Criteria API 而非 Document.parse(字符串)",
+        "必须避免 $where / $regex 等支持表达式的操作符"
+      ]
+    },
+    {
+      "id": "san-redirect-allowlist",
+      "category": "open_redirect",
+      "cwe_id": "CWE-601",
+      "fqns": [
+        "org.springframework.web.servlet.view.RedirectView.setUrl"
+      ],
+      "description": "RedirectView URL 白名单 - 仅允许配置内的 URL",
+      "effectiveness": "strong",
+      "confidence": "high",
+      "applies_to_sinks": ["sink-openredirect"],
+      "required_conditions": [
+        "URL 必须来自配置(registry)而非用户输入",
+        "或者用 startsWith 严格白名单"
+      ]
+    }
+  ]
+}

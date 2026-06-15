@@ -1,0 +1,630 @@
+{
+  "$schema": "sink-catalog",
+  "version": "1.0",
+  "description": "通用 Java Sink 清单 - 任何 Java 项目通用,与 groupId 无关",
+  "maintained_in": "projects/_template/06-通用安全知识.md §1",
+  "sources": [
+    "OWASP Top 10 2021",
+    "CWE/SANS Top 25",
+    "OWASP ASVS 4.0",
+    "SANS Secure Coding Practices - Java"
+  ],
+  "categories": [
+    "injection.sql",
+    "injection.cmd",
+    "injection.ldap",
+    "injection.expression",
+    "injection.nosql",
+    "injection.xpath",
+    "injection.xxe",
+    "deserialization",
+    "ssrf",
+    "path_traversal",
+    "xss",
+    "open_redirect",
+    "crypto_weak",
+    "file_upload",
+    "log_injection",
+    "jndi"
+  ],
+  "sinks": [
+    {
+      "id": "sink-sql-jdbc-statement",
+      "category": "injection.sql",
+      "cwe_id": "CWE-89",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "java.sql.Statement.executeQuery",
+        "java.sql.Statement.execute",
+        "java.sql.Statement.executeUpdate",
+        "java.sql.Statement.executeBatch",
+        "java.sql.Statement.addBatch"
+      ],
+      "description": "JDBC Statement 直接执行 SQL,字符串已拼接/含用户输入即 SQLi",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "如果 SQL 完全硬编码且不含用户输入,通常为低风险;若 SQL 含变量拼接则为高风险"
+    },
+    {
+      "id": "sink-sql-jdbc-preparestatement-concat",
+      "category": "injection.sql",
+      "cwe_id": "CWE-89",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "java.sql.Connection.prepareStatement"
+      ],
+      "description": "PreparedStatement 但 SQL 已拼接(占位符未用)= 实际 SQLi",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "看到 PreparedStatement 不等于安全(per 预置经验规则.md §1.2);必须验证 SQL 字符串是否含占位符 ?"
+    },
+    {
+      "id": "sink-sql-jdbctemplate",
+      "category": "injection.sql",
+      "cwe_id": "CWE-89",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "org.springframework.jdbc.core.JdbcTemplate.query",
+        "org.springframework.jdbc.core.JdbcTemplate.update",
+        "org.springframework.jdbc.core.JdbcTemplate.queryForObject",
+        "org.springframework.jdbc.core.JdbcTemplate.queryForList",
+        "org.springframework.jdbc.core.JdbcTemplate.batchUpdate",
+        "org.springframework.jdbc.core.NamedParameterJdbcTemplate.query",
+        "org.springframework.jdbc.core.NamedParameterJdbcTemplate.update"
+      ],
+      "description": "Spring JdbcTemplate,SQL 已拼接或 sql 字符串含用户输入",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "若第一个参数是 String + 第二参数 Object[] 自动参数化 = OK;若仅 String 含拼接 = SQLi"
+    },
+    {
+      "id": "sink-sql-jpa-native",
+      "category": "injection.sql",
+      "cwe_id": "CWE-89",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "javax.persistence.EntityManager.createNativeQuery",
+        "jakarta.persistence.EntityManager.createNativeQuery",
+        "org.hibernate.query.NativeQuery"
+      ],
+      "description": "JPA 原生 SQL,HQL 拼接",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "createQuery (HQL) 同样危险,拼接 = SQLi/HQLi"
+    },
+    {
+      "id": "sink-sql-mybatis-provider",
+      "category": "injection.sql",
+      "cwe_id": "CWE-89",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "org.apache.ibatis.annotations.SelectProvider",
+        "org.apache.ibatis.annotations.InsertProvider",
+        "org.apache.ibatis.annotations.UpdateProvider",
+        "org.apache.ibatis.annotations.DeleteProvider"
+      ],
+      "description": "MyBatis Provider 方法返回 SQL,内部拼接 = SQLi",
+      "severity": "high",
+      "confidence": "medium",
+      "dangerous_args": [],
+      "notes": "Provider 方法体内若用 ${} 仍危险;若仅 #{} 安全。需审计 Provider 方法实现"
+    },
+    {
+      "id": "sink-cmd-runtime-exec",
+      "category": "injection.cmd",
+      "cwe_id": "CWE-78",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "java.lang.Runtime.exec"
+      ],
+      "description": "Runtime.exec,字符串拼接 = 命令注入",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "exec(String) 危险;exec(String[]) 形式仍需审计数组元素"
+    },
+    {
+      "id": "sink-cmd-processbuilder",
+      "category": "injection.cmd",
+      "cwe_id": "CWE-78",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "java.lang.ProcessBuilder.start",
+        "java.lang.ProcessBuilder.<init>"
+      ],
+      "description": "ProcessBuilder,command list 拼接 = 命令注入",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "若 list 元素全部硬编码 = OK"
+    },
+    {
+      "id": "sink-cmd-scriptengine",
+      "category": "injection.cmd",
+      "cwe_id": "CWE-94",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "javax.script.ScriptEngine.eval",
+        "groovy.lang.GroovyShell.evaluate",
+        "jdk.nashorn.api.scripting.NashornScriptEngine.eval",
+        "jdk.nashorn.api.scripting.NashornScriptEngineFactory.getScriptEngine"
+      ],
+      "description": "脚本引擎执行用户输入 = 代码执行",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-deser-objectinputstream",
+      "category": "deserialization",
+      "cwe_id": "CWE-502",
+      "owasp": "A08:2021 Software and Data Integrity Failures",
+      "fqns": [
+        "java.io.ObjectInputStream.readObject",
+        "java.io.ObjectInputStream.readUnshared"
+      ],
+      "description": "Java 原生反序列化,接受未受信输入 + 无 ObjectInputFilter 白名单 = RCE",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "Java 9+ 支持 ObjectInputFilter;无 filter = 高危"
+    },
+    {
+      "id": "sink-deser-xmldecoder",
+      "category": "deserialization",
+      "cwe_id": "CWE-502",
+      "owasp": "A08:2021 Software and Data Integrity Failures",
+      "fqns": [
+        "java.beans.XMLDecoder.readObject"
+      ],
+      "description": "XMLDecoder 反序列化,已知 gadget chains",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-deser-xstream",
+      "category": "deserialization",
+      "cwe_id": "CWE-502",
+      "owasp": "A08:2021 Software and Data Integrity Failures",
+      "fqns": [
+        "com.thoughtworks.xstream.XStream.fromXML"
+      ],
+      "description": "XStream 反序列化,1.4.x 前默认接受任意类型",
+      "severity": "high",
+      "confidence": "medium",
+      "dangerous_args": [0],
+      "notes": "需审计是否配置 security framework + allowTypes"
+    },
+    {
+      "id": "sink-deser-snakeyaml",
+      "category": "deserialization",
+      "cwe_id": "CWE-502",
+      "owasp": "A08:2021 Software and Data Integrity Failures",
+      "fqns": [
+        "org.yaml.snakeyaml.Yaml.load",
+        "org.yaml.snakeyaml.Yaml.loadAs"
+      ],
+      "description": "SnakeYaml load 默认接受任意 tag,反序列化 gadget",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "Constructor/SafeConstructor 构造时更安全"
+    },
+    {
+      "id": "sink-deser-jackson-typeless",
+      "category": "deserialization",
+      "cwe_id": "CWE-502",
+      "owasp": "A08:2021 Software and Data Integrity Failures",
+      "fqns": [
+        "com.fasterxml.jackson.databind.ObjectMapper.readValue",
+        "com.fasterxml.jackson.databind.ObjectMapper.readTree"
+      ],
+      "description": "Jackson readValue,若 enableDefaultTyping() 或 @JsonTypeInfo 已开 = 反序列化 gadget",
+      "severity": "high",
+      "confidence": "medium",
+      "dangerous_args": [0, 1],
+      "notes": "默认 disableDefaultTyping = OK;需审计 mapper 配置"
+    },
+    {
+      "id": "sink-deser-fastjson",
+      "category": "deserialization",
+      "cwe_id": "CWE-502",
+      "owasp": "A08:2021 Software and Data Integrity Failures",
+      "fqns": [
+        "com.alibaba.fastjson.JSON.parseObject",
+        "com.alibaba.fastjson.JSON.parse"
+      ],
+      "description": "Fastjson 反序列化,1.2.25 前支持 autoType,gadget chains",
+      "severity": "high",
+      "confidence": "medium",
+      "dangerous_args": [0],
+      "notes": "1.2.25+ 默认禁用 autoType;1.2.48 后安全;但仍需审计 ParserConfig.getGlobalInstance().setAutoTypeSupport"
+    },
+    {
+      "id": "sink-ssrf-url",
+      "category": "ssrf",
+      "cwe_id": "CWE-918",
+      "owasp": "A10:2021 Server-Side Request Forgery",
+      "fqns": [
+        "java.net.URL.openConnection",
+        "java.net.URL.openStream",
+        "java.net.HttpURLConnection.connect",
+        "java.net.HttpURLConnection.getInputStream"
+      ],
+      "description": "URL.openConnection,URL 字符串用户控制 = SSRF",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-ssrf-resttemplate",
+      "category": "ssrf",
+      "cwe_id": "CWE-918",
+      "owasp": "A10:2021 Server-Side Request Forgery",
+      "fqns": [
+        "org.springframework.web.client.RestTemplate.getForObject",
+        "org.springframework.web.client.RestTemplate.getForEntity",
+        "org.springframework.web.client.RestTemplate.postForObject",
+        "org.springframework.web.client.RestTemplate.postForEntity",
+        "org.springframework.web.client.RestTemplate.exchange"
+      ],
+      "description": "Spring RestTemplate,URL 含拼接 = SSRF",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-ssrf-webclient",
+      "category": "ssrf",
+      "cwe_id": "CWE-918",
+      "owasp": "A10:2021 Server-Side Request Forgery",
+      "fqns": [
+        "org.springframework.web.reactive.function.client.WebClient.get",
+        "org.springframework.web.reactive.function.client.WebClient.post",
+        "org.springframework.web.reactive.function.client.WebClient.method"
+      ],
+      "description": "WebClient,uri 用户控制 = SSRF",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-ssrf-httpclient-apache",
+      "category": "ssrf",
+      "cwe_id": "CWE-918",
+      "owasp": "A10:2021 Server-Side Request Forgery",
+      "fqns": [
+        "org.apache.http.client.fluent.Request.Get",
+        "org.apache.http.client.fluent.Request.Post",
+        "org.apache.http.client.methods.HttpGet.<init>",
+        "org.apache.http.client.methods.HttpPost.<init>",
+        "org.apache.hc.client5.http.classic.HttpClient.execute"
+      ],
+      "description": "Apache HttpClient,URL 拼接 = SSRF",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-ssrf-okhttp",
+      "category": "ssrf",
+      "cwe_id": "CWE-918",
+      "owasp": "A10:2021 Server-Side Request Forgery",
+      "fqns": [
+        "okhttp3.Request.Builder.url"
+      ],
+      "description": "OkHttp Request.Builder.url,URL 用户控制 = SSRF",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-path-file-constructor",
+      "category": "path_traversal",
+      "cwe_id": "CWE-22",
+      "owasp": "A01:2021 Broken Access Control",
+      "fqns": [
+        "java.io.File.<init>",
+        "java.io.FileInputStream.<init>",
+        "java.io.FileOutputStream.<init>",
+        "java.io.RandomAccessFile.<init>"
+      ],
+      "description": "File/FileInputStream/FileOutputStream 构造,路径含用户输入 = 路径遍历",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "File(String, String) 第二参数含 ../ 即危险"
+    },
+    {
+      "id": "sink-path-paths",
+      "category": "path_traversal",
+      "cwe_id": "CWE-22",
+      "owasp": "A01:2021 Broken Access Control",
+      "fqns": [
+        "java.nio.file.Paths.get",
+        "java.nio.file.Path.resolve",
+        "java.nio.file.Path.resolveSibling",
+        "java.nio.file.Files.newInputStream",
+        "java.nio.file.Files.newOutputStream",
+        "java.nio.file.Files.write",
+        "java.nio.file.Files.readAllBytes"
+      ],
+      "description": "NIO Paths/Files,任一参数含 ../ 用户输入 = 路径遍历",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-xss-servlet-writer",
+      "category": "xss",
+      "cwe_id": "CWE-79",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "javax.servlet.http.HttpServletResponse.getWriter",
+        "java.io.PrintWriter.write",
+        "java.io.PrintWriter.println"
+      ],
+      "description": "Servlet 输出未转义用户输入 = XSS",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "需审计内容是否经 htmlEscape"
+    },
+    {
+      "id": "sink-xss-thymeleaf-utext",
+      "category": "xss",
+      "cwe_id": "CWE-79",
+      "owasp": "A03:2021 Injection",
+      "fqns": [],
+      "description": "Thymeleaf th:utext 关闭 HTML 转义 = XSS",
+      "severity": "high",
+      "confidence": "medium",
+      "dangerous_args": [],
+      "notes": "需扫描模板文件 *.html 含 th:utext"
+    },
+    {
+      "id": "sink-xxe-documentbuilder",
+      "category": "injection.xxe",
+      "cwe_id": "CWE-611",
+      "owasp": "A05:2021 Security Misconfiguration",
+      "fqns": [
+        "javax.xml.parsers.DocumentBuilderFactory.newInstance",
+        "javax.xml.parsers.SAXParserFactory.newInstance",
+        "javax.xml.stream.XMLInputFactory.newInstance",
+        "javax.xml.transform.TransformerFactory.newInstance",
+        "javax.xml.validation.SchemaFactory.newInstance"
+      ],
+      "description": "XML 解析器未禁用外部实体 = XXE",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [],
+      "notes": "需审计 parse 之前是否调用 setFeature('http://apache.org/xml/features/disallow-doctype-decl', true)"
+    },
+    {
+      "id": "sink-xxe-xpath",
+      "category": "injection.xpath",
+      "cwe_id": "CWE-643",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "javax.xml.xpath.XPathFactory.newInstance",
+        "javax.xml.xpath.XPath.evaluate"
+      ],
+      "description": "XPath 表达式含拼接 = XPath 注入",
+      "severity": "medium",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-ldap-search",
+      "category": "injection.ldap",
+      "cwe_id": "CWE-90",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "javax.naming.directory.DirContext.search",
+        "javax.naming.directory.InitialDirContext.search",
+        "org.springframework.ldap.core.LdapTemplate.search"
+      ],
+      "description": "LDAP search filter 拼接用户输入 = LDAP 注入",
+      "severity": "high",
+      "confidence": "high",
+      "dangerous_args": [1]
+    },
+    {
+      "id": "sink-expression-spel",
+      "category": "injection.expression",
+      "cwe_id": "CWE-94",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "org.springframework.expression.spel.standard.SpelExpressionParser.parseExpression",
+        "org.springframework.expression.Expression.getValue",
+        "org.springframework.expression.Expression.setValue"
+      ],
+      "description": "SpEL 表达式用户控制 = 任意代码执行",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-expression-ognl",
+      "category": "injection.expression",
+      "cwe_id": "CWE-94",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "ognl.Ognl.getValue",
+        "ognl.Ognl.setValue"
+      ],
+      "description": "OGNL 表达式用户控制 = 任意代码执行(Struts2 历史漏洞主因)",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-expression-mvel",
+      "category": "injection.expression",
+      "cwe_id": "CWE-94",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "org.mvel2.MVEL.eval",
+        "org.mvel2.MVEL.executeExpression"
+      ],
+      "description": "MVEL 表达式用户控制 = 任意代码执行",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-expression-el",
+      "category": "injection.expression",
+      "cwe_id": "CWE-94",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "javax.el.ELProcessor.eval",
+        "org.apache.el.ExpressionFactoryImpl.createValueExpression"
+      ],
+      "description": "EL 表达式用户控制 = 任意代码执行",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-nosql-mongo",
+      "category": "injection.nosql",
+      "cwe_id": "CWE-943",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "com.mongodb.client.MongoCollection.find",
+        "com.mongodb.client.MongoCollection.updateOne",
+        "com.mongodb.client.MongoCollection.deleteOne",
+        "org.springframework.data.mongodb.core.MongoTemplate.find",
+        "org.springframework.data.mongodb.core.MongoTemplate.findOne"
+      ],
+      "description": "Mongo 查询/更新条件 Document 字段值用户控制 = NoSQL 注入(操作符 $gt $ne)",
+      "severity": "high",
+      "confidence": "medium",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-nosql-redis",
+      "category": "injection.nosql",
+      "cwe_id": "CWE-943",
+      "owasp": "A03:2021 Injection",
+      "fqns": [
+        "org.springframework.data.redis.core.RedisTemplate.execute",
+        "org.springframework.data.redis.core.StringRedisTemplate.execute"
+      ],
+      "description": "Redis 命令回调,参数拼接 = Redis 注入",
+      "severity": "medium",
+      "confidence": "medium",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-openredirect",
+      "category": "open_redirect",
+      "cwe_id": "CWE-601",
+      "owasp": "A01:2021 Broken Access Control",
+      "fqns": [
+        "javax.servlet.http.HttpServletResponse.sendRedirect",
+        "org.springframework.web.servlet.view.RedirectView.<init>",
+        "org.springframework.web.servlet.view.RedirectView.setUrl"
+      ],
+      "description": "Redirect URL 用户控制未白名单 = 开放重定向",
+      "severity": "medium",
+      "confidence": "high",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-crypto-md5",
+      "category": "crypto_weak",
+      "cwe_id": "CWE-327",
+      "owasp": "A02:2021 Cryptographic Failures",
+      "fqns": [
+        "java.security.MessageDigest.getInstance"
+      ],
+      "description": "MessageDigest 接受 MD5/SHA1 算法,且用于密码/敏感数据 = 弱加密",
+      "severity": "high",
+      "confidence": "medium",
+      "dangerous_args": [0],
+      "notes": "需审计调用方的用途;若是文件指纹而非密码 = 低风险"
+    },
+    {
+      "id": "sink-crypto-des",
+      "category": "crypto_weak",
+      "cwe_id": "CWE-327",
+      "owasp": "A02:2021 Cryptographic Failures",
+      "fqns": [
+        "javax.crypto.Cipher.getInstance"
+      ],
+      "description": "Cipher 接受 DES/3DES/RC4 算法 = 弱加密",
+      "severity": "high",
+      "confidence": "medium",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-crypto-weak-rng",
+      "category": "crypto_weak",
+      "cwe_id": "CWE-330",
+      "owasp": "A02:2021 Cryptographic Failures",
+      "fqns": [
+        "java.util.Random.<init>",
+        "java.util.Random.nextInt",
+        "java.util.Random.nextLong",
+        "java.lang.Math.random"
+      ],
+      "description": "用 Random/Math.random() 生成密码/Token = 可预测",
+      "severity": "high",
+      "confidence": "medium",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-fileupload-transferto",
+      "category": "file_upload",
+      "cwe_id": "CWE-434",
+      "owasp": "A04:2021 Insecure Design",
+      "fqns": [
+        "org.springframework.web.multipart.MultipartFile.transferTo",
+        "org.springframework.web.multipart.MultipartFile.getBytes"
+      ],
+      "description": "MultipartFile transferTo 路径用户控制 = 任意文件上传",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0],
+      "notes": "必须审计是否校验 contentType / 后缀 / 大小"
+    },
+    {
+      "id": "sink-log-injection",
+      "category": "log_injection",
+      "cwe_id": "CWE-117",
+      "owasp": "A09:2021 Security Logging and Monitoring Failures",
+      "fqns": [
+        "org.slf4j.Logger.info",
+        "org.slf4j.Logger.warn",
+        "org.slf4j.Logger.error",
+        "org.slf4j.Logger.debug",
+        "java.util.logging.Logger.log",
+        "org.apache.logging.log4j.Logger.info"
+      ],
+      "description": "Logger 输出含 \\r\\n 用户控制 = 日志注入/伪造",
+      "severity": "low",
+      "confidence": "medium",
+      "dangerous_args": [0]
+    },
+    {
+      "id": "sink-jndi-lookup",
+      "category": "jndi",
+      "cwe_id": "CWE-502",
+      "owasp": "A08:2021 Software and Data Integrity Failures",
+      "fqns": [
+        "javax.naming.InitialContext.lookup"
+      ],
+      "description": "JNDI lookup 用户控制 = JNDI 注入(可触发 RCE via deserialization)",
+      "severity": "critical",
+      "confidence": "high",
+      "dangerous_args": [0]
+    }
+  ]
+}

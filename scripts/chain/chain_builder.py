@@ -1,0 +1,902 @@
+"""
+chain_builder.py
+================
+
+调用链引擎主入口: **CTE 前向遍历 + sink 提取 + 体内注释注入 + Memurai 缓存**
+一体化编排器。
+
+设计依据: ``D:\\agentloop\\design-docs\\chain-sql-engine.md`` §"总体工作流"。
+
+Pipeline
+--------
+1. ``sqlite-extract-chain.py:resolve_entry()`` 把 entry fqn → nodes.id
+2. ``sqlite-extract-chain.py:extract_recursive()`` 走 CTE RECURSIVE 拉出 depth-≤N 的链
+3. 对每个链节点:
+   a. 反查 codegraph 拿 ``end_line``、签名
+   b. 读源文件 slice 出方法体 (start_line, end_line 均为 1-based)
+   c. 调 ``method_calls_extractor.extract_method_calls()`` 拿本文件全部 method 调用
+      (按文件级 cache,避免重复 JAR 调用)
+   d. 用 ``method_start_line == start_line`` 过滤出本方法的出向调用
+   e. ``is_sink=True`` 视为 sink(默认策略: 非 groupId 命名空间)
+   f. 调 ``scanner_utils.inject_sink_comment`` 把 ``// sink: <FQN>`` 注入 body
+4. 整链算 total_nodes / total_edges / total_sinks / cycle_detected
+5. ``Memurai.set(key, json, ex=ttl)`` 写 ``{groupId}:audit:chain:{sigHash}`` 缓存 (可选)
+
+API
+---
+- ``build_chain(entry_fqn, group_id, project_root, ...)`` — 单链, 深度优先顺序遍历结果
+- ``build_all_chains_for_endpoint(entry_fqn, ...)`` — 同一 entry 的**所有**根到叶路径变体
+
+CLI
+---
+    python chain_builder.py \\
+        --project-root D:\\code\\WebGoat-2025.3 \\
+        --db D:\\code\\WebGoat-2025.3\\codegraph.db \\
+        --group-id org.owasp.webgoat \\
+        --entry "org.owasp.webgoat.lessons.sqlinjection.advanced.SqlInjectionLesson6b#completed" \\
+        --depth 20 \\
+        --output chain.json
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import logging
+import sqlite3
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+
+# ============================================================== 路径常量
+
+_HERE = Path(__file__).resolve().parent
+_REPO_ROOT = _HERE.parent.parent          # D:\agentloop
+_DEFAULT_DB = _REPO_ROOT / "codegraph.db"
+_DEFAULT_PROJECT_ROOT = _REPO_ROOT / "projects" / "_template"
+
+
+# ============================================================== logger
+
+logger = logging.getLogger("chain_builder")
+if not logger.handlers:
+    _h = logging.StreamHandler(sys.stderr)
+    _h.setFormatter(logging.Formatter("[%(name)s %(levelname)s] %(message)s"))
+    logger.addHandler(_h)
+logger.setLevel(logging.INFO)
+
+
+# ============================================================== 兄弟模块导入
+#
+# 兄弟模块文件名带连字符 (sqlite-extract-chain.py / method-calls-extractor.py),
+# 不是合法 Python module name, 必须用 importlib 按文件路径加载。
+# scanner_utils.py 是合法名, 可以用普通 import。
+
+import importlib.util as _il_util
+from types import ModuleType as _ModuleType
+
+
+def _load_module_from_file(modname: str, filepath: Path) -> _ModuleType:
+    """从文件路径加载一个 Python 模块并以 ``modname`` 注册到 sys.modules。"""
+    spec = _il_util.spec_from_file_location(modname, filepath)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"无法构造 spec: {filepath}")
+    mod = _il_util.module_from_spec(spec)
+    sys.modules[modname] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# scripts/chain/ 下的连字符兄弟
+_sec = _load_module_from_file(
+    "_chain_builder_sqlite_extract_chain",
+    _HERE / "sqlite-extract-chain.py",
+)
+_mce = _load_module_from_file(
+    "_chain_builder_method_calls_extractor",
+    _HERE / "method_calls_extractor.py",
+)
+
+# scripts/ast/scanner_utils.py — 通过 sys.path 走普通 import
+_ast_dir = _REPO_ROOT / "scripts" / "ast"
+if str(_ast_dir) not in sys.path:
+    sys.path.insert(0, str(_ast_dir))
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+try:
+    import scanner_utils as _su  # type: ignore
+except ImportError:
+    try:
+        from scripts.ast import scanner_utils as _su  # type: ignore
+    except ImportError as _e:
+        raise ImportError(
+            f"无法 import scanner_utils (paths tried: scanner_utils, "
+            f"scripts.ast.scanner_utils, {_ast_dir}): {_e}"
+        )
+
+
+# ============================================================== 数据结构
+
+@dataclass
+class ChainNode:
+    """单个链节点的最终展示形态。"""
+    fqn: str
+    node_id: str
+    file: Optional[str]
+    start_line: int
+    end_line: Optional[int] = None
+    body: Optional[str] = None          # 注入 sink 注释后的方法体
+    depth: int = 0
+    sinks: List[str] = field(default_factory=list)        # 体内已识别的 sink FQN
+    edges: List[str] = field(default_factory=list)        # 该节点出向 calls 边的 target id
+
+
+# ============================================================== 内部工具函数
+
+def _log(msg: str, *args: Any) -> None:
+    logger.info(msg, *args)
+
+
+def _sig_hash_for_entry(node_id: str) -> str:
+    """entry 的 sigHash = sha256(nodes.id)[:16]。
+
+    注: 不再使用 md5(fqn+params) (设计文档已决议改用 nodes.id 体系)。
+    """
+    return hashlib.sha256(str(node_id).encode("utf-8")).hexdigest()[:16]
+
+
+def _open_db(db_path: Path) -> sqlite3.Connection:
+    """打开 codegraph SQLite (只读 + 短超时, 避免与 codegraph-init 写锁竞争)。"""
+    db_path = Path(db_path)
+    if not db_path.is_file():
+        raise FileNotFoundError(f"codegraph.db 不存在: {db_path}")
+    # 5 秒 busy timeout, 避免短暂持锁的 init 进程冲突
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5.0)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _fetch_node_meta(
+    conn: sqlite3.Connection,
+    node_ids: Sequence[str],
+) -> Dict[str, Dict[str, Any]]:
+    """批量反查 nodes 表拿 end_line / signature / decorators / qualified_name。"""
+    if not node_ids:
+        return {}
+    placeholders = ",".join("?" * len(node_ids))
+    cur = conn.execute(
+        f"SELECT id, qualified_name, end_line, signature, decorators, kind "
+        f"FROM nodes WHERE id IN ({placeholders})",
+        tuple(node_ids),
+    )
+    return {row["id"]: dict(row) for row in cur.fetchall()}
+
+
+def _fetch_outgoing_edges(
+    conn: sqlite3.Connection,
+    node_ids: Sequence[str],
+) -> Dict[str, List[str]]:
+    """批量反查 edges 拿每个节点的出向 calls 边 target id 列表。"""
+    if not node_ids:
+        return {}
+    placeholders = ",".join("?" * len(node_ids))
+    cur = conn.execute(
+        f"SELECT source, target FROM edges "
+        f"WHERE source IN ({placeholders}) AND kind = 'calls'",
+        tuple(node_ids),
+    )
+    out: Dict[str, List[str]] = {nid: [] for nid in node_ids}
+    for row in cur.fetchall():
+        out.setdefault(row["source"], []).append(row["target"])
+    return out
+
+
+def _resolve_file_path(
+    file_path: Optional[str],
+    project_root: Path,
+) -> Optional[Path]:
+    """codegraph 存的 file_path 可能是绝对或相对;都尝试一次。"""
+    if not file_path:
+        return None
+    p = Path(file_path)
+    if p.is_file():
+        return p
+    candidate = (project_root / file_path).resolve()
+    if candidate.is_file():
+        return candidate
+    # Windows 路径分隔符混用兜底
+    candidate2 = (project_root / file_path.replace("/", "\\")).resolve()
+    if candidate2.is_file():
+        return candidate2
+    return None
+
+
+def _read_method_body(
+    file_path: Path,
+    start_line: int,
+    end_line: Optional[int],
+) -> Optional[str]:
+    """读源文件 [start_line, end_line] 切片 (两边均 1-based, 包含)。
+
+    任意边界缺失 → 返回 None (调用方决定降级)。
+    """
+    if not file_path.is_file():
+        return None
+    if start_line <= 0 or end_line is None or end_line < start_line:
+        return None
+    try:
+        # 1-based → 0-based 切片
+        with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
+            lines = fh.readlines()
+        if end_line > len(lines):
+            end_line = len(lines)
+        return "".join(lines[start_line - 1: end_line])
+    except OSError as e:
+        _log("read body fail: %s [%d-%d]: %s", file_path, start_line, end_line, e)
+        return None
+
+
+def _annotate_body_with_sinks(
+    body: str,
+    sinks: Sequence[str],
+) -> str:
+    """对 body 每一行,若包含 sink FQN 的方法名 + '(', 在行前注入 ``// sink: <FQN>``。
+
+    复用 ``scanner_utils.inject_sink_comment`` (设计文档 §8)。
+
+    注: JAR 输出的 calledFQN 形如 ``"java.sql.Statement.executeQuery(query)"`` (含实参文本),
+    而 ``inject_sink_comment`` 内部用 ``fqn_to_method_name`` 提取方法名后, 会再拼一个
+    ``(`` 去原行匹配。本函数先做一次**实参剥离 + 尾括号剥离**, 把
+    ``"pkg.Cls.method(args)"`` 归一为 ``"pkg.Cls.method"`` —— 这样
+    ``fqn_to_method_name`` 返回 ``"method"``, 拼出 ``"method("`` 才能在源码行匹配上。
+    (之所以不能保留尾括号, 是因为 ``inject_sink_comment`` 会拼出 ``method((`` 这种
+    永远不匹配的字符串。)
+    """
+    if not body or not sinks:
+        return body
+
+    def _normalize(fqn: str) -> str:
+        i = fqn.find("(")
+        if i >= 0:
+            return fqn[:i]
+        return fqn
+
+    norm_set = {_normalize(s) for s in sinks if s}
+    annotated: List[str] = []
+    for line in body.splitlines(keepends=True):
+        new_line = _su.inject_sink_comment(line, list(norm_set), norm_set)
+        annotated.append(new_line)
+    return "".join(annotated)
+
+
+# ============================================================== 主 API
+
+def build_chain(
+    entry_fqn: str,
+    group_id: str,
+    project_root: Path,
+    db_path: Path = _DEFAULT_DB,
+    max_depth: int = 20,
+    memurai_client: Any = None,
+    ttl: int = 86400,
+    jar_path: Optional[Path] = None,
+    source_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """构建**单条**调用链 (entry → 所有 reachable 节点, depth-ordered)。
+
+    Parameters
+    ----------
+    entry_fqn:
+        入口 method 的 qualified_name, 形如
+        ``org.owasp.webgoat.lessons.sqlinjection.advanced.SqlInjectionLesson6b#completed``
+        或 ``pkg::Class::method`` (codegraph 双格式皆接受)。
+    group_id:
+        项目 groupId, 例如 ``"org.owasp.webgoat"``。**所有不以它开头的 calledFQN
+        视为 sink** (设计文档 §"关键设计决策")。
+    project_root:
+        项目根目录, 用于把 codegraph 里的 file_path (相对或绝对) 解析为可读实体。
+    db_path:
+        codegraph SQLite 路径。
+    max_depth:
+        CTE 递归深度上限, 默认 20。
+    memurai_client:
+        可选。``scripts.redis.memurai_client.Memurai`` 实例。
+        提供时, 把整链结果以 ``{groupId}:audit:chain:{sigHash}`` 为 key 写入缓存。
+    ttl:
+        缓存过期秒数, 默认 86400 (24h, 与设计文档一致)。
+    jar_path:
+        ``java-method-call-extractor-1.0.0.jar`` 路径; 省略走 method_calls_extractor
+        的默认路径。
+    source_root:
+        传给 JAR 的 sourceRoot 参数; 默认与 project_root 同。
+
+    Returns
+    -------
+    dict::
+
+        {
+          "entry_fqn": str,
+          "sig_hash": str,           # sha256(entry_id)[:16]
+          "chain": [{fqn, file, start_line, end_line, body, depth, sinks, edges}, ...],
+          "total_nodes": int,
+          "total_edges": int,
+          "total_sinks": int,
+          "cycle_detected": bool,
+        }
+    """
+    project_root = Path(project_root)
+    db_path = Path(db_path)
+    if source_root is None:
+        source_root = project_root
+
+    # 1. entry fqn → nodes.id
+    entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
+    if not entry_id:
+        raise LookupError(
+            f"entry_fqn 在 codegraph 中找不到 method 节点: {entry_fqn!r} "
+            f"(db={db_path})"
+        )
+
+    # 2. CTE 递归拿链 (depth-ordered)
+    raw_rows = _sec.extract_recursive(str(db_path), entry_id, max_depth)
+    if not raw_rows:
+        _log("entry %s → CTE 返回空链 (depth=%d, db=%s)",
+             entry_id, max_depth, db_path)
+        return _empty_chain_result(entry_fqn, entry_id)
+
+    node_ids = [r["id"] for r in raw_rows]
+
+    # 3. 反查 node 元信息 + 出向边 (一次 round-trip 避免 N+1)
+    with _open_db(db_path) as conn:
+        meta_map = _fetch_node_meta(conn, node_ids)
+        edges_map = _fetch_outgoing_edges(conn, node_ids)
+
+    # 4. 文件级 cache: method_calls_extractor 是按文件返回的, 同文件多个 method 共用
+    file_calls_cache: Dict[str, List[Dict[str, Any]]] = {}
+    fetch_failures: List[str] = []
+
+    def _get_file_calls(file_path: Path) -> List[Dict[str, Any]]:
+        key = str(file_path.resolve())
+        if key in file_calls_cache:
+            return file_calls_cache[key]
+        try:
+            records = _mce.extract_method_calls(
+                java_path=file_path,
+                source_root=source_root,
+                group_id=group_id,
+                jar_path=jar_path,
+                timeout=30,
+                max_workers=1,         # 内部已经 batch, 一次一个
+                recursive=False,
+                log=False,
+            )
+        except Exception as e:  # noqa: BLE001
+            _log("file calls extract FAIL: %s : %s", file_path, e)
+            records = []
+            fetch_failures.append(str(file_path))
+        file_calls_cache[key] = records
+        return records
+
+    # 5. 构建 ChainNode 列表 (按 depth 升序, 同 depth 维持 CTE 顺序)
+    chain_nodes: List[ChainNode] = []
+    total_sinks = 0
+    for r in raw_rows:
+        nid = r["id"]
+        meta = meta_map.get(nid, {})
+        fqn = meta.get("qualified_name") or r.get("qualified_name") or ""
+        start_line = int(r["start_line"] or 0)
+        end_line = meta.get("end_line")
+        depth = int(r["depth"])
+        file_path_str = r.get("file_path")
+        file_p = _resolve_file_path(file_path_str, project_root)
+
+        # body slice
+        body: Optional[str] = None
+        if file_p is not None and start_line > 0:
+            body = _read_method_body(file_p, start_line, end_line)
+
+        # 该 method 的 sink FQN 列表
+        sinks: List[str] = []
+        if file_p is not None and start_line > 0:
+            all_calls = _get_file_calls(file_p)
+            # JAR startLine 是 0-based, codegraph.start_line 是 1-based
+            jar_start_line = start_line - 1
+            method_calls = [
+                c for c in all_calls
+                if int(c.get("method_start_line") or -1) == jar_start_line
+            ]
+            sinks = [c["called_fqn"] for c in method_calls if c.get("is_sink")]
+            total_sinks += len(sinks)
+
+        # body 注入 sink 注释 (仅对实际 body 存在 + 有 sink 的行)
+        annotated_body = _annotate_body_with_sinks(body or "", sinks)
+
+        chain_nodes.append(ChainNode(
+            fqn=fqn,
+            node_id=nid,
+            file=file_path_str,
+            start_line=start_line,
+            end_line=end_line,
+            body=annotated_body or None,
+            depth=depth,
+            sinks=sinks,
+            edges=edges_map.get(nid, []),
+        ))
+
+    # 6. 统计 + cycle detection
+    total_nodes = len(chain_nodes)
+    total_edges = sum(len(n.edges) for n in chain_nodes)
+
+    # cycle: 任何 node 被本链上游节点再次引用即视为环 (CTE 已用 path 防环,
+    # 因此此处"环"含义=实际代码里存在的递归调用, 但 chain 中只展示一次)
+    cycle_detected = _detect_cycle_in_chain(chain_nodes, edges_map)
+
+    sig_hash = _sig_hash_for_entry(entry_id)
+
+    result: Dict[str, Any] = {
+        "entry_fqn": entry_fqn,
+        "entry_id": entry_id,
+        "sig_hash": sig_hash,
+        "group_id": group_id,
+        "depth_limit": max_depth,
+        "chain": [_chain_node_to_dict(n) for n in chain_nodes],
+        "total_nodes": total_nodes,
+        "total_edges": total_edges,
+        "total_sinks": total_sinks,
+        "cycle_detected": cycle_detected,
+        "file_calls_cache_size": len(file_calls_cache),
+        "file_calls_failures": fetch_failures,
+    }
+
+    # 7. Memurai 缓存 (可选)
+    if memurai_client is not None:
+        cache_key = f"{group_id}:audit:chain:{sig_hash}"
+        try:
+            ok = memurai_client.set_json(
+                cache_key, result, ex=ttl,
+            )
+            result["cache_key"] = cache_key
+            result["cache_written"] = bool(ok)
+        except Exception as e:  # noqa: BLE001
+            _log("Memurai 写缓存失败 (%s): %s", cache_key, e)
+            result["cache_key"] = cache_key
+            result["cache_written"] = False
+            result["cache_error"] = str(e)
+
+    return result
+
+
+def build_all_chains_for_endpoint(
+    entry_fqn: str,
+    group_id: str,
+    project_root: Path,
+    db_path: Path = _DEFAULT_DB,
+    max_depth: int = 20,
+    memurai_client: Any = None,
+    ttl: int = 86400,
+    jar_path: Optional[Path] = None,
+    source_root: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    """同一 entry 的**所有**根→叶路径变体。
+
+    实现: 用 CTE RECURSIVE 拉出 ``(path, leaf_node)`` 的全集, 然后按 path 聚类,
+    每个独立路径 = 一条 chain 变体。每条变体再走一遍 build_chain 的节点注释逻辑
+    (复用 file_calls_cache, 整 endpoint 只解析一次 JAR)。
+
+    Parameters
+    ----------
+    (同 build_chain)
+
+    Returns
+    -------
+    list[dict]: 每个 dict 是单条路径变体的完整结果 (结构同 ``build_chain()``)。
+    """
+    project_root = Path(project_root)
+    db_path = Path(db_path)
+    if source_root is None:
+        source_root = project_root
+
+    entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
+    if not entry_id:
+        raise LookupError(
+            f"entry_fqn 在 codegraph 中找不到 method 节点: {entry_fqn!r}"
+        )
+
+    paths = _extract_paths_with_cycle_flag(str(db_path), entry_id, max_depth)
+    if not paths:
+        _log("entry %s → 无可达路径", entry_id)
+        return []
+
+    # 收集所有出现过的 node id (去重) → 一次性反查 meta + edges
+    all_ids: set[str] = set()
+    for p in paths:
+        for nid in p["nodes"]:
+            all_ids.add(nid)
+    with _open_db(db_path) as conn:
+        meta_map = _fetch_node_meta(conn, list(all_ids))
+        edges_map = _fetch_outgoing_edges(conn, list(all_ids))
+
+    # 文件级 JAR cache (整个 endpoint 只解析一次)
+    file_calls_cache: Dict[str, List[Dict[str, Any]]] = {}
+
+    def _get_file_calls(file_path: Path) -> List[Dict[str, Any]]:
+        key = str(file_path.resolve())
+        if key in file_calls_cache:
+            return file_calls_cache[key]
+        try:
+            records = _mce.extract_method_calls(
+                java_path=file_path,
+                source_root=source_root,
+                group_id=group_id,
+                jar_path=jar_path,
+                timeout=30,
+                max_workers=1,
+                recursive=False,
+                log=False,
+            )
+        except Exception as e:  # noqa: BLE001
+            _log("file calls extract FAIL: %s : %s", file_path, e)
+            records = []
+        file_calls_cache[key] = records
+        return records
+
+    sig_hash = _sig_hash_for_entry(entry_id)
+    cache_key = f"{group_id}:audit:chain:{sig_hash}"
+    results: List[Dict[str, Any]] = []
+
+    for variant_idx, p in enumerate(paths):
+        node_ids = p["nodes"]
+        chain_nodes: List[ChainNode] = []
+        total_sinks = 0
+        cycle_in_variant = False
+        seen: set[str] = set()
+
+        for depth, nid in enumerate(node_ids):
+            if nid in seen:
+                cycle_in_variant = True
+            seen.add(nid)
+
+            meta = meta_map.get(nid, {})
+            r_start = meta.get("start_line") if isinstance(meta.get("start_line"), int) else None
+            r_end = meta.get("end_line")
+            fqn = meta.get("qualified_name") or ""
+
+            # 查 start_line (CTE path 没有带, 需另查)
+            if r_start is None:
+                with _open_db(db_path) as conn:
+                    row = conn.execute(
+                        "SELECT start_line, file_path FROM nodes WHERE id=?",
+                        (nid,),
+                    ).fetchone()
+                r_start = int(row["start_line"]) if row else 0
+                file_path_str = row["file_path"] if row else None
+            else:
+                file_path_str = None
+                with _open_db(db_path) as conn:
+                    row = conn.execute(
+                        "SELECT file_path FROM nodes WHERE id=?",
+                        (nid,),
+                    ).fetchone()
+                if row:
+                    file_path_str = row["file_path"]
+
+            file_p = _resolve_file_path(file_path_str, project_root)
+            body: Optional[str] = None
+            if file_p is not None and r_start and r_start > 0:
+                body = _read_method_body(file_p, r_start, r_end)
+
+            sinks: List[str] = []
+            if file_p is not None and r_start and r_start > 0:
+                all_calls = _get_file_calls(file_p)
+                jar_start = r_start - 1
+                method_calls = [
+                    c for c in all_calls
+                    if int(c.get("method_start_line") or -1) == jar_start
+                ]
+                sinks = [c["called_fqn"] for c in method_calls if c.get("is_sink")]
+                total_sinks += len(sinks)
+
+            chain_nodes.append(ChainNode(
+                fqn=fqn,
+                node_id=nid,
+                file=file_path_str,
+                start_line=r_start or 0,
+                end_line=r_end,
+                body=_annotate_body_with_sinks(body or "", sinks) or None,
+                depth=depth,
+                sinks=sinks,
+                edges=edges_map.get(nid, []),
+            ))
+
+        total_edges = sum(len(n.edges) for n in chain_nodes)
+        result = {
+            "entry_fqn": entry_fqn,
+            "entry_id": entry_id,
+            "sig_hash": sig_hash,
+            "group_id": group_id,
+            "depth_limit": max_depth,
+            "variant_index": variant_idx,
+            "variant_path": node_ids,
+            "cycle_detected": cycle_in_variant or p.get("cycle_in_cte", False),
+            "chain": [_chain_node_to_dict(n) for n in chain_nodes],
+            "total_nodes": len(chain_nodes),
+            "total_edges": total_edges,
+            "total_sinks": total_sinks,
+            "file_calls_cache_size": len(file_calls_cache),
+        }
+        results.append(result)
+
+    # 写一次 Memurai (覆盖同 sigHash), 包含所有变体
+    if memurai_client is not None and results:
+        try:
+            ok = memurai_client.set_json(
+                cache_key,
+                {"variants": results, "variant_count": len(results)},
+                ex=ttl,
+            )
+            for r in results:
+                r["cache_key"] = cache_key
+                r["cache_written"] = bool(ok)
+        except Exception as e:  # noqa: BLE001
+            _log("Memurai 写缓存失败 (%s): %s", cache_key, e)
+
+    return results
+
+
+# ============================================================== CTE path 提取 (私有)
+
+# 与 sqlite-extract-chain.py 的 RECURSIVE_SQL 同结构, 但额外返回 path 列 + 标记环
+_RECURSIVE_WITH_PATH_SQL = """
+WITH RECURSIVE chain(id, qualified_name, depth, path, file_path, start_line) AS (
+    SELECT n.id, n.qualified_name, 0, '|' || n.id,
+           n.file_path, n.start_line
+    FROM nodes n
+    WHERE n.id = :entry_id AND n.kind = 'method'
+
+    UNION ALL
+
+    SELECT callee.id, callee.qualified_name, c.depth + 1,
+           c.path || '|' || callee.id,
+           callee.file_path, callee.start_line
+    FROM chain c
+    JOIN edges e ON e.source = c.id AND e.kind = 'calls'
+    JOIN nodes callee ON callee.id = e.target AND callee.kind = 'method'
+    WHERE c.depth < :max_depth
+      AND instr(c.path, '|' || callee.id || '|') = 0
+)
+SELECT id, qualified_name, depth, path, file_path, start_line FROM chain
+"""
+
+
+def _extract_paths_with_cycle_flag(
+    db_path: str,
+    entry_id: str,
+    max_depth: int,
+) -> List[Dict[str, Any]]:
+    """CTE 输出 (id, path, ...) → 按 path 字符串去重 → 每条 path = 一个变体。
+
+    Returns
+    -------
+    list of {"nodes": [id, id, ...], "cycle_in_cte": bool}
+    """
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5.0)
+    conn.row_factory = sqlite3.Row
+    try:
+        cur = conn.execute(
+            _RECURSIVE_WITH_PATH_SQL,
+            {"entry_id": entry_id, "max_depth": max_depth},
+        )
+        seen_paths: set[str] = set()
+        out: List[Dict[str, Any]] = []
+        for row in cur.fetchall():
+            path = row["path"]
+            if path in seen_paths:
+                continue
+            seen_paths.add(path)
+            node_ids = [n for n in path.split("|") if n]
+            out.append({
+                "nodes": node_ids,
+                "cycle_in_cte": False,    # CTE 已防环
+            })
+        return out
+    finally:
+        conn.close()
+
+
+# ============================================================== cycle + 内部小工具
+
+def _detect_cycle_in_chain(
+    chain_nodes: Sequence[ChainNode],
+    edges_map: Dict[str, List[str]],
+) -> bool:
+    """检测 chain 中是否存在 back-edge (下游节点引用上游节点)。
+
+    注意: CTE 已经用 path 列防环, 所以本函数捕获的是**原图里**确实存在的递归调用
+    (例如 m:foo → m:bar → m:foo), 即使在 CTE 输出里只出现一次也依然记录。
+    """
+    id_to_depth = {n.node_id: n.depth for n in chain_nodes}
+    for src, tgts in edges_map.items():
+        if src not in id_to_depth:
+            continue
+        src_d = id_to_depth[src]
+        for tgt in tgts:
+            if tgt in id_to_depth and id_to_depth[tgt] <= src_d:
+                return True
+    return False
+
+
+def _chain_node_to_dict(n: ChainNode) -> Dict[str, Any]:
+    """ChainNode → 可 JSON 序列化的 dict。"""
+    return {
+        "fqn": n.fqn,
+        "node_id": n.node_id,
+        "file": n.file,
+        "start_line": n.start_line,
+        "end_line": n.end_line,
+        "body": n.body,
+        "depth": n.depth,
+        "sinks": n.sinks,
+        "edges": n.edges,
+    }
+
+
+def _empty_chain_result(entry_fqn: str, entry_id: str) -> Dict[str, Any]:
+    """空链兜底结构 (与 build_chain 返回 schema 一致)。"""
+    return {
+        "entry_fqn": entry_fqn,
+        "entry_id": entry_id,
+        "sig_hash": _sig_hash_for_entry(entry_id),
+        "group_id": None,
+        "depth_limit": 0,
+        "chain": [],
+        "total_nodes": 0,
+        "total_edges": 0,
+        "total_sinks": 0,
+        "cycle_detected": False,
+        "file_calls_cache_size": 0,
+        "file_calls_failures": [],
+    }
+
+
+# ============================================================== CLI
+
+def _build_argparser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        description="chain_builder: CTE + sink 提取 + Memurai 缓存一体化",
+    )
+    p.add_argument("--project-root", required=True,
+                   help="项目根目录 (用于解析 codegraph 内的 file_path)")
+    p.add_argument("--db", default=str(_DEFAULT_DB),
+                   help="codegraph SQLite 路径")
+    p.add_argument("--group-id", required=True,
+                   help="项目 groupId, 例如 org.owasp.webgoat")
+    p.add_argument("--entry", required=True,
+                   help="入口 method 的 qualified_name")
+    p.add_argument("--depth", type=int, default=20,
+                   help="CTE 递归深度上限 (默认 20)")
+    p.add_argument("--source-root", default=None,
+                   help="JAR 的 sourceRoot 参数 (默认 = project_root)")
+    p.add_argument("--jar", default=None,
+                   help="java-method-call-extractor-1.0.0.jar 路径")
+    p.add_argument("--output", "-o", default=None,
+                   help="输出 JSON 文件路径 (省略则打印到 stdout)")
+    p.add_argument("--memurai", action="store_true",
+                   help="尝试连接 Memurai 并写缓存 (失败不阻塞)")
+    p.add_argument("--memurai-host", default="localhost")
+    p.add_argument("--memurai-port", type=int, default=6379)
+    p.add_argument("--ttl", type=int, default=86400,
+                   help="缓存 TTL 秒数 (默认 86400 = 24h)")
+    p.add_argument("--all-variants", action="store_true",
+                   help="调用 build_all_chains_for_endpoint 而非 build_chain")
+    p.add_argument("--quiet", action="store_true",
+                   help="降低日志输出")
+    return p
+
+
+def _maybe_connect_memurai(args: argparse.Namespace) -> Any:
+    """若 --memurai 给出, 尝试连接; 失败返回 None 不抛。"""
+    if not args.memurai:
+        return None
+    try:
+        # 把 scripts/redis 加进 sys.path 后再 import, 避免 sys.path 不在 repo root
+        _redis_dir = _REPO_ROOT / "scripts" / "redis"
+        if str(_redis_dir) not in sys.path:
+            sys.path.insert(0, str(_redis_dir))
+        from memurai_client import Memurai  # type: ignore
+        cli = Memurai(host=args.memurai_host, port=args.memurai_port, timeout=10.0)
+        if not cli.ping():
+            _log("Memurai PING 失败, 跳过缓存写入")
+            return None
+        return cli
+    except Exception as e:  # noqa: BLE001
+        _log("Memurai 连接失败: %s", e)
+        return None
+
+
+def _summarize(result: Dict[str, Any]) -> str:
+    """简短文本摘要, 打印到 stderr 便于人工核对。"""
+    lines = [
+        f"entry_fqn:    {result.get('entry_fqn')}",
+        f"entry_id:     {result.get('entry_id')}",
+        f"sig_hash:     {result.get('sig_hash')}",
+        f"total_nodes:  {result.get('total_nodes')}",
+        f"total_edges:  {result.get('total_edges')}",
+        f"total_sinks:  {result.get('total_sinks')}",
+        f"cycle:        {result.get('cycle_detected')}",
+    ]
+    if "cache_key" in result:
+        lines.append(f"cache_key:    {result['cache_key']}")
+        lines.append(f"cache_written:{result.get('cache_written')}")
+    return "\n".join(lines)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = _build_argparser().parse_args(argv)
+    if args.quiet:
+        logger.setLevel(logging.WARNING)
+
+    project_root = Path(args.project_root)
+    db_path = Path(args.db)
+    source_root = Path(args.source_root) if args.source_root else project_root
+    jar_path = Path(args.jar) if args.jar else None
+
+    memurai = _maybe_connect_memurai(args)
+
+    common_kwargs = dict(
+        entry_fqn=args.entry,
+        group_id=args.group_id,
+        project_root=project_root,
+        db_path=db_path,
+        max_depth=args.depth,
+        memurai_client=memurai,
+        ttl=args.ttl,
+        jar_path=jar_path,
+        source_root=source_root,
+    )
+
+    try:
+        if args.all_variants:
+            results = build_all_chains_for_endpoint(**common_kwargs)
+        else:
+            single = build_chain(**common_kwargs)
+            results = [single]
+    except LookupError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
+    except FileNotFoundError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
+
+    payload = {
+        "variant_count": len(results),
+        "variants": results,
+        "summary": {
+            "total_nodes": sum(r["total_nodes"] for r in results),
+            "total_edges": sum(r["total_edges"] for r in results),
+            "total_sinks": sum(r["total_sinks"] for r in results),
+        },
+    }
+
+    text = json.dumps(payload, ensure_ascii=False, indent=2)
+    if args.output:
+        out = Path(args.output)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+        _log("已写入 %s (variants=%d, total_nodes=%d, total_sinks=%d)",
+             out, len(results),
+             payload["summary"]["total_nodes"],
+             payload["summary"]["total_sinks"])
+    else:
+        print(text)
+
+    # 顺便把第一个 variant 的摘要打到 stderr, 便于人工快速核对
+    if results:
+        _log("\n--- variant[0] summary ---\n%s", _summarize(results[0]))
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

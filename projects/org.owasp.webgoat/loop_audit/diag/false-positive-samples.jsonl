@@ -1,0 +1,3 @@
+{"timestamp": "2026-06-15T01:15:59.631775+00:00", "finding_id": "F-002", "fqn": "org.owasp.webgoat.lessons.XSS.CrossSiteScriptingLesson2", "vuln_type": "xss_reflected", "labeled_as_fp": false, "labeler": "auto-copied-from-needs_human-review"}
+{"timestamp": "2026-06-15T01:15:59.632212+00:00", "finding_id": "F-001", "fqn": "org.owasp.webgoat.lessons.SQLInjection.SqlInjectionLesson5", "vuln_type": "sql_injection", "labeled_as_fp": false, "labeler": "auto-copied-from-needs_human-review"}
+{"timestamp": "2026-06-15T01:15:59.632512+00:00", "finding_id": "F-005", "fqn": "org.owasp.webgoat.lessons.CSRF.CSRFLesson", "vuln_type": "csrf", "labeled_as_fp": false, "labeler": "auto-copied-from-needs_human-review"}

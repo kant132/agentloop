@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "description": "跨漏洞类型索引 — FWD-X subagent 启动时加载相关子集",
+  "categories": {
+    "注入类": {
+      "track": "FWD-A",
+      "business_domains": ["HTTP 出站", "数据操作"],
+      "type_count": 7,
+      "files": [
+        "SQL注入.md",
+        "NoSQL注入.md",
+        "命令注入.md",
+        "LDAP注入.md",
+        "XPath注入.md",
+        "模板注入.md",
+        "XXE.md"
+      ]
+    },
+    "业务逻辑": {
+      "track": "FWD-C",
+      "business_domains": ["支付", "状态变更", "CRUD", "权限"],
+      "type_count": 5,
+      "files": [
+        "IDOR.md",
+        "越权访问.md",
+        "支付绕过.md",
+        "状态机绕过.md",
+        "批量赋值.md"
+      ]
+    },
+    "鉴权类": {
+      "track": "FWD-B",
+      "business_domains": ["认证鉴权", "权限"],
+      "type_count": 4,
+      "files": [
+        "缺失鉴权.md",
+        "鉴权绕过-Filter顺序.md",
+        "鉴权绕过-注解失效.md",
+        "越权提权.md"
+      ]
+    },
+    "信息泄露": {
+      "track": "FWD-INFO",
+      "business_domains": ["异常处理", "数据操作"],
+      "type_count": 3,
+      "files": [
+        "异常堆栈泄露.md",
+        "敏感字段泄露.md",
+        "日志泄露.md"
+      ]
+    },
+    "反序列化": {
+      "track": "FWD-A",
+      "business_domains": ["HTTP 入站", "MQ"],
+      "type_count": 2,
+      "files": [
+        "Java原生反序列化.md",
+        "Jackson多态.md"
+      ]
+    },
+    "文件操作": {
+      "track": "FWD-A + FWD-C",
+      "business_domains": ["文件上传", "文件下载"],
+      "type_count": 3,
+      "files": [
+        "路径遍历.md",
+        "任意文件上传.md",
+        "任意文件下载.md"
+      ]
+    }
+  },
+  "business_domain_mapping": {
+    "文件上传": ["注入类/XXE", "文件操作/任意文件上传", "文件操作/路径遍历"],
+    "HTTP 请求": ["鉴权类/缺失鉴权", "业务逻辑/IDOR", "反序列化/Java原生反序列化"],
+    "认证鉴权": ["鉴权类/*", "业务逻辑/越权访问"],
+    "数据操作": ["注入类/SQL注入", "业务逻辑/批量赋值", "信息泄露/敏感字段泄露"],
+    "状态变更": ["业务逻辑/状态机绕过", "业务逻辑/支付绕过"],
+    "支付": ["业务逻辑/支付绕过", "业务逻辑/IDOR"],
+    "密码/Token 处理": ["信息泄露/日志泄露", "鉴权类/越权提权"],
+    "HTTP 出站": ["注入类/SSRF", "注入类/命令注入"],
+    "MQ": ["反序列化/*", "业务逻辑/IDOR"]
+  }
+}

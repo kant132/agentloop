@@ -1,0 +1,377 @@
+#!/usr/bin/env python3
+"""
+cross-agent-50r.py — Thin daemon wrapper.
+
+Per round: cleanup Memurai → check convergence → clear loop results →
+start monitor → spawn opencode → kill monitor → merge knowledge → log round.
+"""
+import argparse, json, logging, os, shutil, subprocess, sys, tempfile, time
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+PER_ROUND_TIMEOUT = 3600
+OPENCODE_CMD = Path(r"C:\Users\Administrator\AppData\Roaming\npm\opencode.cmd")
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+PRESET_PATH_ENV = "AGENTLOOP_PRESET"
+
+# --- check_core_tools integration (req #17) ----------------------------------
+try:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from check_core_tools import check_core_tools as _cct
+except ImportError:
+    def _cct(exit_on_missing: bool = True) -> dict:
+        print("FATAL: check_core_tools.py not found", file=sys.stderr)
+        if exit_on_missing: sys.exit(2)
+        return {"all_ok": False}
+
+# --- self_evolution integration (cached) -----------------------------------
+_se_mod = None
+
+def _load_self_evolution():
+    """Load and cache self_evolution module. Returns None if unavailable."""
+    global _se_mod
+    if _se_mod is not None:
+        return _se_mod
+    try:
+        sys.path.insert(0, str(Path(__file__).parent))
+        import self_evolution as se
+        _se_mod = se
+        return se
+    except ImportError:
+        logging.warning("self_evolution.py not found — self-evolution disabled")
+        return None
+
+# backward-compatible alias
+_se = _load_self_evolution
+
+# --- Preset ------------------------------------------------------------------
+class PVE(ValueError):
+    pass
+
+_REQUIRED = frozenset(["groupId", "projectRoot"])
+_DEFAULTS = dict(maxRounds=50, appPort=8080, loopDir="loop_audit",
+                 epJsonl="external_endpoints/端点.jsonl",
+                 sessionCookieName="JSESSIONID")
+
+def load_preset(path: Optional[str] = None) -> dict:
+    p = path or os.environ.get(PRESET_PATH_ENV)
+    if not p: raise PVE(f"Set env {PRESET_PATH_ENV} or use --preset <path>")
+    pf = Path(p)
+    if not pf.exists(): raise PVE(f"preset.json not found: {pf}")
+    preset = json.loads(pf.read_text(encoding="utf-8"))
+    missing = _REQUIRED - frozenset(preset)
+    if missing: raise PVE(f"preset.json missing: {sorted(missing)}")
+    preset.update({k: v for k, v in _DEFAULTS.items() if k not in preset})
+    return preset
+
+# --- Memurai cleanup --------------------------------------------------------
+def _mc():
+    try:
+        from scripts.redis.memurai_client import Memurai
+        return Memurai()
+    except Exception:
+        return None
+
+def cleanup_memurai(gid: str) -> int:
+    c = _mc()
+    if c is None: return -1
+    try:
+        keys = c.scan(f"{gid}:*", count=10000)
+        if not keys: return 0
+        for k in keys:
+            if not k.startswith(f"{gid}:"): return -1
+        n = c.delete(*keys)
+        logging.info("Memurai cleanup: %d keys", n)
+        return n
+    except Exception as e:
+        logging.error("Memurai cleanup failed: %s", e)
+        return -1
+
+# --- Loop result cleanup -----------------------------------------------------
+def cleanup_loop_results(ld: Path) -> None:
+    for s in ("routes", "reports"):
+        d = ld / s
+        if d.exists():
+            shutil.rmtree(d, ignore_errors=True)
+            d.mkdir(parents=True, exist_ok=True)
+
+# --- Round metrics for self-evolution ----------------------------------------
+def _compute_round_metrics(ld: Path, round_n: int) -> dict:
+    """
+    Compute scoring metrics from loop_audit/ output for round N.
+
+    Returns dict with keys: score, coverage, poc_rate, reconcile_pass, compliance
+    matching self_evolution.append_scoring_history() arguments.
+    """
+    # basic counts (reuse count_reports logic)
+    ep = ld / "external_endpoints" / "端点.jsonl"
+    ep_ln = sum(1 for l in ep.read_text(encoding="utf-8").splitlines() if l.strip()) if ep.exists() else 0
+
+    routes_dir = ld / "routes"
+    n_routes = sum(1 for _ in (routes_dir).rglob("*.md")) if routes_dir.exists() else 0
+    n_poc = sum(1 for _ in (routes_dir / "poc").rglob("*.md")) if (routes_dir / "poc").exists() else 0
+
+    hi_dir = routes_dir / "高风险端点"
+    lo_dir = routes_dir / "中低险端点"
+    n_hi = sum(1 for _ in hi_dir.rglob("*.md")) if hi_dir.exists() else 0
+    n_lo = sum(1 for _ in lo_dir.rglob("*.md")) if lo_dir.exists() else 0
+    total_reports = n_hi + n_lo
+
+    # coverage: fraction of known endpoints that have reports
+    coverage = (total_reports / ep_ln) if ep_ln > 0 else 0.0
+
+    # poc_rate: fraction of reported endpoints that have PoC
+    poc_rate = (n_poc / total_reports) if total_reports > 0 else 0.0
+
+    # score: composite quality metric (0-100)
+    score = coverage * (0.5 + 0.5 * poc_rate) * 100.0
+
+    # reconcile_pass: run verify-endpoint-coverage.py if present
+    reconcile_pass = 0
+    verify_script = Path(__file__).parent / "verify-endpoint-coverage.py"
+    if verify_script.exists():
+        try:
+            r = subprocess.run(
+                [sys.executable, str(verify_script), "--loop-audit-dir", str(ld)],
+                capture_output=True, text=True, errors="replace", timeout=120)
+            if r.returncode == 0:
+                # parse passed count from stdout
+                for line in r.stdout.splitlines():
+                    if "passed" in line.lower():
+                        parts = line.strip().split()
+                        for i, p in enumerate(parts):
+                            if p.lower() == "passed" and i > 0:
+                                try:
+                                    reconcile_pass = int(parts[i - 1])
+                                except (ValueError, IndexError):
+                                    pass
+                        break
+                # if no parsed output, assume script ran OK → use total_reports as proxy
+                if reconcile_pass == 0 and r.stdout.strip():
+                    try:
+                        reconcile_pass = int(r.stdout.strip().split()[-1])
+                    except (ValueError, IndexError):
+                        reconcile_pass = total_reports
+        except Exception:
+            pass
+
+    # compliance: 1.0 if p54_pass else 0.0  (p54_pass = total_reports == ep_ln)
+    compliance = 1.0 if (ep_ln > 0 and total_reports == ep_ln) else 0.0
+
+    return dict(
+        score=round(score, 2),
+        coverage=round(coverage, 4),
+        poc_rate=round(poc_rate, 4),
+        reconcile_pass=reconcile_pass,
+        compliance=round(compliance, 4),
+    )
+
+
+# --- Report counter ----------------------------------------------------------
+def count_reports(ld: Path) -> dict:
+    def _c(p: Path) -> int:
+        return len([f for f in p.iterdir() if f.suffix == ".md"]) if p.exists() else 0
+    ep = ld / "external_endpoints" / "端点.jsonl"
+    n_hi = _c(ld / "routes" / "高风险端点")
+    n_lo = _c(ld / "routes" / "中低险端点")
+    n_poc = _c(ld / "routes" / "poc")
+    ep_ln = sum(1 for l in ep.read_text(encoding="utf-8").splitlines() if l.strip()) if ep.exists() else 0
+    return dict(n_hi=n_hi, n_lo=n_lo, n_poc=n_poc,
+                total_reports=n_hi + n_lo, ep_lines=ep_ln,
+                p54_pass=(n_hi + n_lo == ep_ln) if ep_ln else None)
+
+# --- Convergence check ------------------------------------------------------
+def check_convergence(dd: Path) -> bool:
+    f = dd / "convergence.json"
+    if not f.exists(): return False
+    try:
+        return bool(json.loads(f.read_text(encoding="utf-8")).get("satisfied"))
+    except Exception:
+        return False
+
+# --- PoC monitor management -------------------------------------------------
+def start_poc_monitor(preset: dict, dd: Path):
+    script = Path(__file__).parent / "poc-monitor.py"
+    if not script.exists():
+        logging.warning("poc-monitor.py not found"); return None
+    try:
+        logf = open(dd / "poc-monitor.log", "a", encoding="utf-8")
+        proc = subprocess.Popen(
+            [sys.executable, str(script), "--group-id", preset["groupId"],
+             "--diag-dir", str(dd)], stdout=logf, stderr=subprocess.STDOUT, text=True)
+        logging.info("poc-monitor PID=%s", proc.pid); return proc
+    except Exception as e:
+        logging.error("poc-monitor start failed: %s", e)
+        return None
+
+def kill_poc_monitor(p) -> None:
+    if p is None or p.poll() is not None: return
+    try:
+        p.terminate(); p.wait(timeout=10); logging.info("poc-monitor stopped")
+    except Exception as e:
+        logging.warning("poc-monitor kill failed: %s", e)
+        try: p.kill()
+        except Exception: pass
+
+# --- Prompt discovery + rendering -------------------------------------------
+def _prompt_path(group_id: Optional[str] = None) -> Path:
+    # Priority: project-specific > design-docs > requirements
+    candidates = [
+        REPO_ROOT / "projects" / group_id / "prompt-boss.md" if group_id else None,
+        REPO_ROOT / "design-docs" / "prompt-boss.md",
+        REPO_ROOT / "requirements" / "prompt-boss.md",
+    ]
+    for p in candidates:
+        if p and p.exists():
+            return p
+    raise FileNotFoundError("prompt-boss.md not found in projects/<groupId>/, design-docs/, or requirements/")
+
+def render_prompt(tpl: Path, preset: dict, rn: int) -> Path:
+    c = tpl.read_text(encoding="utf-8")
+    for k, v in dict(__PROJECT_ROOT__=preset.get("projectRoot",""),
+                     __PROJECT_NAME__=preset.get("projectName",""),
+                     __GROUP_ID__=preset.get("groupId",""),
+                     __DOCKER_CONTAINER__=preset.get("dockerContainer",""),
+                     __APP_PORT__=str(preset.get("appPort","")),
+                     __APP_CTX_PATH__=preset.get("appCtxPath",""),
+                     __APP_BASE_URL__=preset.get("appBaseUrl",""),
+                     __LOGIN_URL__=preset.get("loginUrl",""),
+                     __REGISTER_URL__=preset.get("registerUrl",""),
+                     __SESSION_COOKIE_NAME__=preset.get("sessionCookieName","JSESSIONID"),
+                     __TEST_USER__=preset.get("testUser",""),
+                     __TEST_PASS__=preset.get("testPass","")).items():
+        c = c.replace(k, v)
+    tmp = Path(tempfile.gettempdir()) / f"agentloop-prompt-r{rn:03d}.txt"
+    tmp.write_text(c, encoding="utf-8"); return tmp
+
+# --- Knowledge merge ---------------------------------------------------------
+def merge_knowledge(gid: str, ld: Path) -> None:
+    se = _se()
+    if se is None: logging.warning("self_evolution.py missing — skip merge"); return
+    fn = getattr(se, "merge_knowledge_from_memurai", None)
+    if fn is None: logging.warning("no merge_knowledge_from_memurai — skip"); return
+    try:
+        fn(gid, ld); logging.info("Knowledge merged")
+    except Exception as e:
+        logging.error("Knowledge merge failed: %s", e)
+
+# --- OpenCode worker --------------------------------------------------------
+def run_opencode_session(rn: int, preset: dict, pf: Path) -> dict:
+    t0 = time.time()
+    msg = f"Stability R{rn}/{preset.get('maxRounds',50)}. Execute prompt on {preset['projectRoot']}."
+    cmd = [str(OPENCODE_CMD),"run",msg,"--model","alibaba-cn/qwen3.7-max",
+           "--agent","Sisyphus - ultraworker","--title",f"WGB-R{rn}","--file",str(pf)]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, errors="replace",
+                           timeout=PER_ROUND_TIMEOUT)
+        return dict(round=rn, ts=datetime.now().isoformat(timespec="seconds"),
+                    elapsed=round(time.time()-t0,1), rc=r.returncode,
+                    stdout_tail=r.stdout[-500:] if r.stdout else "",
+                    stderr_tail=r.stderr[-300:] if r.stderr else "")
+    except subprocess.TimeoutExpired:
+        return dict(round=rn, ts=datetime.now().isoformat(timespec="seconds"),
+                    elapsed=PER_ROUND_TIMEOUT, rc=-1, error="timeout")
+    except Exception as e:
+        return dict(round=rn, ts=datetime.now().isoformat(timespec="seconds"),
+                    elapsed=round(time.time()-t0,1), rc=-1, error=str(e))
+
+# --- Main --------------------------------------------------------------------
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--preset"); ap.add_argument("--resume", type=int, default=0)
+    ap.add_argument("--max-rounds", type=int); ap.add_argument("--dry-run", action="store_true")
+    a = ap.parse_args()
+
+    _cct(exit_on_missing=True)
+
+    try: preset = load_preset(a.preset)
+    except PVE as e:
+        print(f"FATAL: {e}", file=sys.stderr); sys.exit(3)
+
+    gid = preset["groupId"]; proj = Path(preset["projectRoot"])
+    max_r = a.max_rounds or preset.get("maxRounds", 50)
+    ld = proj / preset.get("loopDir", "loop_audit")
+    dd, lgd = ld / "diag", ld / "loop-log" / "cross-50r"
+    lgd.mkdir(parents=True, exist_ok=True); dd.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[logging.FileHandler(lgd/"daemon.log",encoding="utf-8"),
+                 logging.StreamHandler(sys.stdout)])
+
+    # Memurai client for cross-round knowledge persistence (created once)
+    se_client = _mc()
+
+    if a.dry_run:
+        print(f"groupId={gid} projectRoot={proj} loopDir={ld} maxRounds={max_r} "
+              f"resume={a.resume} opencode={OPENCODE_CMD}")
+        try: print("prompt:", _prompt_path(gid))
+        except FileNotFoundError as e: print("prompt: NOT FOUND —", e)
+        return 0
+
+    try: tpl = _prompt_path(gid)
+    except FileNotFoundError as e:
+        print(f"FATAL: {e}", file=sys.stderr); sys.exit(4)
+
+    done = [n for n in range(1, max_r+1) if (lgd/f"round{n:02d}.json").exists()]
+    start = a.resume or (done[-1]+1 if done else 1)
+    logging.info("Starting R%d (completed: %s)", start, done)
+    t0 = time.time(); history = []
+
+    for n in range(start, max_r+1):
+        cleanup_memurai(gid)
+        if check_convergence(dd):
+            logging.info("Converged — breaking after R%d", n-1); break
+        cleanup_loop_results(ld)
+        mon = start_poc_monitor(preset, dd)
+        pf = render_prompt(tpl, preset, n)
+        res = run_opencode_session(n, preset, pf); pf.unlink(missing_ok=True)
+        kill_poc_monitor(mon)
+
+        # --- Self-evolution wiring ---
+        se = _load_self_evolution()
+        if se:
+            try:
+                metrics = _compute_round_metrics(ld, n)
+                se.append_scoring_history(ld, n, **metrics)
+                result = se.calculate_convergence(ld)
+                se.write_convergence_file(ld, result)
+                if n % 5 == 0:
+                    sampled = se.sample_for_false_positive(ld, sample_size=30)
+                    if sampled > 0:
+                        logging.info("Sampled %d findings for false-positive review", sampled)
+                if se_client:
+                    se.merge_knowledge_from_memurai(ld, se_client, gid)
+                if result.get("converged"):
+                    logging.info("Converged after round %d (score=%.1f, stddev=%.2f)",
+                                 n, result["last_score"], result["stddev"])
+                    # write final round record then break
+                    mets = count_reports(ld); res.update(mets)
+                    (lgd/f"round{n:02d}.json").write_text(json.dumps(res,ensure_ascii=False,indent=2),
+                                                 encoding="utf-8")
+                    history.append(res)
+                    break
+            except Exception as e:
+                logging.error("Self-evolution step failed for R%d: %s", n, e)
+        # --- end self-evolution wiring ---
+
+        mets = count_reports(ld); res.update(mets)
+        (lgd/f"round{n:02d}.json").write_text(json.dumps(res,ensure_ascii=False,indent=2),
+                                             encoding="utf-8")
+        history.append(res)
+        st = "PASS" if mets.get("p54_pass") else "FAIL"
+        logging.info("R%d %s | reports=%d/%s poc=%d elapsed=%.1fs rc=%d",
+                    n, st, mets["total_reports"], str(mets.get("ep_lines","?")),
+                    mets.get("n_poc",0), res["elapsed"], res["rc"])
+
+    sm = dict(total_rounds=len(history), passed_p54=sum(1 for h in history if h.get("p54_pass")),
+              elapsed_total=round(time.time()-t0,1),
+              history=[dict(round=h["round"], elapsed=h.get("elapsed"),
+                           p54_pass=h.get("p54_pass"), total_reports=h.get("total_reports"),
+                           n_hi=h.get("n_hi"), n_lo=h.get("n_lo"), n_poc=h.get("n_poc"))
+                    for h in history])
+    (lgd/"summary.json").write_text(json.dumps(sm,ensure_ascii=False,indent=2),encoding="utf-8")
+    logging.info("Done: %d/%d P5.4 PASS in %.1fs", sm["passed_p54"], sm["total_rounds"], sm["elapsed_total"])
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

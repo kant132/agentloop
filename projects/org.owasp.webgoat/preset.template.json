@@ -1,0 +1,25 @@
+{
+  "groupId": "{{groupId}}",
+  "projectName": "{{projectName}}",
+  "projectRoot": "{{projectRoot}}",
+  "codegraphDb": "{{projectRoot}}/.codegraph/codegraph.db",
+  "loopDir": "loop_audit",
+  "epJsonl": "external_endpoints/端点.jsonl",
+  "dockerContainer": "{{dockerContainer}}",
+  "appPort": {{appPort}},
+  "appCtxPath": "{{appCtxPath}}",
+  "appBaseUrl": "http://localhost:{{appPort}}",
+  "loginUrl": "{{loginUrl}}",
+  "registerUrl": "{{registerUrl}}",
+  "sessionCookieName": "{{sessionCookieName}}",
+  "testUser": "{{testUser}}",
+  "testPass": "{{testPass}}",
+  "adminPassword": "{{adminPassword}}",
+  "knowledgeIndex": {
+    "annotationsDoc": "01-自定义注解清单.md",
+    "frameworkConfigDoc": "02-特殊框架配置.md",
+    "businessExceptionsDoc": "03-业务规则特例.md",
+    "falsePositivesDoc": "04-已知误报模式.md",
+    "keyClassesDoc": "05-关键类索引.md"
+  }
+}
