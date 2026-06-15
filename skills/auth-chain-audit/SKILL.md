@@ -3,6 +3,125 @@ name: auth-chain-audit
 description: "Filter/Interceptor 认证鉴权链审计子 agent 专用 skill。通过 arthas 审计运行时 filter 链加载顺序、路径归一化差异、校验逻辑缺陷。支持认证类型：JWT、OAuth2、SSO、Session、Basic Auth、自定义认证。触发词：'审计 filter'、'检查拦截器'、'filter chain audit'、'interceptor 审计'、'authentication audit'、'鉴权链检查'、'路径绕过审计'。"
 ---
 
+## Integration with New Architecture (2026-06-15)
+
+### Dispatch Context
+
+Experts are now called by **endpoint-supervisor** (not boss). Supervisor provides:
+
+```json
+{
+  "chain_data": {
+    "fqn": "...",
+    "chain": [{"fqn", "file", "start_line", "end_line", "body", "sinks": [...]}],
+    "sig_hash": "abc123..."
+  },
+  "analyst_result": {
+    "dimensions": {
+      "input_tracing": "user_controlled|derived_from_user|internal_only",
+      "sanitization": "none|partial|complete",
+      "authorization": "present_and_strict|present_but_weak|missing_or_bypassable",
+      "branch_logic": "normal|race_condition|state_bypass|numeric_overflow",
+      "info_leakage": "low_risk|medium_risk|high_risk"
+    }
+  },
+  "sink_table": {"categories": [{"name", "fqns", "severity"}]},
+  "sanitizer_table": {"categories": [{"name", "fqns", "effectiveness"}]},
+  "loop_audit_dir": "D:\\agentloop\\projects\\{groupId}\\loop_audit",
+  "group_id": "org.owasp.webgoat",
+  "chain_id": "abc123..."
+}
+```
+
+### Preset Knowledge (read at start)
+
+- `projects/_template/06-通用安全知识.md` — 10 大类 sink + 6 类业务逻辑
+- `projects/_template/07-Sink表.json` — 39 sinks (16 categories), each with `cwe_id`, `owasp`, `dangerous_args`, `applies_to_sinks`
+- `projects/_template/08-Sanitizer表.json` — 28 sanitizers (8 categories), each with `effectiveness`, `confidence`, `applies_to_sinks`
+
+### Chain Body Annotations
+
+Method bodies in `chain_data.chain[*].body` have inline comments:
+```java
+public AttackResult completed(@RequestParam String userid) {
+    // sink: java.sql.Statement.executeQuery
+    Statement s = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE);
+    ...
+}
+```
+
+`// sink: <FQN>` markers indicate **non-groupId third-party calls** (per `method_calls_extractor.py` L102). Prioritize analysis of sink-annotated lines.
+
+### Findings Output Contract
+
+Write to `Memurai {group_id}:audit:finding:{chain_id}:draft`:
+
+```json
+{
+  "finding_id": "auto-uuid",
+  "chain_id": "abc123...",
+  "fqn": "org.owasp.webgoat.lessons.sqlinjection.advanced.SqlInjectionLesson6b.completed",
+  "vuln_type": "SQL_INJECTION",
+  "vuln_subtype": "UNION_BASED",
+  "severity": "high",
+  "method": "completed",
+  "endpoint": "/SqlInjection/attack6b",
+  "evidence": {
+    "source_line": 24,
+    "sink_line": 30,
+    "taint_flow": "userid → stmt.executeQuery(userid)",
+    "payload": "' UNION SELECT username, password FROM users --"
+  },
+  "cvss_estimate": 8.6,
+  "poc_status": "pending",
+  "expert_skill": "injection-audit",
+  "timestamp": "2026-06-15T..."
+}
+```
+
+Severity enum: `critical | high | medium | low | info`
+poc_status enum: `pending | verified | rejected | skipped`
+
+Critical/High findings must set `poc_status: "pending"` so `poc-monitor.py` picks them up.
+
+### Self-Evolution Integration
+
+Expert doesn't call self_evolution directly. Experience flows:
+1. Expert writes findings to Memurai `{groupId}:audit:finding:{chainId}:draft`
+2. Supervisor promotes to `final` and writes `{groupId}:sup:exp:{chain_id}`
+3. Daemon's `self_evolution.merge_knowledge_from_memurai` pulls into `knowledge.json`
+4. Next round's expert loads `knowledge.json` at startup via:
+
+```python
+import json
+k = json.load(open(f"{loop_audit_dir}/knowledge.json"))
+for past_finding in k.get("findings", []):
+    if past_finding["vuln_type"] == my_vuln_type:
+        add_to_context(past_finding["evidence"])  # learn from past
+```
+
+### Tool Priority
+
+- **Codegraph SQL** for all chain/edge queries (NEVER ast-grep for call graph walking)
+- **ast-grep** only for initial annotation discovery (Phase A)
+- **Memurai** for cross-agent state sharing
+- **JavaParser service** (via javaparser-service.jar) for third-party call resolution
+
+### Hard Constraint: non-groupId = sink
+
+`method_calls_extractor.py` L102: `return not called_fqn.startswith(group_id + ".")`. All findings must identify at least one sink matching this rule. If the vulnerability is purely internal (no third-party sink), expert must explicitly set `sinks: []` and mark `vuln_type` as `internal_logic_flaw` or `business_rule_violation`.
+
+### Expert-Specific: auth-chain-audit
+
+Specializes in authorization/authentication bypass:
+- Filter ordering attacks (authentication after authorization)
+- JWT weaknesses (alg=none, weak secret, no expiry validation)
+- OAuth2 misconfig (wrong redirect_uri validation, token reuse)
+- Session fixation (session ID from URL parameter)
+- SSO bypass (missing validation of external identity provider)
+
+Reference `security-context.json` (from Phase B) for the actual `SecurityFilterChain` beans. Analyst's `authorization` field of `missing_or_bypassable` is a high-priority signal.
+
 # Filter/Interceptor 认证鉴权链审计
 
 ## 审计流程（5 步，不可跳过）

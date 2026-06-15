@@ -1,4 +1,10 @@
-# AI 改动日志 (AI Change Log)
+# AI 改动日志 (DEPRECATED — See Canonical Location Below)
+
+> ⚠️ **This file is DEPRECATED.** The canonical AI 改动日志 is at:
+>
+> **`D:\agentloop\requirements\ai改动日志.md`**
+>
+> Please update your bookmarks and references accordingly.
 
 ---
 

@@ -1,3 +1,9 @@
+> ⚠️ **DEPRECATED** — This file is no longer referenced by `java-whitebox-loop/SKILL.md`.
+> The new consolidated rules are: `phase-gates.md`, `self-evolution.md`, `pruning-and-keys.md`.
+> Kept for historical reference only. Do not use for new work.
+
+---
+
 # Phase 门控细则
 
 > 6 个 Phase 的入口条件、产出物、流转规则。

@@ -1,3 +1,9 @@
+> ⚠️ **DEPRECATED** — This file is no longer referenced by `java-whitebox-loop/SKILL.md`.
+> The new consolidated rules are: `phase-gates.md`, `self-evolution.md`, `pruning-and-keys.md`.
+> Kept for historical reference only. Do not use for new work.
+
+---
+
 # Memurai 缓存策略
 
 > 详细 key 设计、TTL、批预取、一致性自检

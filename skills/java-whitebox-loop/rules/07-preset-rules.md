@@ -1,3 +1,9 @@
+> ⚠️ **DEPRECATED** — This file is no longer referenced by `java-whitebox-loop/SKILL.md`.
+> The new consolidated rules are: `phase-gates.md`, `self-evolution.md`, `pruning-and-keys.md`.
+> Kept for historical reference only. Do not use for new work.
+
+---
+
 # 预置规则（Preset Rules）
 
 > 启动时加载，**避免重复发现** + **加速扫描**。

@@ -1,5 +1,7 @@
 ﻿# AI 改动日志
 
+> **Canonical location**: `D:\agentloop\requirements\ai改动日志.md`
+>
 > 一句话记录 AI 做的事情,包括目的和行为。以需求为维度,不按文件维度。
 >
 > **字段**:`时间 | 需求维度 | 目的 | 行为(含影响文件范围)`
@@ -594,3 +596,111 @@ groupId=org.owasp.webgoat projectRoot=D:\code\WebGoat-2025.3 loopDir=D:\agentloo
 **影响范围**: Wave 5 端到端验证,回应 Oracle NO-GO 主 blocker。代码层 5 处 bug 已 surface,建议下一轮转给 implementation agent 补 CLI 与修正路径。
 
 **结果**: ✅ 模块可工作(7 步全部真跑成功);⚠️ 5 处代码层 bug 需修;❌ 真实 daemon 50 轮跑仍未启动
+
+---
+
+### 2026-06-15 Skill 重构 (19 文件) — 4 阶段 + 3 层架构全量改写
+
+**需求维度**:`java-whitebox-loop/SKILL.md` 仍是旧 6 阶段流程,与重构后的 4 阶段 (A/B/C/D) + 3 层 Agent (Boss/Supervisor/Analyst+Expert) 不一致。Boss agent 跑起来仍按旧逻辑走,新的 3 层架构形同虚设。
+
+**目的**:把 19 个 skill/rules 文件全部对齐到新架构,消除"daemon 改了但 skill 还没跟上"的 gap
+
+**行为**:
+
+1. **重写主 SKILL**:`skills/java-whitebox-loop/SKILL.md` (139 行 → 113 行)
+   - 4 阶段流程 (Phase A 端点枚举 / Phase B 安全上下文 / Phase C Chain+Supervisor+Expert / Phase D Reconcile+Self-Evolution)
+   - 引用 3 个新 rule 文件 (`phase-gates.md` / `self-evolution.md` / `pruning-and-keys.md`)
+   - 移除 Phase 2 threat-model-analyst 引用 (改为可选项工)
+   - 移除三哲学自检 (替换为 `self_evolution.write_self_check`)
+   - 引用新脚本路径 (`scripts/chain/chain_builder.py` / `scripts/audit/poc-monitor.py` 等)
+
+2. **Rules 7→3 合并**:`skills/java-whitebox-loop/rules/`
+   - 新建 3 个 rule 文件: `phase-gates.md` / `self-evolution.md` / `pruning-and-keys.md`
+   - 5 个旧 rule 文件 (01-phase-gates.md / 02-scoring.md / 03-subagent-dispatch.md / 04-redis-strategy.md / 05-data-reconcile.md / 06-pruning-rules.md / 07-preset-rules.md) 加 `> ⚠️ DEPRECATED` 头部,**不删除** (留作历史参考)
+
+3. **新建 `endpoint-supervisor/SKILL.md`** (~200 行) — 每端点派发器契约:
+   - Input contract (Boss 传入 route + group_id + project_root + loop_audit_dir)
+   - 5 步执行流 (chain_builder → analyst 5-dim → select expert(s) → collect findings → write supervisor exp)
+   - Output contract (chain_id + findings_count + experts_dispatched)
+   - 与 poc-monitor / self_evolution 的集成
+
+4. **7 个叶子 skill 追加 `## Integration with New Architecture (2026-06-15)`:**
+   - `injection-audit/SKILL.md` — 加 dispatch context + 06/07/08 通用安全知识 + sink-aware 提示
+   - `business-logic-audit/SKILL.md` — 加 branch_logic signal (race/state/numeric)
+   - `file-audit/SKILL.md` — 加 authorization signal
+   - `auth-chain-audit/SKILL.md` — 加 Filter ordering / JWT / OAuth2 / Session 特化
+   - `login-audit/SKILL.md` — 加 brute-force / credential leakage / MFA bypass
+   - `call-chain-audit-thinking/SKILL.md` — 加 5-dim output JSON contract + recommended_experts 映射表
+   - `poc-verify/SKILL.md` — 加 poc-monitor 派发 context + `loop_audit/poc/` 输出
+
+5. **2 个 legacy skill 加 DEPRECATED 头部** (不删除):
+   - `java-forward-vuln-discovery/SKILL.md` — 映射到 7 个新 skill
+   - `threat-model-analyst/SKILL.md` — 标记为手工可用 + no longer mandatory
+
+**产出文件 (19 个全部)**:
+- 重写: `skills/java-whitebox-loop/SKILL.md`
+- 重写: `skills/endpoint-supervisor/SKILL.md`
+- 新建: `skills/java-whitebox-loop/rules/phase-gates.md` / `self-evolution.md` / `pruning-and-keys.md`
+- 改写: `skills/java-whitebox-loop/rules/01-phase-gates.md` / `02-scoring.md` / `03-subagent-dispatch.md` / `04-redis-strategy.md` / `05-data-reconcile.md` / `06-pruning-rules.md` / `07-preset-rules.md` (加 DEPRECATED)
+- 改写: `skills/injection-audit/SKILL.md` / `business-logic-audit/SKILL.md` / `file-audit/SKILL.md` / `auth-chain-audit/SKILL.md` / `login-audit/SKILL.md` / `call-chain-audit-thinking/SKILL.md` / `poc-verify/SKILL.md` (加新章节)
+- 改写: `skills/java-forward-vuln-discovery/SKILL.md` / `threat-model-analyst/SKILL.md` (加 DEPRECATED)
+
+**影响范围**:19 个 skill/rules 文件对齐到新架构,消除"daemon 改了 skill 没跟上"的 gap
+
+---
+
+### 2026-06-15 SKILL.md 二次重写 — 用户入口契约 + 路径全参数化 + 5-目标对齐
+
+**需求维度**:用户明确要求"之前是程序是入口,我要改成是 `SKILL.md` 是入口;所有路径不能是硬编码;简要说明项目怎么完成我定的目标"
+
+**目的**:把 SKILL.md 从"Boss agent 内部技术流"改写成"用户视角的顶层入口契约",让用户能看懂 (1) 怎么调用 / (2) 提供什么参数 / (3) 得到什么产出 / (4) 工具如何完成他们定的 5 个根本目标
+
+**行为**:
+
+1. **重写为入口契约结构**:
+   - 新增 "如何调用 (用户入口)" — 给出 preset.json 调用的具体命令 + Opencode 触发词
+   - 新增 "用户提供的参数" 表 (preset.json keys + 示例值)
+   - 新增 "用户得到的产出" 表 (12 类 loop_audit 目录产出)
+   - 新增 "如何完成你定的 5 个根本目标" 表 (用户目标 → 实现机制 → 验证方式 三列)
+   - 新增 "路径占位符约定" 表 (5 个占位符对照 preset.json keys)
+
+2. **路径全参数化** — 删除所有硬编码路径:
+   - 行 106 的 `D:\agentloop\projects\$GROUP_ID\` 改为 `{loop_audit_dir}` 占位符
+   - 行 102 的 `L102` 行号依赖改为文字描述"在 method_calls_extractor.py 中硬编码"
+   - 所有 `projects/...` / `scripts/...` 改为 `{agentloop_root}/projects/...` / `{agentloop_root}/scripts/...` 占位符形式
+   - 用户原话 "所有测试相关的输出到 D:\agentloop\项目\groupId 下" 不再出现,改用 `{loop_audit_dir}` 占位符
+
+3. **5-目标对齐表** (用户定的 5 个根本目标 ↔ 实现机制 ↔ 验证方式):
+   - 漏洞准确已验证 → 5 expert + poc-verify + CVSS 3.1
+   - 外部接口无遗漏 → attack_surface_scanner + nodes.id hashkey
+   - 调用链分析无遗漏 → chain_builder CTE + method_calls_extractor
+   - 运行高效 token 少 → codegraph SQL 优先 + Memurai 缓存
+   - 工具自进化 → self_evolution.py 8 函数 + knowledge.json
+
+**产出文件**:`D:\agentloop\skills\java-whitebox-loop\SKILL.md` (预计 130-160 行,UTF-8 no BOM)
+
+**验证点**:
+- `Select-String -Path SKILL.md -Pattern "D:\\code\\WebGoat|D:\\agentloop\\projects"` Count = 0 (无硬编码路径)
+- `Select-String -Path SKILL.md -Pattern "如何调用|入口契约|preset.json"` Count ≥ 5
+- `Select-String -Path SKILL.md -Pattern "漏洞准确|外部接口无遗漏|调用链分析无遗漏|运行高效|工具自进化"` Count = 5
+- `Select-String -Path SKILL.md -Pattern "路径占位符约定|{agentloop_root}|{project_root}|{group_id}"` Count ≥ 5
+- UTF-8 无 BOM
+
+**影响范围**:顶层 SKILL.md 现在是用户视角入口契约,所有路径用占位符,5 个根本目标对齐表明确告诉用户"你的 X 目标是用 Y 机制实现"
+
+---
+## 2025-01-XX ULTRAWORK - SKILL.md 添加缓存清理说明
+
+**位置**: [java-whitebox-loop/SKILL.md](file:///D:/agentloop/skills/java-whitebox-loop/SKILL.md)
+
+**修改内容**:
+- "如何调用"章节开头插入 blockquote 说明: daemon 每次启动前自动清空 `{group_id}:*` 缓存,仅保留 `knowledge:*`
+- "方式 1" 代码块新增注释: `# daemon 启动后第一步:清空 {group_id} 缓存 (除 knowledge:* 外)`
+
+**原因**: 避免上轮残留的 draft/final/chain 数据污染本轮审计
+
+**影响**: 用户无需手动清理缓存,daemon 启动时自动处理
+
+**行号**: 118 → 123 行
+
+(End of file - total 706 lines)

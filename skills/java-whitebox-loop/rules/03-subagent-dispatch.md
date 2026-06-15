@@ -1,3 +1,9 @@
+> ⚠️ **DEPRECATED** — This file is no longer referenced by `java-whitebox-loop/SKILL.md`.
+> The new consolidated rules are: `phase-gates.md`, `self-evolution.md`, `pruning-and-keys.md`.
+> Kept for historical reference only. Do not use for new work.
+
+---
+
 # Subagent 调度规则
 
 > 6 类 subagent 角色、并行策略、心跳、失败兜底

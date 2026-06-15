@@ -1,3 +1,25 @@
+> ⚠️ **DEPRECATED** (2026-06-15, refactored into 4-phase + 3-layer architecture)
+>
+> This skill is NO LONGER called by the new `java-whitebox-loop/SKILL.md`.
+>
+> **Replacement mappings:**
+> - **For Phase 5 chain analysis** (old FWD 5 modes A/B/C/D/INFO) → now done by:
+>   - `endpoint-supervisor/SKILL.md` (per-endpoint dispatcher)
+>   - `call-chain-audit-thinking/SKILL.md` (analyst 5-dim analysis)
+>   - `injection-audit/SKILL.md` (replaces FWD-A data flow)
+>   - `auth-chain-audit/SKILL.md` (replaces FWD-B auth)
+>   - `business-logic-audit/SKILL.md` (replaces FWD-C business)
+>   - `login-audit/SKILL.md` (replaces FWD-D state)
+>   - `poc-verify/SKILL.md` (replaces FWD PoC verification)
+> - **For Phase 2 threat modeling** (was mandatory) → now **optional / manual-only**.
+>   - Can still be invoked by human operators: `python ... threat-model-analyst ...`
+>   - No longer part of automated Boss dispatch
+>
+> **Kept for historical reference only.** New work should go through the new architecture.
+>
+> Reference doc: `D:\agentloop\design-docs\unified-implementation-plan.md`
+>
+
 ---
 name: threat-model-analyst
 description: 威胁建模分析子 skill。Phase 2 必加。执行 STRIDE + 攻击树分析，绘制数据流图（DFD），输出模块调用关系。缺失此 skill → Phase 2 启动失败（不降级）。

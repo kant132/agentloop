@@ -3,6 +3,81 @@ name: poc-verify
 description: "漏洞 PoC 验证子 agent 专用规范。给定漏洞发现，构造并执行 PoC，输出完整执行过程、CVSS 3.1 评分和证据。支持工具：curl、arthas、SSH。触发词：'验证漏洞'、'poc 验证'、'verify vulnerability'、'漏洞是否真实存在'。"
 ---
 
+## Integration with New Architecture (2026-06-15)
+
+### Dispatch Context
+
+PoC verifier is now called by **poc-monitor.py** daemon (not boss or supervisor). Daemon monitors `Memurai {groupId}:audit:finding:*:final` for `poc_status == pending` and dispatches verifier as subprocess.
+
+Verifier receives:
+
+```json
+{
+  "finding_id": "auto-uuid",
+  "chain_id": "abc123...",
+  "fqn": "org.owasp.webgoat.lessons.sqlinjection.advanced.SqlInjectionLesson6b.completed",
+  "vuln_type": "SQL_INJECTION",
+  "severity": "high",
+  "evidence": {
+    "payload": "' UNION SELECT username, password FROM users --",
+    "endpoint": "/SqlInjection/attack6b",
+    "http_method": "POST"
+  },
+  "group_id": "org.owasp.webgoat",
+  "project_root": "D:\\code\\WebGoat-2025.3",
+  "loop_audit_dir": "D:\\agentloop\\projects\\org.owasp.webgoat\\loop_audit"
+}
+```
+
+### Finding Source
+
+`poc-monitor.py` polls:
+```python
+for key in m.scan(f"{group_id}:audit:finding:*:final"):
+    val = json.loads(m.get(key))
+    if val.get("poc_status") == "pending" and val.get("severity") in ("critical", "high"):
+        dispatch_poc_verify(val)
+```
+
+### Output Contract
+
+Write back to `Memurai {group_id}:audit:finding:{chain_id}:poc_result`:
+
+```json
+{
+  "poc_verified": true,
+  "poc_status": "verified",
+  "cvss_score": 9.1,
+  "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+  "execution_log": "POST /SqlInjection/attack6b with userid='; DROP TABLE ...; -- → 200 OK, response contains 'admin, p@ssword123'",
+  "evidence_path": "loop_audit/poc/abc123_poc.json",
+  "timestamp": "2026-06-15T..."
+}
+```
+
+### Preset Knowledge (read at start)
+
+- `projects/_template/06-通用安全知识.md` — 10 大类 sink + 6 类业务逻辑
+- `projects/_template/07-Sink表.json` — 39 sinks with exploit patterns
+- `projects/_template/08-Sanitizer表.json` — 28 sanitizers (use to confirm whether an apparent sanitizer actually blocks the specific attack)
+
+### Test Target Output
+
+All PoC results go to `D:\agentloop\projects\{groupId}\loop_audit\poc\`. Per user spec: "所有测试相关的输出到 D:\agentloop\项目\groupId下". Note: `项目` was renamed to `projects`, but the path intent is the same.
+
+### Self-Evolution Integration
+
+Verified findings feed back through supervisor's `{groupId}:sup:exp:*` mechanism. Next round's experts use `knowledge.json` findings to:
+- Skip already-verified vulnerabilities (avoid duplicate work)
+- Learn from successful PoC payloads (e.g., known-working SQLi patterns)
+- Avoid known-false-positive patterns
+
+### Hard Constraints
+
+- **No fabrication**: If PoC cannot actually trigger the vulnerability (404, 403, timeout), MUST set `poc_verified: false` with realistic failure log — never lie about success.
+- **Atomic writes**: Write PoC result to `{finding_id}.tmp` then `os.replace` to final filename.
+- **Timeout**: 300s per PoC. If exceeded, mark `poc_verified: false` with `"reason": "timeout"`.
+
 # 漏洞 PoC 验证
 
 ## 验证工具

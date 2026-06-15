@@ -1,3 +1,9 @@
+> ⚠️ **DEPRECATED** — This file is no longer referenced by `java-whitebox-loop/SKILL.md`.
+> The new consolidated rules are: `phase-gates.md`, `self-evolution.md`, `pruning-and-keys.md`.
+> Kept for historical reference only. Do not use for new work.
+
+---
+
 # 剪枝规则（详细）
 
 > 7 条主剪枝规则 + 每层消毒检查 + 跨轮次剪枝。详见 `conduct/必读/07-剪枝逻辑硬约束.md`。
