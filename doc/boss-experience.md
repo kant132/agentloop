@@ -249,7 +249,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:18080/
 ps -ef | grep opencode | awk '{print $2}' | xargs kill -9 2>/dev/null
 
 # 3. 跑 daemon（1 轮 = 1 次启动）
-cd "D:/wiki/good-skill/agentloop"
+cd "{agentloop_root}"
 MAX_ROUNDS=$((1 + $(ls D:/code/WebGoat-2025.3/loop_audit/loop-log/cross-50r/ | grep -c "round.*json")))
 MAX_ROUNDS=$((MAX_ROUNDS > 50 ? 50 : MAX_ROUNDS))
 python scripts/audit/cross-agent-50r.py 2>&1 | tail -20
@@ -348,7 +348,6 @@ KEEP 模式（不删 loop 结果）：
 | `scripts/audit/cross-agent-50r.py` | 50 轮 daemon（**老板唯一脚本**）|
 | `scripts/redis/memurai_client.py` | memurai 封装（**老板写的**基础设施，opencode 调）|
 | `scripts/audit/verify-endpoint-coverage.py` | P5.4 校验器（**老板写的**）|
-| `scripts/audit/batch-generate-route-reports.py` | 批量生成器（**老板写的**，开 opencode 用）|
 
 > **重要**：上面 3 个脚本是**工具基础设施**（不是任务），可保留。但**任何新的 task-specific 脚本**必须 opencode 写。
 
@@ -358,7 +357,7 @@ KEEP 模式（不删 loop 结果）：
 
 ```
 每天:
-1. cd D:\wiki\good-skill\agentloop
+1. cd {agentloop_root}
 2. 跑 1 轮 daemon: MAX_ROUNDS=$((ls round*.json | wc -l + 1)) python cross-agent-50r.py
 3. 检查 round{N}.json 看 p54_pass
 4. **手动抽 1-2 个 PoC 文件读内容**（**绝对不能跳过**）
@@ -413,10 +412,8 @@ python scripts/audit/sample-poc-for-boss.py \
   --sample-rate 0.20
 # 输出 boss-samples.md（13 样本）+ process-samples.md（5% opencode 过程）
 
-# 3. 3 哲学自检（马斯克/康德/苏格拉底）
-python scripts/audit/three-philosophy-check.py \
-  --poc-dir D:/code/WebGoat-2025.3/loop_audit/routes/poc \
-  --output D:/code/WebGoat-2025.3/loop_audit/loop-log/cross-50r/round{N}-philosophy.md
+# 3. 3 哲学自检（马斯克/康德/苏格拉底）— 老板手工执行
+#    （原 three-philosophy-check.py 脚本未实现，以下为手工模板）
 # 老板必手填 top 5 / bottom 5 / 不知道的 3 件事
 ```
 
@@ -551,11 +548,10 @@ python scripts/audit/sample-poc-for-boss.py \
 
 老板每轮必跑 3 哲学（马斯克/康德/苏格拉底），并手填模板：
 
-```bash
-python scripts/audit/three-philosophy-check.py \
-  --poc-dir D:/.../routes/poc \
-  --output D:/.../loop-log/cross-50r/round{N}-philosophy.md
-# 老板读输出，必手填：
+> 注：原 `three-philosophy-check.py` 脚本未实现，以下为手工执行模板。
+> 老板读 PoC 输出后，必手填：
+
+```
 #   马斯克 - top 5 关键 / bottom 5 可删
 #   康德 - 5 项检验（命名/格式/字段一致）
 #   苏格拉底 - 3 件不知道的事

@@ -1,0 +1,218 @@
+{
+  "main": {
+    "id": "6a8a0d318388fd60",
+    "type": "split",
+    "children": [
+      {
+        "id": "103578096dfd98ae",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4418a8d397fbf005",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "design-docs/人类答复--（无动）.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "人类答复--（无动）"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "6520c8c524894396",
+    "type": "split",
+    "children": [
+      {
+        "id": "87acb7c0c6408f5a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e7a2a90fc9ad7e69",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "fb4b723f0deb201c",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "d1aa9ce90ce754f1",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "d3e966a6531a51cf",
+    "type": "split",
+    "children": [
+      {
+        "id": "ca91d15bb813181a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d2d17f790511720e",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "design-docs/人类答复--（无动）.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "人类答复--（无动） 的反向链接列表"
+            }
+          },
+          {
+            "id": "0087da18b4e879cd",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "design-docs/人类答复--（无动）.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "人类答复--（无动） 的出链列表"
+            }
+          },
+          {
+            "id": "08d10d932f86dcba",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "c3dff77cfaa7186a",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "7ba2d836d6ba275e",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "design-docs/人类答复--（无动）.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "人类答复--（无动） 的大纲"
+            }
+          }
+        ],
+        "currentTab": 4
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false
+    }
+  },
+  "active": "e7a2a90fc9ad7e69",
+  "lastOpenFiles": [
+    "doc/archive/TDD.md",
+    "doc/archive/atomic-requirements.md",
+    "docs/tools/memurai-guide.md",
+    "doc/archive/forward-audit-tool-recommendations.md",
+    "docs/tools/forward-audit-tool-evaluation.md",
+    "docs/references/ast-grep-rule-reference.md",
+    "docs/tools/codegraph-guide.md",
+    "docs/tools/ast-grep-guide.md",
+    "docs/tools/README.md",
+    "docs/references",
+    "docs/tools",
+    "AGENTS.md",
+    "ai改动日志.md",
+    "conduct/必读/07-剪枝逻辑硬约束.md",
+    "conduct/必读/05-不写修复硬约束.md",
+    "conduct/必读/04-中文输出硬约束.md",
+    "conduct/必读/03-工具选择边界.md",
+    "conduct/必读/02-环境感知.md",
+    "conduct/必读/01-避免重复劳动.md",
+    "design-docs/重构方向.md",
+    "design-docs/工作流.md",
+    "design-docs/原子需求-v2.md",
+    "design-docs/_archive/原子需求实现说明.md",
+    "proposals/_archive/03-威胁分析的本质.md",
+    "proposals/_archive/专家分析-01-Kevin Mitnick.md",
+    "proposals/_archive/专家分析-02-吴翰清.md",
+    "proposals/_archive/哲学分析-01-苏格拉底.md",
+    "proposals/_archive/哲学分析-02-马斯克.md",
+    "proposals/_archive"
+  ]
+}
