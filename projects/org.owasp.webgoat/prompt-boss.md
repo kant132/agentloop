@@ -87,7 +87,8 @@ merge_knowledge_from_memurai(group_id="org.owasp.webgoat", loop_audit_dir="D:\\a
 | 组件 | 路径 | 职责 |
 |------|------|------|
 | `check_core_tools.py` | `scripts/audit/` | 启动前检查 codegraph / ast-grep / memurai，缺失即退出（#17 约束） |
-| `attack_surface_scanner.py` | `scripts/ast/` | Phase A 端点枚举（nodes.id hashkey strategy） |
+| `attack_surface_scanner.py` | `scripts/ast/` | Phase A 端点枚举（旧管线 fallback，preset.json `exposurePipeline=false` 时使用） |
+| `scripts.exposure.cli` | `scripts/exposure/` | Phase A 暴露面采集新管线（`collect` → `synthesize` → 8 份 asset JSON + `exposure_assets.json`） |
 | `method_calls_extractor.py` | `scripts/chain/` | 提取 JAR method calls + sink 判定（`is_sink = not fqn.startswith(groupId + ".")`） |
 | `chain_builder.py` | `scripts/chain/` | CTE + sink + Memurai 缓存；`build_chain(entry_fqn, group_id, ...)` → chain + sinks |
 | `poc-monitor.py` | `scripts/audit/` | 后台 PoC 守护进程（已配置自动启动）；轮询 `{groupId}:audit:finding:*:final`，并发 2 个 poc-verify |
@@ -113,12 +114,18 @@ with open(os.path.join(template_dir, "06-通用安全知识.md"), encoding="utf-
 
 ## 6. 启动流程（4 Phase）
 
-### Phase A — 端点枚举
+### Phase A — 暴露面采集（新管线）
 1. 调用 `check_core_tools.py` 校验工具（codegraph / ast-grep / memurai）
-2. 运行 `attack_surface_scanner.py --project-root D:\code\WebGoat-2025.3 --codegraph-db D:\code\WebGoat-2025.3\.codegraph\codegraph.db --use-nodes-id` 枚举路由
-3. 过滤无效端点（无入参 / 纯数字参数）→ 按 **POST > UPDATE > DELETE > GET** 排序
-4. 优先 **有高危 sink** 的调用链（用 07-Sink表.json 匹配）
-5. 产出 `loop_audit/diag/project-context.json`
+2. 运行暴露面管线（两步）：
+   ```powershell
+   # 步骤 1：采集 8 类资产（route / auth_code / config / env_filter / waf / db_schema / sensitive_info / codegraph）
+   python -m scripts.exposure.cli collect --project D:\code\WebGoat-2025.3 --group-id org.owasp.webgoat --output D:\agentloop\projects\org.owasp.webgoat\loop_audit --codegraph-db D:\code\WebGoat-2025.3\.codegraph\codegraph.db
+
+   # 步骤 2：综合去重 + 风险分级（不排序，排序推后到 Phase 2 调用链构建之后）
+   python -m scripts.exposure.cli synthesize --project D:\code\WebGoat-2025.3 --group-id org.owasp.webgoat --output D:\agentloop\projects\org.owasp.webgoat\loop_audit --input-dir D:\agentloop\projects\org.owasp.webgoat\loop_audit\exposure
+   ```
+3. 产出 `loop_audit/exposure/{asset_type}.json`（8 份）+ `loop_audit/exposure/exposure_assets.json`（综合去重 + 风险分级）
+4. **旧管线 fallback**：若 preset.json 中 `exposurePipeline` 未设或为 `false`，仍使用旧 `attack_surface_scanner.py`，产出 `loop_audit/diag/project-context.json`
 
 ### Phase B — 安全上下文
 1. 通过 SSH 在实际容器环境检查 Filter 链（调用 `ssh-skill`）
@@ -151,7 +158,17 @@ with open(os.path.join(template_dir, "06-通用安全知识.md"), encoding="utf-
 
 ```
 loop_audit/
-├── project-context.json               ← Phase A
+├── exposure/                          ← Phase A（新管线）
+│   ├── route.json                     ← 路端点
+│   ├── auth_code.json                 ← 鉴权代码
+│   ├── config.json                    ← 安全配置
+│   ├── env_filter.json                ← 环境过滤器
+│   ├── waf.json                       ← WAF 资产
+│   ├── db_schema.json                 ← 数据库 schema
+│   ├── sensitive_info.json            ← 敏感信息
+│   ├── codegraph.json                 ← codegraph 拓扑
+│   └── exposure_assets.json           ← 综合去重 + 风险分级
+├── project-context.json               ← Phase A（旧管线 fallback）
 ├── security-context.json             ← Phase B
 ├── findings/{chainId}.json           ← 机器可读 finding
 ├── routes/

@@ -15,6 +15,7 @@
   "testUser": "guest",
   "testPass": "guest",
   "adminPassword": "",
+  "exposurePipeline": true,
   "knowledgeIndex": {
     "annotationsDoc": "01-自定义注解清单.md",
     "frameworkConfigDoc": "02-特殊框架配置.md",
