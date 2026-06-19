@@ -11,8 +11,10 @@ subagent 启动后全程从 Memurai 读，不再调 codegraph。
     python redis-batch-prefetch.py --chain chain.json --group-id com.example.x --commit HEAD
 
 输入:
-    chain.json: 调用链，格式 [{"fqn":"...","startLine":...,"body":"...","file":"...","line":...}, ...]
-    （可由 sqlite-extract-chain.py + codegraph 工具组合生成）
+    chain.json: 支持两种格式：
+      1. chain_builder 输出: {"variants": [{"chain": [...], "entry_fqn": ...}]}
+      2. 旧格式: [{"fqn":"...","startLine":...,"body":"...","file":"...","line":...}, ...]
+    （可由 chain_builder 或 sqlite-extract-chain.py + codegraph 工具组合生成）
 
 输出:
     写入 Memurai keys:
@@ -120,7 +122,7 @@ def main():
     # 读 chain.json
     try:
         with open(args.chain, "r", encoding="utf-8") as f:
-            chain = json.load(f)
+            chain_raw = json.load(f)
     except FileNotFoundError:
         print(f"ERROR: chain 文件不存在: {args.chain}", file=sys.stderr)
         sys.exit(1)
@@ -128,12 +130,26 @@ def main():
         print(f"ERROR: chain JSON 解析失败: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # chain_id 默认用 entry fqn
-    chain_id = args.chain_id
-    if not chain_id and chain:
-        chain_id = hashlib.sha256(chain[0]["fqn"].encode()).hexdigest()[:16]
-    elif not chain_id:
-        chain_id = "empty"
+    # 适配两种格式：
+    # 1. chain_builder 输出: {"variants": [{"chain": [...], "entry_fqn": ...}]}
+    # 2. 旧格式: [{fqn, ...}, ...] (直接列表)
+    if isinstance(chain_raw, dict) and "variants" in chain_raw:
+        variants = chain_raw["variants"]
+        if not variants:
+            print("ERROR: variants 为空", file=sys.stderr)
+            sys.exit(1)
+        chain_nodes = variants[0]["chain"]
+        chain_id = args.chain_id or variants[0].get("entry_fqn", "unnamed")[:16]
+    elif isinstance(chain_raw, list):
+        chain_nodes = chain_raw
+        chain_id = args.chain_id
+        if not chain_id and chain_nodes:
+            chain_id = hashlib.sha256(chain_nodes[0]["fqn"].encode()).hexdigest()[:16]
+        elif not chain_id:
+            chain_id = "empty"
+    else:
+        print("ERROR: 无法识别的 chain JSON 格式", file=sys.stderr)
+        sys.exit(1)
 
     # 连接 Memurai（通过 CLI 子进程）
     try:
@@ -147,7 +163,7 @@ def main():
         print(f"ERROR: Memurai 不可用: {e}", file=sys.stderr)
         sys.exit(1)
 
-    result = prefetch_chain(cli, chain, args.group_id, chain_id)
+    result = prefetch_chain(cli, chain_nodes, args.group_id, chain_id)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
