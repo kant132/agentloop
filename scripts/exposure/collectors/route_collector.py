@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
 """route_collector.py — 路由采集器（编排器）。
 
-薄 wrapper：仅串联 RuleLoader → AstGrepScanner → RouteEnricher 三个单一职责模块，
-实现 Collector 协议。所有业务逻辑在子包 route/ 中。
+新架构：ast-grep 定位 + javaparser RouteExtractor 精确解析。
+
+流程：
+1. FileLocator 用 ast-grep 快速定位含路由注解的 .java 文件（不做参数解析）
+2. JavaparserScanner.scan_directory 调用 java -jar javaparser.jar --routes
+   精确解析路径拼接 + HTTP method 展开（含 {GET,POST} 数组）
+3. RouteEnricher.enrich_routes 只做 codegraph nodes_id + has_external_param 富化
+
+替代旧 astgrep_scanner.parse_output 的正则路径解析（不可靠）。
 """
 from __future__ import annotations
 
@@ -11,50 +18,48 @@ from pathlib import Path
 
 from ..contracts import CollectorResult, ExposureContext
 from ..registry import register_collector
-from .route.astgrep_scanner import AstGrepScanner
 from .route.enricher import RouteEnricher
-from .route.rule_loader import RuleLoader
-
-# 规则目录：collectors/rules/（YAML 规则文件路径不变）
-_RULES_DIR: Path = Path(__file__).parent / "rules"
+from .route.file_locator import FileLocator
+from .route.javaparser_scanner import JavaparserScanner
 
 
 @register_collector("route")
 class RouteCollector:
-    """路由采集器：ast-grep 扫描路由注解。"""
+    """路由采集器：ast-grep 定位 + javaparser 精确解析。"""
 
     name = "route_collector"
     asset_type = "route"
 
     def is_available(self, ctx: ExposureContext) -> bool:
-        """需要 ast-grep 在 PATH。"""
-        return shutil.which("ast-grep") is not None
+        """需要 javaparser JAR 或 ast-grep 至少一个。
+
+        ast-grep 仅用于加速文件定位；缺失时降级为 glob 全量扫描。
+        """
+        return (
+            shutil.which("ast-grep") is not None
+            or shutil.which("java") is not None
+        )
 
     def collect(self, ctx: ExposureContext) -> CollectorResult:
-        """采集流程：加载规则 → ast-grep 扫描 → 富化。"""
-        rules = RuleLoader.load(_RULES_DIR)
-        # 主扫描只含 class_rules + method_rules；param_rules 由 scan_params 单独处理
-        scan_rules = {
-            "class_rules": rules["class_rules"],
-            "method_rules": rules["method_rules"],
-            "param_rules": [],
-        }
-        rule_yaml = RuleLoader.build_ast_grep_rule_yaml(scan_rules)
-        http_map = RuleLoader.build_http_method_map(scan_rules)
-        raw_routes = AstGrepScanner.scan(ctx, rule_yaml, http_map)
+        """采集流程：定位文件 → javaparser 解析 → 富化。"""
+        # 1. 定位含路由注解的文件
+        java_files = FileLocator.locate(ctx.project_root)
 
-        param_index = RouteEnricher.scan_params(ctx, rules.get("param_rules") or [])
-        items = RouteEnricher.enrich_batch(raw_routes, ctx, http_map, param_index)
+        # 2. javaparser 精确解析（路径拼接 + method 数组展开由 JAR 完成）
+        routes = JavaparserScanner.scan_directory(java_files, ctx.project_root)
 
-        degraded_count = sum(1 for it in items if it.get("nodes_id") is None)
-        degraded = degraded_count > 0 and ctx.codegraph_db is None
+        # 3. 富化（codegraph nodes_id + has_external_param）
+        items = RouteEnricher.enrich_routes(routes, ctx)
+
+        # 降级判定：javaparser JAR 不存在 → 全程空结果
+        degraded = not JavaparserScanner.jar_path().exists()
         return CollectorResult(
             asset_type=self.asset_type,
-            source="ast-grep YAML rules + codegraph nodes_id",
+            source="javaparser RouteExtractor + ast-grep file location",
             items=items,
             stats={
                 "total": len(items),
-                "degraded_md5": degraded_count if ctx.codegraph_db is None else 0,
+                "files_scanned": len(java_files),
                 "by_http_method": RouteEnricher.count_by_method(items),
             },
             degraded=degraded,

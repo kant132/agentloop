@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 """enricher.py — 路由条目富化：HTTP方法、nodes_id、sig_hash、params。
 
-单一职责：把 AstGrepScanner 的原始条目富化为标准化路由条目。
+两套入口：
+- ``enrich``/``enrich_batch``/``scan_params``：旧 ast-grep 正则路径，保留向后兼容
+- ``enrich_routes``：新 javaparser RouteExtractor 路径，full_url + http_methods
+  列表已由 javaparser 解析，enricher 只补 nodes_id/sig_hash/has_external_param
 
 依赖：
 - contracts.ExposureContext
-- RuleLoader（构造 param 扫描的 any-rule yaml）
-- AstGrepScanner（参数注解扫描走同一子进程封装，避免重复）
+- RuleLoader（构造 param 扫描的 any-rule yaml，仅旧路径用）
+- AstGrepScanner（参数注解扫描走同一子进程封装，仅旧路径用）
 
 ``scan_params`` 返回 ``{file||: [{param_type, name}, ...]}``，enrich 时按
 file 取回（参数注解条目无 method_name 信息，与原实现一致）。
@@ -72,6 +75,47 @@ class RouteEnricher:
             RouteEnricher.enrich(r, ctx, http_method_map, param_index)
             for r in raws
         ]
+
+    @staticmethod
+    def enrich_routes(
+        routes: list[dict[str, Any]],
+        ctx: ExposureContext,
+    ) -> list[dict[str, Any]]:
+        """富化 javaparser RouteExtractor 输出的路由列表。
+
+        javaparser 已提供 full_url（类+方法拼接）和 http_methods（列表，含
+        ``{GET,POST}`` 数组展开），enricher 只补：
+        - ``nodes_id`` （codegraph 反查）
+        - ``sig_hash`` （nodes_id 缺失时降级为 md5）
+        - ``has_external_param`` （从 full_url 是否含 ``{param}`` 推断）
+        - ``fqn`` （统一为 method_fqn）
+
+        保留 javaparser 提供的 full_url/http_methods/class_base_path 等字段。
+        """
+        items: list[dict[str, Any]] = []
+        for route in routes:
+            item = dict(route)
+            # nodes_id 反查（codegraph 可用）
+            nodes_id = RouteEnricher.lookup_nodes_id(
+                {
+                    "fqn": route.get("method_fqn", ""),
+                    "method_name": route.get("method_name", ""),
+                },
+                ctx,
+            )
+            item["nodes_id"] = nodes_id
+            item["sig_hash"] = nodes_id or RouteEnricher.md5_legacy({
+                "file": route.get("file", ""),
+                "line": route.get("start_line", 0),
+                "annotation": route.get("annotation", ""),
+            })
+            # has_external_param: 路径模板含 {param} 占位
+            url = route.get("full_url", "") or ""
+            item["has_external_param"] = "{" in url
+            # fqn 字段统一指向 method_fqn（下游消费者按 fqn 取值）
+            item["fqn"] = route.get("method_fqn", "")
+            items.append(item)
+        return items
 
     @staticmethod
     def derive_fqn(file_path: str, class_hint: str | None) -> str:
@@ -147,11 +191,23 @@ class RouteEnricher:
 
     @staticmethod
     def count_by_method(items: list[dict[str, Any]]) -> dict[str, int]:
-        """按 http_method 统计条目数。"""
+        """按 HTTP 方法统计条目数。
+
+        支持两种字段：
+        - ``http_methods``（列表，javaparser 路径）→ 列表中每个方法计一次
+        - ``http_method``（单值，旧 ast-grep 路径）→ 直接计一次
+        缺失/空时计入 ``ANY``。
+        """
         counts: dict[str, int] = {}
         for it in items:
-            m = it.get("http_method", "ANY")
-            counts[m] = counts.get(m, 0) + 1
+            methods = it.get("http_methods")
+            if methods and isinstance(methods, list):
+                for m in methods:
+                    key = m or "ANY"
+                    counts[key] = counts.get(key, 0) + 1
+            else:
+                key = it.get("http_method") or "ANY"
+                counts[key] = counts.get(key, 0) + 1
         return counts
 
     @staticmethod

@@ -3,9 +3,12 @@
 
 测试覆盖：
 - RouteCollector: Collector 协议契约、采集结果字段、降级路径
+  （新架构：FileLocator + JavaparserScanner + RouteEnricher.enrich_routes）
 - RuleLoader: YAML 规则加载、pattern-either 展开、ast-grep any 规则生成
-- AstGrepScanner: JSON 输出解析
-- RouteEnricher: 富化（HTTP方法、nodes_id、sig_hash、params）
+- AstGrepScanner: JSON 输出解析（旧 ast-grep 路径仍保留）
+- JavaparserScanner: java -jar RouteExtractor --routes 输出解析
+- FileLocator: ast-grep 定位 + glob 降级
+- RouteEnricher: 富化（HTTP方法、nodes_id、sig_hash、params + enrich_routes）
 """
 from __future__ import annotations
 
@@ -24,7 +27,26 @@ from scripts.exposure.contracts import ExposureContext, CollectorResult
 from scripts.exposure.collectors.route_collector import RouteCollector
 from scripts.exposure.collectors.route.astgrep_scanner import AstGrepScanner
 from scripts.exposure.collectors.route.enricher import RouteEnricher
+from scripts.exposure.collectors.route.file_locator import FileLocator
+from scripts.exposure.collectors.route.javaparser_scanner import JavaparserScanner
 from scripts.exposure.collectors.route.rule_loader import RuleLoader
+
+
+def _jp_route(**overrides) -> dict:
+    """构造一条 javaparser RouteExtractor 输出格式的路由。"""
+    base = {
+        "class_fqn": "com.example.UserController",
+        "class_base_path": "/api/users",
+        "method_fqn": "com.example.UserController#getUser",
+        "method_name": "getUser",
+        "full_url": "/api/users/{id}",
+        "http_methods": ["GET"],
+        "annotation": "GetMapping",
+        "file": "src/main/java/com/example/UserController.java",
+        "start_line": 9,
+    }
+    base.update(overrides)
+    return base
 
 
 @pytest.fixture
@@ -85,71 +107,102 @@ class TestRouteCollectorContract:
         assert c.asset_type == "route"
 
     def test_is_available_when_ast_grep_present(self, ctx):
-        """ast-grep 在 PATH 时应可用。"""
-        with patch("shutil.which", return_value="/usr/bin/ast-grep"):
+        """ast-grep 在 PATH 时应可用（即使 java 不可用）。"""
+        with patch("shutil.which", side_effect=lambda x: "/usr/bin/ast-grep" if x == "ast-grep" else None):
             assert RouteCollector().is_available(ctx) is True
 
-    def test_unavailable_when_ast_grep_missing(self, ctx):
-        """ast-grep 不在 PATH 时应不可用，不抛异常。"""
+    def test_is_available_when_java_present(self, ctx):
+        """java 在 PATH 但 ast-grep 不可用时也应可用（降级 glob 定位）。"""
+        with patch("shutil.which", side_effect=lambda x: "/usr/bin/java" if x == "java" else None):
+            assert RouteCollector().is_available(ctx) is True
+
+    def test_unavailable_when_both_missing(self, ctx):
+        """ast-grep 与 java 都不在 PATH 时应不可用，不抛异常。"""
         with patch("shutil.which", return_value=None):
             assert RouteCollector().is_available(ctx) is False
 
 
 class TestRouteCollectorOutput:
-    """采集结果的字段契约。"""
+    """采集结果的字段契约（新架构：javaparser RouteExtractor）。"""
 
     def test_returns_collector_result(self, ctx):
-        with patch("shutil.which", return_value="/usr/bin/ast-grep"):
-            with patch.object(
-                AstGrepScanner, "scan",
-                return_value=[
-                    {
-                        "fqn": "com.example.UserController#getUser",
-                        "annotation": "GetMapping",
-                        "args": ["/{id}"],
-                        "file": "src/main/java/com/example/UserController.java",
-                        "line": 10,
-                        "method_name": "getUser",
-                        "source": "annotation",
-                    },
-                    {
-                        "fqn": "com.example.UserController#create",
-                        "annotation": "PostMapping",
-                        "args": [],
-                        "file": "src/main/java/com/example/UserController.java",
-                        "line": 15,
-                        "method_name": "create",
-                        "source": "annotation",
-                    },
-                ],
-            ):
+        """collect 应返回 CollectorResult，items 含 full_url + http_methods 列表。"""
+        routes = [
+            _jp_route(
+                full_url="/api/users/{id}",
+                http_methods=["GET"],
+                method_fqn="com.example.UserController#getUser",
+                method_name="getUser",
+                annotation="GetMapping",
+                file="src/main/java/com/example/UserController.java",
+                start_line=9,
+            ),
+            _jp_route(
+                full_url="/api/users",
+                http_methods=["POST"],
+                method_fqn="com.example.UserController#create",
+                method_name="create",
+                annotation="PostMapping",
+                file="src/main/java/com/example/UserController.java",
+                start_line=14,
+            ),
+        ]
+        with patch.object(FileLocator, "locate", return_value=[Path("UserController.java")]):
+            with patch.object(JavaparserScanner, "scan_directory", return_value=routes):
                 result = RouteCollector().collect(ctx)
 
         assert isinstance(result, CollectorResult)
         assert result.asset_type == "route"
         assert len(result.items) == 2
-        assert result.items[0]["annotation"] == "GetMapping"
-        # 应解析出 HTTP 方法
-        assert result.items[0]["http_method"] == "GET"
-        assert result.items[1]["http_method"] == "POST"
-        # 应标注是否有外部入参
+        # full_url 应是 javaparser 拼接结果（类+方法）
+        assert result.items[0]["full_url"] == "/api/users/{id}"
+        # http_methods 是列表（支持 {GET,POST} 展开后的多方法）
+        assert result.items[0]["http_methods"] == ["GET"]
+        assert result.items[1]["http_methods"] == ["POST"]
+        # has_external_param 由 full_url 含 {param} 推断
         assert result.items[0]["has_external_param"] is True
-        assert result.items[1]["has_external_param"] is True
+        assert result.items[1]["has_external_param"] is False
+        # fqn 应指向 method_fqn
+        assert result.items[0]["fqn"] == "com.example.UserController#getUser"
+
+    def test_http_methods_supports_array_expansion(self, ctx):
+        """``@RequestMapping(method={GET,POST})`` 应展开为 ``["GET","POST"]`` 列表。"""
+        routes = [
+            _jp_route(
+                full_url="/api/users/multi",
+                http_methods=["GET", "POST"],
+                method_fqn="com.example.UserController#multi",
+                method_name="multi",
+                annotation="RequestMapping",
+                start_line=20,
+            ),
+        ]
+        with patch.object(FileLocator, "locate", return_value=[Path("UserController.java")]):
+            with patch.object(JavaparserScanner, "scan_directory", return_value=routes):
+                result = RouteCollector().collect(ctx)
+
+        assert len(result.items) == 1
+        # 列表保留双方法
+        assert result.items[0]["http_methods"] == ["GET", "POST"]
+        # stats 按 method 分别计数
+        assert result.stats["by_http_method"] == {"GET": 1, "POST": 1}
 
     def test_stats_total_correct(self, ctx):
-        with patch("shutil.which", return_value="/usr/bin/ast-grep"):
-            with patch.object(AstGrepScanner, "scan", return_value=[]):
+        """空 routes 应返回 total=0，stats.by_http_method 为空 dict。"""
+        with patch.object(FileLocator, "locate", return_value=[]):
+            with patch.object(JavaparserScanner, "scan_directory", return_value=[]):
                 result = RouteCollector().collect(ctx)
 
         assert result.stats["total"] == 0
-        assert "degraded_md5" not in result.stats or result.stats["degraded_md5"] == 0
+        assert result.stats["by_http_method"] == {}
+        assert result.stats["files_scanned"] == 0
 
     def test_collect_returns_data_not_file(self, ctx):
         """collect() 只返回 CollectorResult，文件写入由 cli 负责（参见 AC-2）。"""
-        with patch("shutil.which", return_value="/usr/bin/ast-grep"):
+        with patch.object(FileLocator, "locate", return_value=[Path("UserController.java")]):
             with patch.object(
-                AstGrepScanner, "scan",
-                return_value=[{"fqn": "x", "annotation": "GetMapping"}],
+                JavaparserScanner, "scan_directory",
+                return_value=[_jp_route()],
             ):
                 result = RouteCollector().collect(ctx)
 
@@ -162,23 +215,31 @@ class TestRouteCollectorOutput:
 class TestRouteCollectorDegradation:
     """降级路径测试。"""
 
-    def test_degraded_when_codegraph_missing(self, ctx):
-        """codegraph_db 缺失时，nodes_id 字段应降级为 md5。"""
-        ctx.codegraph_db = None
-        with patch("shutil.which", return_value="/usr/bin/ast-grep"):
-            with patch.object(
-                AstGrepScanner, "scan",
-                return_value=[{
-                    "fqn": "x#m", "annotation": "GetMapping",
-                    "file": "a.java", "line": 1,
-                }],
-            ):
-                result = RouteCollector().collect(ctx)
+    def test_degraded_when_jar_missing(self, ctx, tmp_path: Path):
+        """javaparser JAR 不存在时，degraded=True 且 items 为空。"""
+        # 让 jar_path 返回一个不存在的路径
+        fake_jar = tmp_path / "nonexistent.jar"
+        with patch.object(JavaparserScanner, "jar_path", return_value=fake_jar):
+            with patch.object(FileLocator, "locate", return_value=[Path("X.java")]):
+                with patch.object(JavaparserScanner, "scan_directory", return_value=[]):
+                    result = RouteCollector().collect(ctx)
 
         assert result.degraded is True
+        assert result.items == []
+
+    def test_nodes_id_none_when_codegraph_missing(self, ctx):
+        """codegraph_db 缺失时，nodes_id=None，sig_hash 降级为 md5。"""
+        ctx.codegraph_db = None
+        routes = [_jp_route(file="a.java", start_line=1, annotation="GetMapping")]
+        with patch.object(FileLocator, "locate", return_value=[Path("a.java")]):
+            with patch.object(JavaparserScanner, "scan_directory", return_value=routes):
+                result = RouteCollector().collect(ctx)
+
+        # JAR 存在时 degraded=False（本次仅 codegraph 缺）
+        assert result.degraded is False
         assert result.items[0].get("nodes_id") is None
         assert "sig_hash" in result.items[0]
-        assert result.stats["degraded_md5"] == 1
+        assert len(result.items[0]["sig_hash"]) == 16  # md5[:16]
 
 
 # ============================================================
@@ -546,10 +607,236 @@ class TestRouteEnricherUnits:
         assert result["fqn"] == "com.example.UserController"
 
     def test_enricher_count_by_method(self):
-        items = [
+        """count_by_method 同时支持旧 http_method（单值）与新 http_methods（列表）。"""
+        # 旧 ast-grep 路径：单值
+        legacy_items = [
             {"http_method": "GET"},
             {"http_method": "GET"},
             {"http_method": "POST"},
             {"http_method": "ANY"},
         ]
-        assert RouteEnricher.count_by_method(items) == {"GET": 2, "POST": 1, "ANY": 1}
+        assert RouteEnricher.count_by_method(legacy_items) == {"GET": 2, "POST": 1, "ANY": 1}
+
+        # 新 javaparser 路径：列表，含 {GET,POST} 展开后的多方法
+        jp_items = [
+            {"http_methods": ["GET"]},
+            {"http_methods": ["GET", "POST"]},
+            {"http_methods": ["POST"]},
+        ]
+        # GET: 2 条贡献（第一条 + 第二条的 GET）；POST: 2 条贡献
+        assert RouteEnricher.count_by_method(jp_items) == {"GET": 2, "POST": 2}
+
+
+# ============================================================
+# 新增：JavaparserScanner 单元测试
+# ============================================================
+
+class TestJavaparserScannerUnits:
+    """JavaparserScanner 单元测试（mock subprocess，不实际调 java）。"""
+
+    def test_javaparser_scanner_parses_routes(self, tmp_path: Path):
+        """scan 应解析 javaparser --routes 输出为路由列表（含 full_url + http_methods）。"""
+        sample_output = json.dumps([
+            {
+                "class_fqn": "com.example.UserController",
+                "class_base_path": "/api/users",
+                "method_fqn": "com.example.UserController#getUser",
+                "method_name": "getUser",
+                "full_url": "/api/users/{id}",
+                "http_methods": ["GET"],
+                "annotation": "GetMapping",
+                "file": str(tmp_path / "UserController.java"),
+                "start_line": 9,
+            },
+            {
+                "class_fqn": "com.example.UserController",
+                "class_base_path": "/api/users",
+                "method_fqn": "com.example.UserController#multi",
+                "method_name": "multi",
+                "full_url": "/api/users/multi",
+                "http_methods": ["GET", "POST"],  # {GET,POST} 数组展开
+                "annotation": "RequestMapping",
+                "file": str(tmp_path / "UserController.java"),
+                "start_line": 14,
+            },
+        ])
+        java_file = tmp_path / "UserController.java"
+        java_file.write_text("// dummy", encoding="utf-8")
+
+        fake_proc = type("P", (), {
+            "returncode": 0,
+            "stdout": sample_output,
+            "stderr": "",
+        })()
+        with patch.object(JavaparserScanner, "jar_path", return_value=java_file):
+            with patch("scripts.exposure.collectors.route.javaparser_scanner.subprocess.run",
+                       return_value=fake_proc) as mock_run:
+                routes = JavaparserScanner.scan(java_file, source_root=tmp_path)
+
+        # 调用形态：java -jar <jar> --routes <file> <source_root>
+        assert mock_run.call_count == 1
+        cmd = mock_run.call_args[0][0]
+        assert cmd[0] == "java"
+        assert cmd[1] == "-jar"
+        assert "--routes" in cmd
+        # 两条路由全部解析成功
+        assert len(routes) == 2
+        assert routes[0]["full_url"] == "/api/users/{id}"
+        assert routes[0]["http_methods"] == ["GET"]
+        assert routes[1]["http_methods"] == ["GET", "POST"]
+        assert routes[1]["method_fqn"] == "com.example.UserController#multi"
+
+    def test_scan_directory_aggregates(self, tmp_path: Path):
+        """scan_directory 应聚合多文件的解析结果。"""
+        f1 = tmp_path / "A.java"
+        f2 = tmp_path / "B.java"
+        f1.write_text("// a", encoding="utf-8")
+        f2.write_text("// b", encoding="utf-8")
+
+        route_a = [_jp_route(method_fqn="com.example.A#m1", method_name="m1")]
+        route_b = [
+            _jp_route(method_fqn="com.example.B#m2", method_name="m2"),
+            _jp_route(method_fqn="com.example.B#m3", method_name="m3"),
+        ]
+        with patch.object(JavaparserScanner, "scan", side_effect=[route_a, route_b]):
+            result = JavaparserScanner.scan_directory([f1, f2])
+
+        assert len(result) == 3
+        assert result[0]["method_fqn"].endswith("A#m1")
+        assert result[2]["method_fqn"].endswith("B#m3")
+
+    def test_scan_returns_empty_when_jar_missing(self, tmp_path: Path):
+        """JAR 不存在时 scan 返回空列表（不抛异常）。"""
+        java_file = tmp_path / "X.java"
+        java_file.write_text("// x", encoding="utf-8")
+        with patch.object(JavaparserScanner, "jar_path",
+                          return_value=tmp_path / "no_jar.jar"):
+            assert JavaparserScanner.scan(java_file) == []
+
+    def test_scan_returns_empty_on_nonzero_returncode(self, tmp_path: Path):
+        """子进程非零返回码时返回空列表。"""
+        java_file = tmp_path / "X.java"
+        java_file.write_text("// x", encoding="utf-8")
+        fake_proc = type("P", (), {"returncode": 1, "stdout": "", "stderr": "boom"})()
+        with patch.object(JavaparserScanner, "jar_path", return_value=java_file):
+            with patch("scripts.exposure.collectors.route.javaparser_scanner.subprocess.run",
+                       return_value=fake_proc):
+                assert JavaparserScanner.scan(java_file) == []
+
+    def test_scan_returns_empty_on_invalid_json(self, tmp_path: Path):
+        """非法 JSON 输出时返回空列表。"""
+        java_file = tmp_path / "X.java"
+        java_file.write_text("// x", encoding="utf-8")
+        fake_proc = type("P", (), {"returncode": 0, "stdout": "not json", "stderr": ""})()
+        with patch.object(JavaparserScanner, "jar_path", return_value=java_file):
+            with patch("scripts.exposure.collectors.route.javaparser_scanner.subprocess.run",
+                       return_value=fake_proc):
+                assert JavaparserScanner.scan(java_file) == []
+
+
+# ============================================================
+# 新增：FileLocator 单元测试
+# ============================================================
+
+class TestFileLocatorUnits:
+    """FileLocator 单元测试。"""
+
+    def test_file_locator_returns_files_with_astgrep(self, tmp_path: Path):
+        """ast-grep 可用时返回命中文件列表（去重）。"""
+        with patch("scripts.exposure.collectors.route.file_locator.shutil.which",
+                   return_value="/usr/bin/ast-grep"):
+            fake_proc = type("P", (), {
+                "returncode": 0,
+                "stdout": json.dumps([
+                    {"file": str(tmp_path / "A.java")},
+                    {"file": str(tmp_path / "A.java")},  # 重复
+                    {"file": str(tmp_path / "B.java")},
+                ]),
+                "stderr": "",
+            })()
+            with patch("scripts.exposure.collectors.route.file_locator.subprocess.run",
+                       return_value=fake_proc):
+                files = FileLocator.locate(tmp_path)
+
+        # 去重后 2 个文件
+        assert len(files) == 2
+        paths = {f.name for f in files}
+        assert paths == {"A.java", "B.java"}
+
+    def test_file_locator_fallback_to_glob(self, tmp_path: Path):
+        """ast-grep 不可用时降级为 glob 全量扫描 .java。"""
+        src = tmp_path / "src" / "main" / "java"
+        src.mkdir(parents=True)
+        (src / "A.java").write_text("// a", encoding="utf-8")
+        (src / "B.java").write_text("// b", encoding="utf-8")
+        (src / "readme.txt").write_text("not java", encoding="utf-8")
+
+        with patch("scripts.exposure.collectors.route.file_locator.shutil.which",
+                   return_value=None):
+            files = FileLocator.locate(tmp_path)
+
+        names = {f.name for f in files}
+        assert names == {"A.java", "B.java"}
+
+    def test_file_locator_returns_empty_when_dir_missing(self, tmp_path: Path):
+        """项目目录不存在时返回空列表，不抛异常。"""
+        with patch("scripts.exposure.collectors.route.file_locator.shutil.which",
+                   return_value=None):
+            assert FileLocator.locate(tmp_path / "no_such_dir") == []
+
+    def test_file_locator_fallback_when_astgrep_times_out(self, tmp_path: Path):
+        """ast-grep 超时时降级为 glob。"""
+        java_file = tmp_path / "X.java"
+        java_file.write_text("// x", encoding="utf-8")
+        import subprocess as sp
+        with patch("scripts.exposure.collectors.route.file_locator.shutil.which",
+                   return_value="/usr/bin/ast-grep"):
+            with patch("scripts.exposure.collectors.route.file_locator.subprocess.run",
+                       side_effect=sp.TimeoutExpired(cmd=["ast-grep"], timeout=1)):
+                files = FileLocator.locate(tmp_path)
+        assert any(f.name == "X.java" for f in files)
+
+
+# ============================================================
+# 新增：RouteEnricher.enrich_routes 单元测试
+# ============================================================
+
+class TestEnrichRoutesUnits:
+    """RouteEnricher.enrich_routes 单元测试。"""
+
+    def test_enrich_routes_preserves_javaparser_fields(self, ctx):
+        """enrich_routes 应保留 javaparser 提供的 full_url/http_methods/class_base_path。"""
+        routes = [
+            _jp_route(
+                full_url="/api/users/{id}",
+                http_methods=["GET"],
+                class_base_path="/api/users",
+                method_fqn="com.example.UserController#getUser",
+                method_name="getUser",
+            ),
+        ]
+        items = RouteEnricher.enrich_routes(routes, ctx)
+        assert len(items) == 1
+        it = items[0]
+        assert it["full_url"] == "/api/users/{id}"
+        assert it["http_methods"] == ["GET"]
+        assert it["class_base_path"] == "/api/users"
+        assert it["fqn"] == "com.example.UserController#getUser"
+
+    def test_enrich_routes_adds_sig_hash_when_no_codegraph(self, ctx):
+        """codegraph_db 缺失时 nodes_id=None，sig_hash 降级为 md5[:16]。"""
+        ctx.codegraph_db = None
+        routes = [_jp_route(file="a.java", start_line=1, annotation="GetMapping")]
+        items = RouteEnricher.enrich_routes(routes, ctx)
+        assert items[0]["nodes_id"] is None
+        assert len(items[0]["sig_hash"]) == 16
+
+    def test_enrich_routes_has_external_param_from_url(self, ctx):
+        """has_external_param 由 full_url 含 {param} 推断。"""
+        routes = [
+            _jp_route(full_url="/api/users/{id}", method_fqn="c.A#m1", method_name="m1"),
+            _jp_route(full_url="/api/users", method_fqn="c.A#m2", method_name="m2"),
+        ]
+        items = RouteEnricher.enrich_routes(routes, ctx)
+        assert items[0]["has_external_param"] is True
+        assert items[1]["has_external_param"] is False
