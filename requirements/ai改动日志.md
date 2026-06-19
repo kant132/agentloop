@@ -703,4 +703,6 @@ groupId=org.owasp.webgoat projectRoot=D:\code\WebGoat-2025.3 loopDir=D:\agentloo
 
 **行号**: 118 → 123 行
 
+- 2026-06-19 Memurai key 格式修正：audit:{groupId}:commit:{hash}:method:{fqn}#{sigHash} → {groupId}:method:{fqn}#{startline}，新增 count key
+
 (End of file - total 706 lines)

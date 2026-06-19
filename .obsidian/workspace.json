@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "design-docs/人类答复--（无动）.md",
+                "file": "design-docs/data-schema.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "人类答复--（无动）"
+              "title": "data-schema"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "design-docs/人类答复--（无动）.md",
+                "file": "design-docs/data-schema.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "人类答复--（无动） 的反向链接列表"
+              "title": "data-schema 的反向链接列表"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "design-docs/人类答复--（无动）.md",
+                "file": "design-docs/data-schema.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "人类答复--（无动） 的出链列表"
+              "title": "data-schema 的出链列表"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "design-docs/人类答复--（无动）.md",
+                "file": "design-docs/data-schema.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "人类答复--（无动） 的大纲"
+              "title": "data-schema 的大纲"
             }
           }
         ],
@@ -183,36 +183,40 @@
       "bases:新建数据库": false
     }
   },
-  "active": "e7a2a90fc9ad7e69",
+  "active": "4418a8d397fbf005",
   "lastOpenFiles": [
+    "scripts/tests/__pycache__/test_self_evolution_merge.cpython-314-pytest-9.0.3.pyc",
+    "scripts/tests/test_self_evolution_merge.py",
+    "design-docs/重构方向.md",
+    "design-docs/原子需求-v2.md",
+    "design-docs/人类答复--（无动）.md",
+    "design-docs/工作流.md",
+    "design-docs/会话记录-最终方案.md",
+    "design-docs/data-schema.md",
+    "docs/_archive/v3.3.8-release-notes.md",
+    "docs/_archive/TDD.md",
+    "docs/_archive/README.md",
+    "docs/_archive/SDD.md",
+    "docs/_archive/forward-audit-tool-recommendations.md",
+    "docs/_archive/bfs-taint-tracer-v3.3.5-practice.md",
+    "docs/_archive/bfs-taint-tracer-v3.3.4-practice.md",
+    "docs/_archive/atomic-requirements.md",
+    "docs/_archive",
+    "docs/archive/v3.3.8-release-notes.md",
+    "docs/archive/TDD.md",
+    "docs/archive/SDD.md",
+    "docs/archive/README.md",
+    "docs/archive/forward-audit-tool-recommendations.md",
+    "docs/archive/bfs-taint-tracer-v3.3.5-practice.md",
+    "docs/archive/bfs-taint-tracer-v3.3.4-practice.md",
+    "docs/archive/atomic-requirements.md",
+    "docs/archive",
+    "docs/experience/boss-reflection-2026-06-13.md",
+    "docs/experience/boss-experience.md",
+    "docs/experience",
     "doc/archive/TDD.md",
-    "doc/archive/atomic-requirements.md",
-    "docs/tools/memurai-guide.md",
-    "doc/archive/forward-audit-tool-recommendations.md",
-    "docs/tools/forward-audit-tool-evaluation.md",
-    "docs/references/ast-grep-rule-reference.md",
-    "docs/tools/codegraph-guide.md",
-    "docs/tools/ast-grep-guide.md",
-    "docs/tools/README.md",
     "docs/references",
     "docs/tools",
-    "AGENTS.md",
-    "ai改动日志.md",
-    "conduct/必读/07-剪枝逻辑硬约束.md",
-    "conduct/必读/05-不写修复硬约束.md",
-    "conduct/必读/04-中文输出硬约束.md",
-    "conduct/必读/03-工具选择边界.md",
-    "conduct/必读/02-环境感知.md",
-    "conduct/必读/01-避免重复劳动.md",
-    "design-docs/重构方向.md",
-    "design-docs/工作流.md",
-    "design-docs/原子需求-v2.md",
-    "design-docs/_archive/原子需求实现说明.md",
-    "proposals/_archive/03-威胁分析的本质.md",
-    "proposals/_archive/专家分析-01-Kevin Mitnick.md",
-    "proposals/_archive/专家分析-02-吴翰清.md",
-    "proposals/_archive/哲学分析-01-苏格拉底.md",
-    "proposals/_archive/哲学分析-02-马斯克.md",
     "proposals/_archive"
   ]
 }

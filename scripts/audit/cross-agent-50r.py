@@ -10,6 +10,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+# --- load_counter / metric_simplifier integration -----------------------------
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "analysis"))
+from load_counter import LoadCounter
+from metric_simplifier import simplify
+
 PER_ROUND_TIMEOUT = 3600
 OPENCODE_CMD = Path(r"C:\Users\Administrator\AppData\Roaming\npm\opencode.cmd")
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -166,6 +171,80 @@ def _compute_round_metrics(ld: Path, round_n: int) -> dict:
         reconcile_pass=reconcile_pass,
         compliance=round(compliance, 4),
     )
+
+
+# --- Load metrics (load_counter + metric_simplifier) -------------------------
+def _compute_load_metrics(ld: Path, round_n: int) -> dict:
+    """
+    Produce round_metrics.json with 7 core fields.
+
+    Fields:
+      - chain_method_count: total method bodies in all chains
+      - loaded_method_count: actual loads recorded by LoadCounter
+      - load_ratio: loaded / total (ideal < 0.3)
+      - vuln_chains: chains confirmed vulnerable
+      - safe_chains: chains confirmed safe
+      - unknown_chains: chains unable to determine
+      - vuln_exposed_surface: endpoints with confirmed vulns
+
+    vuln/safe/unknown are aggregated from chain_analysis_report JSON files;
+    if aggregation is not yet feasible they default to 0 with TODO.
+    """
+    diag_dir = ld / "diag"
+    diag_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- load_counter data ---
+    lc = LoadCounter(ld)
+    loaded_method_count = lc.count_total_loads()
+
+    # chain_method_count: count unique node_ids across all loads
+    # (each unique node_id ≈ one method body that was touched)
+    chain_method_count = lc.count_unique_node_ids()
+    # If no loads recorded, chain_method_count falls back to 0;
+    # load_ratio = 0.0 in that case (no data → no verdict).
+    load_ratio = (loaded_method_count / chain_method_count) if chain_method_count > 0 else 0.0
+
+    # --- per_chain metrics for metric_simplifier ---
+    # We need per-chain data; query loads.db directly for chain_ids
+    import sqlite3
+    db_path = diag_dir / "loads.db"
+    per_chain_metrics = []
+    if db_path.exists():
+        with sqlite3.connect(str(db_path)) as conn:
+            cur = conn.execute("SELECT DISTINCT chain_id FROM loads")
+            chain_ids = [row[0] for row in cur.fetchall()]
+        for cid in chain_ids:
+            loads = lc.count_loads_by_chain(cid)
+            # cached_count per chain: unknown from loads.db alone, use 0 → ratio=0.0
+            per_chain_metrics.append({
+                "chain_id": cid,
+                "loads": loads,
+                "cached": 0,
+            })
+    simplified = simplify(per_chain_metrics)
+
+    # --- vuln/safe/unknown chain counts ---
+    # TODO: aggregate verdict from chain_analysis_report.json files
+    # when the chain report schema is stabilised. Placeholder = 0.
+    vuln_chains = 0
+    safe_chains = 0
+    unknown_chains = 0
+
+    # --- vuln_exposed_surface ---
+    # TODO: count distinct endpoints with at least one vuln chain.
+    vuln_exposed_surface = 0
+
+    return {
+        "round": round_n,
+        "chain_method_count": chain_method_count,
+        "loaded_method_count": loaded_method_count,
+        "load_ratio": round(load_ratio, 4),
+        "vuln_chains": vuln_chains,
+        "safe_chains": safe_chains,
+        "unknown_chains": unknown_chains,
+        "vuln_exposed_surface": vuln_exposed_surface,
+        "load_simplified": simplified,
+    }
 
 
 # --- Report counter ----------------------------------------------------------
@@ -348,6 +427,18 @@ def main() -> int:
                     mets = count_reports(ld); res.update(mets)
                     (lgd/f"round{n:02d}.json").write_text(json.dumps(res,ensure_ascii=False,indent=2),
                                                  encoding="utf-8")
+                    # --- load metrics ---
+                    try:
+                        lm = _compute_load_metrics(ld, n)
+                        (dd / f"round_metrics_r{n:02d}.json").write_text(
+                            json.dumps(lm, ensure_ascii=False, indent=2), encoding="utf-8")
+                        (dd / "round_metrics.json").write_text(
+                            json.dumps(lm, ensure_ascii=False, indent=2), encoding="utf-8")
+                        logging.info("R%d load_ratio=%.4f loaded=%d/%d", n,
+                                     lm["load_ratio"], lm["loaded_method_count"],
+                                     lm["chain_method_count"])
+                    except Exception as e:
+                        logging.warning("Load metrics failed for R%d: %s", n, e)
                     history.append(res)
                     break
             except Exception as e:
@@ -357,6 +448,20 @@ def main() -> int:
         mets = count_reports(ld); res.update(mets)
         (lgd/f"round{n:02d}.json").write_text(json.dumps(res,ensure_ascii=False,indent=2),
                                              encoding="utf-8")
+        # --- load metrics ---
+        try:
+            lm = _compute_load_metrics(ld, n)
+            # per-round file (for history)
+            (dd / f"round_metrics_r{n:02d}.json").write_text(
+                json.dumps(lm, ensure_ascii=False, indent=2), encoding="utf-8")
+            # canonical current-round file (latest snapshot)
+            (dd / "round_metrics.json").write_text(
+                json.dumps(lm, ensure_ascii=False, indent=2), encoding="utf-8")
+            logging.info("R%d load_ratio=%.4f loaded=%d/%d", n,
+                         lm["load_ratio"], lm["loaded_method_count"],
+                         lm["chain_method_count"])
+        except Exception as e:
+            logging.warning("Load metrics failed for R%d: %s", n, e)
         history.append(res)
         st = "PASS" if mets.get("p54_pass") else "FAIL"
         logging.info("R%d %s | reports=%d/%s poc=%d elapsed=%.1fs rc=%d",

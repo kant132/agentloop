@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent.parent
 
 # 添加到 sys.path
-sys.path.insert(0, str(ROOT / "脚本"))
-sys.path.insert(0, str(ROOT / "脚本" / "ast"))
-sys.path.insert(0, str(ROOT / "脚本" / "redis"))
-sys.path.insert(0, str(ROOT / "脚本" / "chain"))
+sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "scripts" / "ast"))
+sys.path.insert(0, str(ROOT / "scripts" / "redis"))
+sys.path.insert(0, str(ROOT / "scripts" / "chain"))

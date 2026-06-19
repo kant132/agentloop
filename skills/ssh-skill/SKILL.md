@@ -25,7 +25,7 @@ ssh user@host 'netstat -tlnp'        # 监听端口
 
 ### 1.3 写入 Memurai（走 memurai-cli.exe）
 ```
-audit:{groupId}:commit:{commitHash}:env:reachability
+{groupId}:env:reachability
   → {
       "ssh": "reachable" | "unreachable" | "degraded",
       "last_check": "...",
@@ -33,7 +33,7 @@ audit:{groupId}:commit:{commitHash}:env:reachability
     }
 ```
 
-> 写入示例：`memurai-cli -h localhost -p 6379 SET audit:{gid}:commit:{ch}:env:reachability "<json>" EX 3600`
+> 写入示例：`memurai-cli -h localhost -p 6379 SET {gid}:env:reachability "<json>" EX 3600`
 
 ## 二、Phase 5：PoC 后端验证
 

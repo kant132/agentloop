@@ -457,9 +457,22 @@ def merge_knowledge_from_memurai(
         if key not in existing:
             existing[key] = []
 
+    # prefix for knowledge keys — any key matching this is eligible
+    knowledge_prefix = f"{group_id}:knowledge:"
+    # suffixes to skip (metadata keys, not category data)
+    _skip_suffixes = {"log", "errors"}
+
     merged_count = 0
     for key in raw_keys:
         try:
+            if not key.startswith(knowledge_prefix):
+                continue
+            suffix = key[len(knowledge_prefix):]  # e.g. "annotations"
+            if suffix in _skip_suffixes:
+                continue
+            # auto-initialize new categories as empty arrays
+            if suffix not in existing:
+                existing[suffix] = []
             value = memurai_client.get(key)
             if value is None:
                 continue
@@ -468,15 +481,13 @@ def merge_knowledge_from_memurai(
                 data = json.loads(value)
             except Exception:
                 data = {"raw": value}
-            # determine category from key suffix
-            suffix = key.split(":")[-1]  # e.g. "annotations"
-            if suffix in existing:
-                if isinstance(data, list):
-                    existing[suffix].extend(data)
-                    merged_count += len(data)
-                else:
-                    existing[suffix].append(data)
-                    merged_count += 1
+            # merge into the category
+            if isinstance(data, list):
+                existing[suffix].extend(data)
+                merged_count += len(data)
+            else:
+                existing[suffix].append(data)
+                merged_count += 1
         except Exception:
             continue
 

@@ -1,7 +1,7 @@
 """test_chain_report_generator.py — 单链报告生成器测试。
 
 覆盖：generate() 装配 / estimate_cvss_4 评分 / to_markdown 渲染 /
-Finding dataclass 输入 / 排序与计数。
+Finding dataclass 输入 / 排序与计数 / verdict 三态枚举校验。
 """
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ import pytest
 from chain_report_generator import (
     ChainReportGenerator,
     Finding,
+    VERDICT_ENUM,
+    validate_verdict,
     _roundup,
     _severity_to_rank,
     _validate,
@@ -227,3 +229,54 @@ def test_validate_falls_back_on_unknown():
     assert _validate("xyz", {"N": 1, "L": 2}, "N") == "N"
     assert _validate("n", {"N": 1, "L": 2}, "L") == "N"  # 大小写不敏感
     assert _validate("L", {"N": 1, "L": 2}, "N") == "L"
+
+
+# =============================================================================
+# verdict 三态枚举校验
+# =============================================================================
+
+def test_validate_verdict_legal_values():
+    """verdict 合法值 vuln/safe/unknown 正常通过。"""
+    assert validate_verdict("vuln") == "vuln"
+    assert validate_verdict("safe") == "safe"
+    assert validate_verdict("unknown") == "unknown"
+
+
+def test_validate_verdict_illegal_values_downgrade():
+    """非法 verdict 值降级为 "unknown"。"""
+    assert validate_verdict("invalid") == "unknown"
+    assert validate_verdict("") == "unknown"
+    assert validate_verdict("VULN") == "unknown"  # 大小写敏感
+    assert validate_verdict("maybe") == "unknown"
+
+
+def test_generate_verdict_in_report(gen, chain_data):
+    """generate 输出包含 verdict 字段，默认 unknown。"""
+    report = gen.generate("c", chain_data, [], [])
+    assert "verdict" in report
+    assert report["verdict"] == "unknown"
+
+
+def test_generate_verdict_vuln(gen, chain_data):
+    """verdict="vuln" 正常写入。"""
+    report = gen.generate("c", chain_data, [], [], verdict="vuln")
+    assert report["verdict"] == "vuln"
+
+
+def test_generate_verdict_safe(gen, chain_data):
+    """verdict="safe" 正常写入。"""
+    report = gen.generate("c", chain_data, [], [], verdict="safe")
+    assert report["verdict"] == "safe"
+
+
+def test_generate_verdict_illegal_downgraded(gen, chain_data):
+    """非法 verdict 值在 generate 中被降级为 "unknown"。"""
+    report = gen.generate("c", chain_data, [], [], verdict="invalid")
+    assert report["verdict"] == "unknown"
+    report2 = gen.generate("c", chain_data, [], [], verdict="")
+    assert report2["verdict"] == "unknown"
+
+
+def test_verdict_enum_contains_only_three_values():
+    """VERDICT_ENUM 只有 vuln/safe/unknown 三个值。"""
+    assert VERDICT_ENUM == {"vuln", "safe", "unknown"}

@@ -34,14 +34,14 @@ python scripts/audit/force-rescan.py --endpoint "GET /api/foo" --modes "C,D"
 
 # Memurai (Redis-compatible) — NOT pip redis, uses native CLI
 # Path: C:\Program Files\Memurai\memurai-cli.exe
-memurai-cli GET "audit:{groupId}:commit:{commitHash}:method:{fqn}#{sigHash}"
-memurai-cli KEYS "{groupId}:*"  # list keys; delete all except knowledge:* before each run
+memurai-cli GET "{groupId}:method:{fqn}#{startline}"
+memurai-cli KEYS "{groupId}:*"  # list keys; session 结束 hook DEL all except knowledge:* + errors 合并到 knowledge
 ```
 
 ## Pre-Run Checklist (Phase 0 — MANDATORY)
 
 Before starting any audit:
-1. **Clear stale cache**: Delete `{groupId}:*` keys from Memurai, **preserve** `{groupId}:knowledge:*` keys.
+1. **Session 结束 hook**: Delete `{groupId}:*` keys from Memurai（保留 `{groupId}:knowledge:*`，并把 `{groupId}:errors:log` 高频错误合并到 `{groupId}:knowledge:errors`）。方法体等缓存**不设 TTL**，只在活跃审计期间有效。
 2. **Verify 3 core tools available**: `codegraph`, `ast-grep`, `Memurai`. If any is missing → exit code 2, no degradation.
 3. **Check preset.json** exists at `projects/{group_id}/preset.json` with valid `projectRoot`, `codegraphDb`, `groupId`.
 
@@ -52,7 +52,7 @@ Before starting any audit:
 | Config file values (xml/yml/properties) | `grep` | codegraph |
 | Class/method relationships, call chains | `codegraph` SQLite (max 20 LEFT JOINs) | ast-grep |
 | Dangerous function patterns (SQL/RCE/...) | `ast-grep` | grep |
-| Read method bodies | Memurai cache → codegraph fallback | Direct `Read` of whole files |
+| Read method bodies | Memurai cache (pre-fetched via JAR + source files) | Direct `Read` of whole files; querying codegraph for method bodies |
 | Statistics/reports | Python scripts | ad-hoc code |
 
 **Subagents never call codegraph directly** — method bodies are pre-fetched to Memurai before subagent launch.
@@ -126,7 +126,7 @@ Audit terminates when ALL are true simultaneously:
 
 ## Common Pitfalls
 
-- **Do NOT `Read` entire Java files** for method bodies — always Memurai first, codegraph fallback.
+- **Do NOT `Read` entire Java files** for method bodies — method bodies are pre-fetched to Memurai via `tools/javaparser/java-method-call-extractor-1.0.0.jar` + source files during chain build. AI only `GET`s from cache; codegraph is for call-topology only, never method bodies.
 - **Do NOT suggest fixes** — this tool discovers vulnerabilities, never remediates.
 - **Do NOT use `pip install redis`** — use native `memurai-cli.exe` at `C:\Program Files\Memurai\`.
 - **Do NOT skip Phase 0** — stale cache from prior rounds pollutes results.

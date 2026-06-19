@@ -31,21 +31,22 @@ C:\Program Files\Memurai\memurai-cli.exe
 ## 三、Key Schema
 
 ```
-audit:{groupId}:commit:{commitHash}:method:{fqn}#{sigHash}
+{groupId}:method:{fqn}#{startline}
 ```
 
 | 占位符 | 来源 |
 |--------|------|
 | `{groupId}` | `preset.json → groupId` |
-| `{commitHash}` | 当前审计 commit |
 | `{fqn}` | 方法全限定名（如 `com.example.UserController.search`） |
-| `{sigHash}` | 方法签名哈希（区分重载） |
+| `{startline}` | 方法起始行号（1-based，区分重载） |
 
 **扩展键**：
-- `audit:{groupId}:knowledge:*` — 跨轮次沉淀知识（**永久保留，Phase 0 不清**）
-- `audit:{groupId}:commit:{c}:file:{fqn}.{method}#{sig}:status` — 文件状态（pending/analyzing/finished/failed）
-- `audit:{groupId}:commit:{c}:round:{N}:status` — 轮次状态
-- `audit:{groupId}:commit:{c}:stats:*` — 全局统计
+- `{groupId}:method:{fqn}#{startline}:count` — 方法缓存命中计数
+- `{groupId}:errors:log` — 犯错记录（JSON array：`{position, reason, count, last_seen}`），session 结束合并到 `{groupId}:knowledge:errors`
+- `{groupId}:knowledge:*` — 跨轮次沉淀知识（**永久保留，Phase 0 不清**）
+- `{groupId}:file:{fqn}.{method}#{startline}:status` — 文件状态（pending/analyzing/finished/failed）
+- `{groupId}:round:{N}:status` — 轮次状态
+- `{groupId}:stats:*` — 全局统计
 
 ---
 
@@ -69,23 +70,30 @@ audit:{groupId}:commit:{commitHash}:method:{fqn}#{sigHash}
 
 | 数据类型 | TTL | 说明 |
 |---------|-----|------|
-| 方法体（method） | **24h** | 同 commit 同方法 24h 内不重复查 codegraph |
+| 方法体（method） | **无（session 结束 hook 清理）** | 通过 JAR + 源文件一次性预取，AI 后续只从缓存 GET；不依赖 codegraph 拿方法体 |
+| 方法体计数（method:*:count） | 无（跟随主 key） | session 结束 hook 一并清理 |
+| 犯错记录（errors:log） | 无（session 结束 hook 清理） | session 结束时合并高频错误到 `{groupId}:knowledge:errors`，跨轮次保留 |
 | 调用链（chain） | 1h | 调用链中间结果，时效短 |
 | Finding draft | **永久**（无 TTL） | 跨轮次复用，需显式清理 |
 | 环境（env） | 1h | ssh/http/codegraph 可达性 |
 | 知识（knowledge:*） | 永久 | **跨轮次沉淀，Phase 0 不清** |
 
+> **方法体生命周期（铁律）**：调用链构建后、AI 分析前，由 `tools/javaparser/java-method-call-extractor-1.0.0.jar` + 源文件读取一次性预取到 memurai（见 `design-docs/data-schema.md` `method_cache key` 段「获取方式」）。AI 分析阶段**只能从缓存 GET**，禁止直接读文件或查 codegraph 获取源码。
+
 ---
 
-## 六、Phase 0 必做（每次审计启动前）
+## 六、Session 结束 hook（每次审计关闭时）
 
 ```powershell
-# 1. 清 {groupId}:* 但保留 {groupId}:knowledge:*
+# 1. 合并高频错误到 knowledge（保留跨轮次犯错经验）
+& "C:\Program Files\Memurai\memurai-cli.exe" GET "{groupId}:errors:log"  # 由 hook 解析 + 合并到 {groupId}:knowledge:errors
+
+# 2. 清 {groupId}:* 但保留 {groupId}:knowledge:*（含合并后的 errors）
 & "C:\Program Files\Memurai\memurai-cli.exe" --scan --pattern "{groupId}:*" |
   Where-Object { $_ -notlike "{groupId}:knowledge:*" } |
   ForEach-Object { & "C:\Program Files\Memurai\memurai-cli.exe" DEL $_ }
 
-# 2. 验证 CLI 可达
+# 3. 验证 CLI 可达（下次启动 sanity check）
 & "C:\Program Files\Memurai\memurai-cli.exe" PING   # 必须返回 PONG
 ```
 
@@ -99,7 +107,8 @@ for k in cli.scan(pattern=f"{group_id}:*"):
         cli.delete(k)
 ```
 
-> ⚠️ **不清 knowledge:*** — 这是跨轮次沉淀的项目特有知识（自定义注解、已知消毒器、动态路由模式、历史 finding 模式），每轮自动加载。
+> ⚠️ **不清 knowledge:*** — 这是跨轮次沉淀的项目特有知识（自定义注解、已知消毒器、动态路由模式、历史 finding 模式、合并后的高频错误），下轮自动加载。
+> ⚠️ **不再是每轮清，而是 session 结束清** — 缓存不设 TTL，只在活跃审计期间有效；任务结束或 session 关闭时由 hook 触发清理。
 
 ---
 
@@ -118,6 +127,17 @@ for k in cli.scan(pattern=f"{group_id}:*"):
 | 1 | 用 `pip install redis` | **禁止** — 用 `memurai-cli.exe` subprocess |
 | 2 | subprocess 默认 GBK 编码崩溃 | 必须 `encoding="utf-8", errors="replace"` |
 | 3 | 手写 SCAN 循环 + RESP 解析 | 用 `--scan`（内部自动迭代）或 `--pipe`（一次发 N 条） |
-| 4 | Phase 0 漏清 `groupId:*` | 上一轮缓存污染本轮结果 |
-| 5 | Phase 0 误清 `knowledge:*` | 项目知识丢失，下轮从零开始 |
+| 4 | Session 结束 hook 漏清 `groupId:*` | 下一轮缓存残留污染本轮结果 |
+| 5 | Session 结束 hook 误清 `knowledge:*` | 项目知识丢失，下轮从零开始 |
 | 6 | 单次调用 > 5min | 超时自动截断，需拆分批次 |
+| 7 | AI 分析时直接读文件或查 codegraph 拿方法体 | **禁止** — 方法体已在调用链构建时一次性预取，AI 只能从缓存 GET |
+
+---
+
+## 九、缓存铁律
+
+- 所有源码相关信息**只能从缓存 GET**
+- codegraph 只用于构建调用拓扑（node_id、edges、fqn、start_line、end_line、file_path），**不用于获取方法体**
+- 方法体预取通过 `tools/javaparser/java-method-call-extractor-1.0.0.jar` + 源文件读取（调用链构建后、AI 分析前一次性完成）
+- AI 分析时**禁止直接读文件或查 codegraph**获取源码
+- 缓存不设 TTL，只在活跃审计期间有效；session 结束 hook 自动清理（保留 `knowledge:*`，合并 `errors:log` 高频项到 `knowledge:errors`）

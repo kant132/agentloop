@@ -464,43 +464,43 @@ COMMAND = """
 
 ```
 1. 文件状态 (per-route-method)
-   audit:{group}:commit:{commit}:file:{fqn}.{method}#{sigHash}:status
+   {group}:file:{fqn}.{method}#{startline}:status
      → "pending" | "analyzing" | "finished" | "failed"
      TTL: 24h
 
 2. 文件调用链统计 (per-route-method)
-   audit:{group}:commit:{commit}:file:{fqn}.{method}#{sigHash}:chain_count
-   audit:{group}:commit:{commit}:file:{fqn}.{method}#{sigHash}:sink_fatal
-   audit:{group}:commit:{commit}:file:{fqn}.{method}#{sigHash}:sink_critical
-   audit:{group}:commit:{commit}:file:{fqn}.{method}#{sigHash}:sink_medium
+   {group}:file:{fqn}.{method}#{startline}:chain_count
+   {group}:file:{fqn}.{method}#{startline}:sink_fatal
+   {group}:file:{fqn}.{method}#{startline}:sink_critical
+   {group}:file:{fqn}.{method}#{startline}:sink_medium
      → "3" (数字)
      TTL: 24h
 
 3. Source 点 (per-chain)
-   audit:{group}:commit:{commit}:sink:{chainId}
+   {group}:sink:{chainId}
      → JSON {"type": "SQLI", "cvss": 9.3, "line": 42, "file": "...", "ts": "..."}
      TTL: 24h
 
 4. 轮次状态 (per-round)
-   audit:{group}:commit:{commit}:round:{N}:status
+   {group}:round:{N}:status
      → "running" | "finished"
-   audit:{group}:commit:{commit}:round:{N}:counters
+   {group}:round:{N}:counters
      → JSON {"finished": 269, "total": 269, "ts": "..."}
      TTL: 24h
 
 5. 全局统计 (per-project)
-   audit:{group}:commit:{commit}:stats:fatal
-   audit:{group}:commit:{commit}:stats:critical
-   audit:{group}:commit:{commit}:stats:high
-   audit:{group}:commit:{commit}:stats:medium
-   audit:{group}:commit:{commit}:stats:low
-   audit:{group}:commit:{commit}:stats:none
-   audit:{group}:commit:{commit}:stats:total_reports
-   audit:{group}:commit:{commit}:stats:poc_verified
-   audit:{group}:commit:{commit}:stats:poc_fake
+   {group}:stats:fatal
+   {group}:stats:critical
+   {group}:stats:high
+   {group}:stats:medium
+   {group}:stats:low
+   {group}:stats:none
+   {group}:stats:total_reports
+   {group}:stats:poc_verified
+   {group}:stats:poc_fake
 
 6. 环境可达性
-   audit:{group}:commit:{commit}:env:reachability
+   {group}:env:reachability
      → JSON {ssh, http, codegraph, ts}
      TTL: 1h
 ```
@@ -509,7 +509,7 @@ COMMAND = """
 
 每个 PoC .md 文件 + Redis 同步：
 - **文件内标记**: `<!-- status: finished -->` 注释加在文件末尾
-- **Redis 标记**: `audit:...:file:...:status = "finished"`
+- **Redis 标记**: `{group}:file:...:status = "finished"`
 
 ```bash
 # 文件内标记

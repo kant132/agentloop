@@ -37,6 +37,23 @@ SEVERITY_MEDIUM = 4.0
 SEVERITY_HIGH = 7.0
 SEVERITY_CRITICAL = 9.0
 
+# verdict 三态枚举（vuln/safe/unknown）
+VERDICT_ENUM = {"vuln", "safe", "unknown"}
+
+def validate_verdict(verdict: str) -> str:
+    """校验 verdict 值，非法值降级为 "unknown"。
+
+    Args:
+        verdict: 待校验的 verdict 字符串
+
+    Returns:
+        合法 verdict 值；非法值降级为 "unknown"
+    """
+    if verdict in VERDICT_ENUM:
+        return verdict
+    # 非法值降级而非抛错，避免下游中断
+    return "unknown"
+
 
 # ------------------------------------------------------------------ 数据结构
 
@@ -71,6 +88,7 @@ class ChainReportGenerator:
         analysis_results: List[Mapping[str, Any]],
         findings: Iterable[Mapping[str, Any]],
         load_count: int = 0,
+        verdict: str = "unknown",
     ) -> dict:
         """装配可序列化报告 dict。
 
@@ -80,10 +98,12 @@ class ChainReportGenerator:
             analysis_results: 每个方法体的分析结果（污点追踪/业务逻辑/漏洞判定）
             findings: 漏洞发现列表（dict 或 Finding）
             load_count: 该链的方法体加载次数
+            verdict: 链路判定结论（vuln/safe/unknown），非法值降级为 "unknown"
 
         Returns:
             报告 dict，可直接 ``json.dumps`` 或喂给 ``to_markdown``
         """
+        validated_verdict = validate_verdict(verdict)
         nodes = chain_data.get("nodes") or []
         entry_fqn = chain_data.get("entry_fqn", "")
 
@@ -101,6 +121,7 @@ class ChainReportGenerator:
         return {
             "chain_id": chain_id,
             "entry_fqn": entry_fqn,
+            "verdict": validated_verdict,
             "total_nodes": len(nodes) if isinstance(nodes, list) else 0,
             "method_analyses": list(analysis_results),
             "findings": scored_findings,

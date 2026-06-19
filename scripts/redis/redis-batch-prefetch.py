@@ -11,13 +11,13 @@ subagent 启动后全程从 Memurai 读，不再调 codegraph。
     python redis-batch-prefetch.py --chain chain.json --group-id com.example.x --commit HEAD
 
 输入:
-    chain.json: 调用链，格式 [{"fqn":"...","sigHash":"...","body":"...","file":"...","line":...}, ...]
+    chain.json: 调用链，格式 [{"fqn":"...","startLine":...,"body":"...","file":"...","line":...}, ...]
     （可由 sqlite-extract-chain.py + codegraph 工具组合生成）
 
 输出:
     写入 Memurai keys:
-        audit:{groupId}:commit:{commitHash}:method:{fqn}#{sigHash}  → method body + meta
-        audit:{groupId}:commit:{commitHash}:prefetch:{chainId}        → chain summary
+        {groupId}:method:{fqn}#{startline}  → method body + meta
+        {groupId}:prefetch:{chainId}        → chain summary
 """
 import argparse
 import hashlib
@@ -25,26 +25,25 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 # 兼容从 scripts/redis/ 目录直接运行
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from memurai_client import Memurai, MemuraiError
 
 
-def make_method_key(group_id: str, commit: str, fqn: str, sig_hash: str) -> str:
-    return f"audit:{group_id}:commit:{commit}:method:{fqn}#{sig_hash}"
+def make_method_key(group_id: str, fqn: str, start_line: int) -> str:
+    return f"{group_id}:method:{fqn}#{start_line}"
 
 
-def make_prefetch_key(group_id: str, commit: str, chain_id: str) -> str:
-    return f"audit:{group_id}:commit:{commit}:prefetch:{chain_id}"
+def make_prefetch_key(group_id: str, chain_id: str) -> str:
+    return f"{group_id}:prefetch:{chain_id}"
 
 
 def prefetch_chain(
     cli: Memurai,
     chain: List[Dict],
     group_id: str,
-    commit: str,
     chain_id: str,
     method_ttl: int = 86400,  # 24h
     prefetch_ttl: int = 3600,  # 1h
@@ -60,19 +59,18 @@ def prefetch_chain(
     chain_summary = {
         "chain_id": chain_id,
         "group_id": group_id,
-        "commit": commit,
         "methods": [],
     }
     setex_items: List[Tuple[str, int, str]] = []  # (key, ttl, value) for --pipe
 
     for m in chain:
         fqn = m["fqn"]
-        sig_hash = m.get("sigHash") or hashlib.sha256(m.get("body", "").encode()).hexdigest()[:16]
-        key = make_method_key(group_id, commit, fqn, sig_hash)
+        start_line = m.get("startLine") or m.get("line") or 0
+        key = make_method_key(group_id, fqn, start_line)
 
         value = json.dumps({
             "fqn": fqn,
-            "sig_hash": sig_hash,
+            "start_line": start_line,
             "body": m.get("body", ""),
             "file": m.get("file", ""),
             "line": m.get("line", 0),
@@ -85,7 +83,7 @@ def prefetch_chain(
         setex_items.append((key, method_ttl, value))
         chain_summary["methods"].append({
             "fqn": fqn,
-            "sig_hash": sig_hash,
+            "start_line": start_line,
             "key": key,
         })
 
@@ -96,7 +94,7 @@ def prefetch_chain(
         cli.pipe_setex_batch(setex_items)
 
     # 3. 写入 chain summary
-    prefetch_key = make_prefetch_key(group_id, commit, chain_id)
+    prefetch_key = make_prefetch_key(group_id, chain_id)
     cli.setex(prefetch_key, prefetch_ttl, json.dumps(chain_summary, ensure_ascii=False))
 
     return {
@@ -112,7 +110,7 @@ def main():
     parser = argparse.ArgumentParser(description="批量预取调用链到 Memurai")
     parser.add_argument("--chain", required=True, help="chain.json 路径")
     parser.add_argument("--group-id", required=True, help="项目 groupId")
-    parser.add_argument("--commit", default="HEAD", help="commit hash")
+    parser.add_argument("--commit", default="HEAD", help="(deprecated, ignored) commit hash")
     parser.add_argument("--chain-id", help="chain ID（默认由 entry fqn 生成）")
     parser.add_argument("--redis-host", default="localhost", help="Memurai host（保留参数名兼容）")
     parser.add_argument("--redis-port", type=int, default=6379, help="Memurai port（默认 6379）")
@@ -149,7 +147,7 @@ def main():
         print(f"ERROR: Memurai 不可用: {e}", file=sys.stderr)
         sys.exit(1)
 
-    result = prefetch_chain(cli, chain, args.group_id, args.commit, chain_id)
+    result = prefetch_chain(cli, chain, args.group_id, chain_id)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
