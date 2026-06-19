@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """enricher.py — 路由条目富化：HTTP方法、nodes_id、params。
 
 两套入口：
@@ -96,8 +96,8 @@ class RouteEnricher:
             # nodes_id 反查（codegraph 可用）
             nodes_id = RouteEnricher.lookup_nodes_id(
                 {
-                    "fqn": route.get("method_fqn", ""),
-                    "method_name": route.get("method_name", ""),
+                    "file": route.get("file", ""),
+                    "start_line": route.get("start_line", 0),
                 },
                 ctx,
             )
