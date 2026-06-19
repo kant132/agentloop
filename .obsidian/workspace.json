@@ -185,6 +185,9 @@
   },
   "active": "4418a8d397fbf005",
   "lastOpenFiles": [
+    "docs/TDD.md",
+    "scripts/generated/README.md",
+    "scripts/generated",
     "scripts/redis/tests/__pycache__/test_memurai_client.cpython-314-pytest-9.0.3.pyc",
     "scripts/redis/tests/__pycache__/__init__.cpython-314.pyc",
     "scripts/redis/tests/__pycache__",
@@ -204,8 +207,6 @@
     "tools/arthas-doc/en/doc/web-console.html",
     "tools/arthas-doc/en/doc/vmoption.html",
     "tools/arthas-doc/en/doc/watch.html",
-    "tools/arthas-doc/en/doc/version.html",
-    "tools/arthas-doc/en/doc/vmtool.html",
     "tools/arthas-doc/images/web-console-local.png",
     "tools/arthas-doc/images/tunnel-server-apps.png",
     "design-docs/重构方向.md",
@@ -229,7 +230,6 @@
     "docs/archive/forward-audit-tool-recommendations.md",
     "docs/archive/bfs-taint-tracer-v3.3.5-practice.md",
     "docs/archive/bfs-taint-tracer-v3.3.4-practice.md",
-    "docs/archive/atomic-requirements.md",
-    "docs/experience/boss-reflection-2026-06-13.md"
+    "docs/archive/atomic-requirements.md"
   ]
 }

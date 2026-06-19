@@ -49,3 +49,7 @@ loop_audit/.cache/
 
 # Opencode session cache
 .omo/
+
+# Boss agent generated scripts (per-project, not committed)
+scripts/generated/*/
+!scripts/generated/README.md
