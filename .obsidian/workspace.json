@@ -185,6 +185,14 @@
   },
   "active": "4418a8d397fbf005",
   "lastOpenFiles": [
+    "scripts/redis/tests/__pycache__/test_memurai_client.cpython-314-pytest-9.0.3.pyc",
+    "scripts/redis/tests/__pycache__/__init__.cpython-314.pyc",
+    "scripts/redis/tests/__pycache__",
+    "scripts/redis/tests/test_memurai_client.py",
+    "skills/java-whitebox-loop/rules/goals.md",
+    "skills/java-whitebox-loop/rules/entry-contract.md",
+    "scripts/redis/tests/__init__.py",
+    "scripts/redis/tests",
     "tools/arthas-doc/images/users/users_yinlian.png",
     "tools/arthas-doc/images/users/users_telecom.png",
     "tools/arthas-doc/images/users/users_weidian.png",
@@ -198,14 +206,8 @@
     "tools/arthas-doc/en/doc/watch.html",
     "tools/arthas-doc/en/doc/version.html",
     "tools/arthas-doc/en/doc/vmtool.html",
-    "tools/arthas-doc/en/doc/tunnel.html",
-    "tools/arthas-doc/en/doc/tt.html",
-    "tools/arthas-doc/en/doc/trace.html",
-    "tools/arthas-doc/en/doc/thread.html",
-    "tools/arthas-doc/en/doc/tee.html",
     "tools/arthas-doc/images/web-console-local.png",
     "tools/arthas-doc/images/tunnel-server-apps.png",
-    "tools/arthas-doc/images/tunnel-server-agents.png",
     "design-docs/重构方向.md",
     "design-docs/原子需求-v2.md",
     "design-docs/人类答复--（无动）.md",
@@ -228,8 +230,6 @@
     "docs/archive/bfs-taint-tracer-v3.3.5-practice.md",
     "docs/archive/bfs-taint-tracer-v3.3.4-practice.md",
     "docs/archive/atomic-requirements.md",
-    "docs/experience/boss-reflection-2026-06-13.md",
-    "docs/experience/boss-experience.md",
-    "doc/archive/TDD.md"
+    "docs/experience/boss-reflection-2026-06-13.md"
   ]
 }
