@@ -1,4 +1,4 @@
----
+ ---
 name: java-whitebox-loop
 description: "Java 白盒审计顶层入口。用户提供 preset.json，自动产出 loop_audit/ 下 8 类产物 + 跨轮 knowledge.json。触发词:`白盒审计` / `启动 loop` / `安全审计编排`。"
 ---
