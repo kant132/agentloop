@@ -1,0 +1,11 @@
+# 预留：Struts2 路由扫描规则
+# Struts2 使用 XML 配置（struts.xml）+ Annotation 双轨制。
+# 待项目需要时填充：
+#   - pattern: "@Action($$$)"       → http_method: ANY
+#   - pattern: "@Result($$$)"        → http_method: ANY
+#   - struts.xml 解析需独立 collector（XML 配置文件驱动，不在此 YAML 范围内）
+id: find-struts-endpoints
+language: java
+framework: struts
+description: "Struts2 路由注解扫描（预留，未启用）"
+rules: []

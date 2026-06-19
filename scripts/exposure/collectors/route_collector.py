@@ -21,8 +21,11 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 # 兄弟包导入：使用相对导入，避免与 scripts.exposure.contracts 双重导入造成
 # isinstance 失败（不同模块路径 = 不同类对象）。
@@ -31,56 +34,97 @@ from ..registry import register_collector
 
 
 # ============================================================
-# 常量：路由注解家族与 HTTP 方法映射
+# 规则加载：从 rules/*.yaml 读取，避免硬编码注解字典
 # ============================================================
 
-# Spring 系路由注解 → HTTP 方法
-_ROUTE_ANNOTATIONS: dict[str, str] = {
-    "RequestMapping": "ANY",
-    "GetMapping": "GET",
-    "PostMapping": "POST",
-    "PutMapping": "PutMapping".replace("", "") or "PUT",  # 占位防 lint
-    "DeleteMapping": "DELETE",
-    "PatchMapping": "PATCH",
-}
-# 修正（避免诡异的占位写法）
-_ROUTE_ANNOTATIONS = {
-    "RequestMapping": "ANY",
-    "GetMapping": "GET",
-    "PostMapping": "POST",
-    "PutMapping": "PUT",
-    "DeleteMapping": "DELETE",
-    "PatchMapping": "PATCH",
-}
+# 规则目录：collectors/rules/
+_RULES_DIR: Path = Path(__file__).parent / "rules"
 
-# JAX-RS 系
-_JAXRS_ANNOTATIONS: dict[str, str] = {
-    "Path": "ANY",
-    "GET": "GET",
-    "POST": "POST",
-    "PUT": "PUT",
-    "DELETE": "DELETE",
-}
 
-_ALL_ROUTE_ANNOTATIONS: dict[str, str] = {
-    **_ROUTE_ANNOTATIONS,
-    **_JAXRS_ANNOTATIONS,
-}
+def _load_rules(rules_dir: Path = _RULES_DIR) -> list[dict]:
+    """加载 rules/ 目录下所有 .yaml 文件，返回合并的规则列表。
 
-# ast-grep pattern：匹配方法上的路由注解
-_AST_GREP_PATTERN = """
-(
-  (method_declaration
-    (modifiers
-      (annotation
-        name: (identifier) @annotation_name
-        arguments: (annotation_argument_list)? @args
-      )
+    每条 rule 标准化为：
+        {"pattern": "@GetMapping($$$)", "http_method": "GET", "_framework": "spring"}
+
+    rule 中可用 `pattern` 或 `annotation` 字段（JAX-RS 无参注解历史兼容）。
+    规则文件按文件名排序加载，保证跨平台稳定。
+    """
+    rules: list[dict] = []
+    if not rules_dir.exists():
+        return rules
+    for yaml_file in sorted(rules_dir.glob("*.yaml")):
+        try:
+            data = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        framework = data.get("framework", "unknown")
+        for rule in data.get("rules", []) or []:
+            if not isinstance(rule, dict):
+                continue
+            # 兼容 annotation 字段（JAX-RS @GET 无参数场景）
+            pattern = rule.get("pattern") or rule.get("annotation")
+            if not pattern:
+                continue
+            rules.append({
+                "pattern": pattern,
+                "http_method": rule.get("http_method", "ANY"),
+                "_framework": framework,
+            })
+    return rules
+
+
+def _build_http_method_map(rules: list[dict]) -> dict[str, str]:
+    """从规则列表构建 注解名 → HTTP 方法 的映射。
+
+    pattern 形如 ``@GetMapping($$$)`` → 提取 ``GetMapping``。
+    多个框架命中同一注解时，后加载的覆盖前者（保持稳定排序，无歧义）。
+    """
+    mapping: dict[str, str] = {}
+    for r in rules:
+        m = re.match(r"@(\w+)", r.get("pattern", ""))
+        if m:
+            mapping[m.group(1)] = r.get("http_method", "ANY")
+    return mapping
+
+
+def _build_ast_grep_rule_yaml(rules: list[dict]) -> str:
+    """把多条 pattern 合并为 ast-grep ``any:`` 语法规则文件内容。
+
+    生成形如::
+
+        language: java
+        rule:
+          any:
+            - pattern: "@GetMapping($$$)"
+            - pattern: "@PostMapping($$$)"
+            ...
+
+    所有 pattern 合并后单次 ``ast-grep scan`` 调用即可命中全部框架的注解，
+    避免 N 次 subprocess 开销。
+    """
+    pattern_lines = [
+        f'    - pattern: "{r["pattern"]}"' for r in rules if r.get("pattern")
+    ]
+    if not pattern_lines:
+        return ""
+    return (
+        "language: java\n"
+        "rule:\n"
+        "  any:\n"
+        + "\n".join(pattern_lines)
+        + "\n"
     )
-    name: (identifier) @method_name
-  ) @method
-)
-""".strip()
+
+
+def _cleanup_rule_file(rule_file: str) -> None:
+    """删除临时 ast-grep 规则文件，忽略不存在错误。"""
+    try:
+        Path(rule_file).unlink()
+    except OSError:
+        pass
 
 
 # ============================================================
@@ -131,6 +175,9 @@ class RouteCollector:
     def _run_ast_grep(self, ctx: ExposureContext) -> list[dict[str, Any]]:
         """调用 ast-grep 扫描路由注解。
 
+        把 ``rules/*.yaml`` 中所有 pattern 合并为单一 ``any:`` 规则文件，
+        一次 ``ast-grep scan`` 调用覆盖全部框架（Spring/JAX-RS/Struts2/...）。
+
         返回原始注解条目列表，每个 dict 含:
             annotation, args, file, line, method_name, source
         """
@@ -138,13 +185,27 @@ class RouteCollector:
         if not src_dir.exists():
             return []
 
-        # 走 ast-grep JSON 输出
+        rules = _load_rules()
+        if not rules:
+            return []
+
+        rule_yaml = _build_ast_grep_rule_yaml(rules)
+        if not rule_yaml:
+            return []
+        http_method_map = _build_http_method_map(rules)
+
+        # 写入临时规则文件，scan 结束后清理
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yml", delete=False, encoding="utf-8"
+        ) as tf:
+            tf.write(rule_yaml)
+            rule_file = tf.name
+
         cmd = [
             "ast-grep",
-            "--lang=java",
-            "--json",
-            "-p",
-            _AST_GREP_PATTERN,
+            "scan",
+            "--rule", rule_file,
+            "--json=compact",
             str(src_dir),
         ]
         try:
@@ -158,16 +219,31 @@ class RouteCollector:
                 timeout=300,
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
+            _cleanup_rule_file(rule_file)
             return []
+        finally:
+            _cleanup_rule_file(rule_file)
 
         if proc.returncode != 0:
             return []
 
-        return self._parse_ast_grep_json(proc.stdout)
+        return self._parse_ast_grep_json(proc.stdout, http_method_map)
 
     @staticmethod
-    def _parse_ast_grep_json(output: str) -> list[dict[str, Any]]:
-        """解析 ast-grep 的 JSON 输出。"""
+    def _parse_ast_grep_json(
+        output: str,
+        http_method_map: dict[str, str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """解析 ast-grep scan 的 JSON 输出（any-rule 风格）。
+
+        ast-grep scan 输出的每条 match 含:
+            text, file, range.start.line, lines, ...
+
+        ``text`` 形如 ``@GetMapping("/{id}")``，从中抽取注解名与参数列表。
+        """
+        if http_method_map is None:
+            http_method_map = _build_http_method_map(_load_rules())
+
         results: list[dict[str, Any]] = []
         try:
             data = json.loads(output) if output.strip() else []
@@ -177,18 +253,48 @@ class RouteCollector:
             data = [data]
 
         for entry in data:
+            text = entry.get("text") or entry.get("lines") or ""
+            # 兼容旧 -p 风格输出（仍带 annotation_name 字段）
             annotation_name = entry.get("annotation_name") or ""
-            if annotation_name not in _ALL_ROUTE_ANNOTATIONS:
+            if not annotation_name:
+                m = re.match(r"@(\w+)", text)
+                if not m:
+                    continue
+                annotation_name = m.group(1)
+            if annotation_name not in http_method_map:
                 continue
+
             file_path = entry.get("file") or entry.get("path") or ""
-            # FQN 推导：file 路径 → 包名.类名
+            # ast-grep scan 的 range.start.line 是 0-indexed；旧 -p 风格用 line/start_line
+            range_info = entry.get("range") or {}
+            start = range_info.get("start") or range_info.get("startpoint") or {}
+            line_raw = (
+                start.get("line")
+                if start.get("line") is not None
+                else start.get("row")
+            )
+            if line_raw is not None:
+                line = int(line_raw) + 1
+            else:
+                line = int(entry.get("line") or entry.get("start_line") or 0)
+
+            # 参数列表：优先用旧风格的 args 字段，否则从 text 抽取括号内容
+            args = entry.get("args")
+            if args is None:
+                args_match = re.search(r"\((.*)\)", text, re.DOTALL)
+                if args_match:
+                    inner = args_match.group(1).strip()
+                    args = [inner] if inner else []
+                else:
+                    args = []
+
             fqn = RouteCollector._derive_fqn(file_path, entry.get("class_name"))
             results.append({
                 "fqn": fqn,
                 "annotation": annotation_name,
-                "args": entry.get("args") or [],
+                "args": args,
                 "file": file_path,
-                "line": int(entry.get("line") or entry.get("start_line") or 0),
+                "line": line,
                 "method_name": entry.get("method_name") or "",
                 "source": "annotation",
                 "class_fqn": entry.get("class_name") or "",
@@ -214,8 +320,9 @@ class RouteCollector:
     # ----------------------------------------------------------
     def _enrich(self, raw: dict[str, Any], ctx: ExposureContext) -> dict[str, Any]:
         item = dict(raw)
-        # HTTP 方法
-        item["http_method"] = _ALL_ROUTE_ANNOTATIONS.get(
+        # HTTP 方法：从 rules/*.yaml 推导（不再硬编码）
+        http_method_map = _build_http_method_map(_load_rules())
+        item["http_method"] = http_method_map.get(
             raw.get("annotation", ""), "ANY"
         )
         # 外部入参标记（粗判：注解参数或方法上有 @RequestParam/@PathVariable）

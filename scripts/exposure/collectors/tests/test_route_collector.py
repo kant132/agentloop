@@ -171,3 +171,81 @@ class TestRouteCollectorDegradation:
         assert result.items[0].get("nodes_id") is None
         assert "sig_hash" in result.items[0]
         assert result.stats["degraded_md5"] == 1
+
+
+# ============================================================
+# YAML 规则驱动测试
+# ============================================================
+
+class TestRouteCollectorRules:
+    """路由扫描规则从 rules/*.yaml 加载。"""
+
+    def test_load_rules_from_yaml(self):
+        """加载 spring.yaml 应得到 6 个 Spring 注解规则，jaxrs.yaml 得到 5 个。"""
+        from scripts.exposure.collectors.route_collector import _load_rules
+
+        rules = _load_rules()
+        spring = [r for r in rules if r.get("_framework") == "spring"]
+        jaxrs = [r for r in rules if r.get("_framework") == "jaxrs"]
+
+        # Spring 6 个注解全覆盖
+        assert len(spring) == 6
+        spring_annotations = {
+            r["pattern"].split("(")[0].lstrip("@") for r in spring
+        }
+        assert spring_annotations == {
+            "GetMapping", "PostMapping", "PutMapping",
+            "DeleteMapping", "PatchMapping", "RequestMapping",
+        }
+
+        # JAX-RS 5 个注解全覆盖
+        assert len(jaxrs) == 5
+        jaxrs_annotations = {
+            r["pattern"].split("(")[0].lstrip("@") for r in jaxrs
+        }
+        assert jaxrs_annotations == {"Path", "GET", "POST", "PUT", "DELETE"}
+
+        # 每条规则必有 http_method 与 pattern 字段
+        for r in rules:
+            assert "pattern" in r
+            assert "http_method" in r
+            assert r["http_method"] in {"GET", "POST", "PUT", "DELETE", "PATCH", "ANY"}
+
+    def test_load_rules_ignores_empty_struts(self):
+        """struts.yaml 是预留文件（rules: []），不应贡献任何规则。"""
+        from scripts.exposure.collectors.route_collector import _load_rules
+
+        rules = _load_rules()
+        struts = [r for r in rules if r.get("_framework") == "struts"]
+        assert struts == []
+
+    def test_build_ast_grep_query(self):
+        """_build_ast_grep_rule_yaml 应生成合法 ast-grep any 语法。"""
+        from scripts.exposure.collectors.route_collector import (
+            _build_ast_grep_rule_yaml,
+            _build_http_method_map,
+            _load_rules,
+        )
+
+        rules = _load_rules()
+        rule_yaml = _build_ast_grep_rule_yaml(rules)
+
+        # 必须含 language + rule.any 头部
+        assert rule_yaml.startswith("language: java\nrule:\n  any:\n")
+        # 每条规则对应一行 pattern
+        line_count = rule_yaml.count("    - pattern:")
+        assert line_count == len(rules)
+        # 合并后应包含所有原始 pattern
+        for r in rules:
+            assert f'- pattern: "{r["pattern"]}"' in rule_yaml
+
+        # HTTP 方法映射完整：RequestMapping→ANY, GetMapping→GET 等
+        http_map = _build_http_method_map(rules)
+        assert http_map["GetMapping"] == "GET"
+        assert http_map["PostMapping"] == "POST"
+        assert http_map["PutMapping"] == "PUT"
+        assert http_map["DeleteMapping"] == "DELETE"
+        assert http_map["PatchMapping"] == "PATCH"
+        assert http_map["RequestMapping"] == "ANY"
+        assert http_map["GET"] == "GET"
+        assert http_map["Path"] == "ANY"

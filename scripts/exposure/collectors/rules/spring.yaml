@@ -1,0 +1,17 @@
+id: find-spring-endpoints
+language: java
+framework: spring
+description: "Spring MVC 路由注解扫描"
+rules:
+  - pattern: "@GetMapping($$$)"
+    http_method: GET
+  - pattern: "@PostMapping($$$)"
+    http_method: POST
+  - pattern: "@PutMapping($$$)"
+    http_method: PUT
+  - pattern: "@DeleteMapping($$$)"
+    http_method: DELETE
+  - pattern: "@PatchMapping($$$)"
+    http_method: PATCH
+  - pattern: "@RequestMapping($$$)"
+    http_method: ANY

@@ -1,0 +1,15 @@
+id: find-jaxrs-endpoints
+language: java
+framework: jaxrs
+description: "JAX-RS 路由注解扫描"
+rules:
+  - pattern: "@Path($$$)"
+    http_method: ANY
+  - pattern: "@GET"
+    http_method: GET
+  - pattern: "@POST"
+    http_method: POST
+  - pattern: "@PUT"
+    http_method: PUT
+  - pattern: "@DELETE"
+    http_method: DELETE
