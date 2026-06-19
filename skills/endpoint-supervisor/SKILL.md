@@ -52,7 +52,7 @@ python scripts/chain/chain_builder.py \
 
 ### 2. 5 维分析
 
-派发 analyst（call-chain-audit-thinking），输入 Step 1 的 chain 数据。产出 5 个维度判定：
+派发 analyst（由 `prompts/analyst.md` 引导思考），输入 Step 1 的 chain 数据。产出 5 个维度判定：
 
 ```json
 {
@@ -143,6 +143,6 @@ Supervisor 不直接调 self_evolution。写经验到 `{groupId}:sup:exp:{chain_
 
 - `projects/_template/06-通用安全知识.md` / `07-Sink表.json` / `08-Sanitizer表.json` — 安全基线 + sink/sanitizer 判定表
 - `scripts/chain/chain_builder.py` + `method_calls_extractor.py` — CLI 调用
-- `skills/call-chain-audit-thinking/SKILL.md` — analyst
+- `prompts/analyst.md` — analyst 思考引导
 - `skills/{injection,auth-chain,file,login,business-logic}-audit/SKILL.md` — expert
 - `skills/poc-verify/SKILL.md` — poc-monitor 调用
