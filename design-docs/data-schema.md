@@ -17,9 +17,9 @@ Phase 2 (调用链 + 缓存 + 排序)                                  │
   exposure_assets.json                                          │
     + codegraph.db (必选) ─► chain_builder  ─► chains/{ep}.txt  │
                               ─► chain_file_writer ─► chains/*  ◄┘
-                              ─► method_cache (memurai 预取)    (TTL 24h)
-                              ─► sink_registry   ─► sink_count + preset_matches
-                              ─► priority_calc   ─► chain_data.json (priority 队列)
+                               ─► method_cache (memurai 预取)    (无 TTL，session 结束 hook 清理)
+                               ─► sink_registry   ─► dynamic_sink_count + preset_sink_matches
+                               ─► priority_calc   ─► chain_data.json (priority 队列, dynamic×1 + preset×10)
                               ─► auth_class_cacher ─► memurai {group_id}:auth:class:*
 
 Phase 3 (AI 分析)
@@ -52,7 +52,18 @@ Phase 4 (PoC + 收敛)
 }
 ```
 
-`codegraphDb` 必填：所有调用链查询、sink 识别、方法体定位都依赖 codegraph，缺失即 exit 2 不降级（见 AR-01）。
+`codegraphDb` 必填：所有调用链**拓扑查询**、sink 识别都依赖 codegraph，缺失即 exit 2 不降级（见 AR-01）。**注意**：方法体本身不从 codegraph 读取，codegraph 只用于构建调用拓扑（node_id、edges、fqn、start_line、end_line、file_path），方法体由 `tools/javaparser/java-method-call-extractor-1.0.0.jar` + 源文件读取获得（见 `method_cache key` 段「获取方式」）。
+
+**字段用途与消费者**：
+
+| 字段 | 用途 | 消费者 |
+|------|------|--------|
+| projectRoot | 定位目标项目源码根 | 所有 collector + chain_builder + JAR 抽取 |
+| codegraphDb | 调用拓扑查询 + sink 识别数据源 | chain_builder、sink_registry、auth_class_cacher |
+| groupId | Memurai 键隔离前缀 | 所有 memurai 读写 + Phase 0 清理 hook |
+| loopDir | 输出目录定位 | 所有产物落盘路径 |
+| sshTarget | 远程环境检查目标 | env_filter collector（缺失则降级，见 AR-19） |
+| commitHash | 缓存键版本隔离 | method_cache key（用于轮次隔离参考） |
 
 ---
 
@@ -79,6 +90,18 @@ Phase 4 (PoC + 收敛)
 ```
 
 `asset_type` 取值固定 8 种，collector 文件名与之对齐：`route.json` / `config.json` / `codegraph.json` / `auth_code.json` / `sensitive_info.json` / `waf.json` / `db_schema.json` / `env_filter.json`。
+
+**item 字段用途与消费者**：
+
+| 字段 | 用途 | 消费者 |
+|------|------|--------|
+| asset_type | 标记资产来源类型，决定下游处理路径 | synthesizer 分流 |
+| collected_at | 采集时序，用于新鲜度判定 | synthesizer 去重选最新 |
+| source | 区分 ast-grep / codegraph / ssh 来源 | 审计回溯定位 |
+| stats.total | 全量条数 | exposure_assets.json 的 by_type |
+| stats.degraded | 降级采集数（0=完整） | 风险评估 + AR-19 env_filter 标记 |
+| items[].fqn | 资产方法/类 FQN | chain_builder 选入口 + dedup |
+| items[...]（类型特定） | route: http_method/path/has_external_param；config: file/key/value；其余各 collector 自有字段 | Phase 2 排序参数 + 鉴权上下文 |
 
 ### exposure_assets.json（综合后）
 
@@ -117,6 +140,18 @@ Phase 4 (PoC + 收敛)
 
 `_source_type` 用于 Phase 2 chain_builder 区分哪些资产是路由入口、哪些是配置上下文。
 
+**字段用途与消费者**：
+
+| 字段 | 用途 | 消费者 |
+|------|------|--------|
+| total_assets | 去重后资产总数 | 端点覆盖率分母 |
+| by_type | 8 类资产计数 | 资产均衡性检查 |
+| by_risk | high/medium/low 计数 | 风险分级报告 |
+| assets[].fqn | 资产唯一键 | chain_builder 入口枚举 |
+| assets[]._source_type | 标记来源类型（8 类之一） | chain_builder 区分路由/配置 |
+| assets[]._risk | high/medium/low | Phase 2 排序参考 |
+| dedup_report.before/after/removed | 去重审计 | 质量自检 |
+
 ---
 
 ## Phase 2
@@ -132,58 +167,160 @@ org.example.UserController#getUser:node4->org.example.UserRepo#audit:node5
 
 `node_id` 必须与 codegraph 中 nodes 表主键对齐，供后续 method_cache 检索使用。
 
-### chain_data.json（链 + sink + 优先级）
+**格式与消费者**：
+
+| 元素 | 用途 | 消费者 |
+|------|------|--------|
+| 单行一链 | 调用链拓扑存储单元 | chain_file_writer 写 / Phase 3 读 |
+| `{fqn}:{node_id}` | 节点 FQN + codegraph 主键 | method_cache key（fqn+startline） |
+| `->` 连接 | 表示调用方向 | 链遍历 |
+| 文件名 Windows-safe | 端点路径转义（点→`__`） | 一端点一文件定位 |
+| depth 信息 | （在 chain_builder 内存结构）不在 txt | Phase 3 前 5 层加载筛选 |
+
+### chain_data.json（优先级队列，不重复存 nodes）
+
+> **设计理由**：链拓扑已在 `chains/{endpoint}.txt`，此处只存队列元数据 + 优先级分数，避免重复。**nodes 结构不在此文件**，由 `chains/{endpoint}.txt` 提供（见上一段）。
 
 ```json
 {
-  "endpoint": "string (必填) — 形如 GET /api/users/{id}",
-  "entry_fqn": "string (必填) — 入口方法 FQN",
-  "chains": [
+  "endpoint": "GET /api/users/{id}",
+  "queue": [
     {
-      "chain_id": "string (必填) — 唯一链 ID",
-      "nodes": [
-        {
-          "fqn": "string (必填)",
-          "node_id": "string (必填)",
-          "depth": "int (必填) — 距入口的调用深度，入口 depth=0"
-        }
-      ],
-      "total_methods": "int (必填) — 链上方法体总数",
-      "sink_count": "int (必填) — 链上 sink 总数（预置 + 动态）",
-      "preset_sink_matches": "int (必填) — 命中预置 sink 库的次数",
-      "priority": "int (必填) — 优先级分数，越大越先分析",
-      "priority_breakdown": {
-        "base": "int (必填) — HTTP 方法与参数 base 分",
-        "sink_count": "int (必填) — sink_count 加分",
-        "preset_match": "int (必填) — preset_sink_matches × 10"
-      }
+      "chain_id": "chain_001",
+      "chain_file": "chains/GET_api_users_id.txt",
+      "dynamic_sink_count": 2,
+      "preset_sink_matches": 1,
+      "priority": 22,
+      "priority_breakdown": {"base": 0, "dynamic": 2, "preset": 10}
     }
-  ],
-  "total_chains": "int (必填) — 该端点链总数"
+  ]
 }
 ```
 
-排序公式：`priority = base + sink_count + preset_sink_matches * 10`。`base` 取值：无外部参数 `-100` / POST/PUT/DELETE `10` / GET `0`。优先级计算必须发生在调用链构建之后（依赖 sink_count，而 sink_count 来自链上节点）。
+| 字段 | 类型 | 用途 | 消费者 |
+|------|------|------|--------|
+| endpoint | string | 端点标识，用于关联链文件 | Phase 3 取队列 |
+| queue | array | 按优先级降序排列的链条目 | Phase 3 按序消费 |
+| queue[].chain_id | string | 链唯一标识 | Phase 3/4 报告引用 |
+| queue[].chain_file | string | 指向 chains/{endpoint}.txt 路径 | Phase 3 读链拓扑 |
+| queue[].dynamic_sink_count | int | 动态识别的非 groupId 调用数（基础权重×1） | 优先级计算 + 统计 |
+| queue[].preset_sink_matches | int | 匹配预置危险 sink 库的数量（高权重×10） | 优先级计算 + 统计 |
+| queue[].priority | int | 最终优先级分数 | Phase 3 排序依据 |
+| queue[].priority_breakdown | object | 分数明细（base/dynamic/preset） | 调试 + 可解释性 |
 
-### method_cache key（Memurai）
+**排序公式**（区分动态 sink 与预置 sink 权重）：
 
 ```
-key:   audit:{groupId}:commit:{commitHash}:method:{fqn}#{sigHash}
-value: 方法体文本（含签名、注解、方法体源码）
-TTL:   24h
+priority = base + dynamic_sink_count × 1 + preset_sink_matches × 10
 ```
 
-缓存时机：**调用链构建完成后、AI 分析前**，把链上所有方法体批量预取到 Memurai（见 AR-07）。AI 分析阶段直接 `GET`，不再每次查 codegraph。
+- `base`：无外部参数 `-100` / POST/PUT/DELETE/PATCH `10` / GET `0`
+- `dynamic_sink_count × 1`：动态识别的非 groupId 命名空间调用（外部依赖），基础权重 ×1
+- `preset_sink_matches × 10`：命中预置危险 sink 库（Runtime.exec、Statement.executeQuery 等 80+ 条），高权重 ×10（动态的 10 倍）
 
-辅助键（链摘要）：
+> **sink 类型说明（务必区分）**：
+> - **动态 sink**（dynamic_sink_count）：运行时通过 JAR 抽取的所有非 groupId 命名空间方法调用，覆盖所有外部依赖。
+> - **预置 sink**（preset_sink_matches）：用预置危险函数库精确匹配的（SQL/RCE/LDAP/SpEL/NoSQL/XXE/反序列化/SSRF/路径穿越等 15 类约 80 条）。
+> - **预置匹配用于增加权重**（×10），预置匹配必定是 dynamic_sink_count 的子集，不单独重复计数。
+> - **工作流顺序**：①先动态找到所有非 groupId 调用 → dynamic_sink_count；②然后用预置库匹配 → preset_sink_matches；③预置匹配增加权重（×10）→ 修改优先级。
 
+优先级计算必须发生在调用链构建（AR-05）与 sink 识别（AR-08）之后（依赖 dynamic_sink_count 与 preset_sink_matches，二者均来自链上节点）。
+
+### method_cache key（方法体缓存）
+
+**格式**：
 ```
-key:   audit:{groupId}:commit:{commitHash}:prefetch:{chainId}
-value: chain.json（链节点摘要）
-TTL:   24h
+{groupId}:method:{fqn}#{startline}
 ```
 
-`sigHash` 缺失时退化为 `body` 的 sha256 前 16 位，见 `scripts/redis/redis-batch-prefetch.py`。
+| 段 | 说明 | 示例 |
+|----|------|------|
+| `{groupId}` | 项目 groupId（Phase 0 清理前缀） | `org.owasp.webgoat` |
+| `method` | 固定段标记 | — |
+| `{fqn}` | 方法完整限定名 | `com.example.UserController#getUser` |
+| `{startline}` | 方法起始行号（1-based） | `42` |
+
+**设计理由**：
+- `{groupId}:` 开头，Phase 0 用 `KEYS {groupId}:*` 一次清理（保留 knowledge:*）
+- 去掉 `commit:{hash}`：同项目审计通常同 commit，不需要隔离维度
+- `#startline` 替代 `#sigHash`：行号+fqn 直观稳定，不需要查 codegraph 算 hash
+
+**value**：方法体文本（UTF-8）
+**TTL**：无（session 结束 hook 清理，保留 `{groupId}:knowledge:*`）
+
+**获取方式**（一次性预取）：
+1. codegraph 构建调用链拓扑（只拿 node_id, fqn, start_line, end_line, file_path）
+2. 对链上每个节点的源文件，调 `tools/javaparser/java-method-call-extractor-1.0.0.jar` 抽取方法调用与方法体起止行
+3. 基于方法体 start_line + end_line 从源文件读取方法体文本
+4. 写入 memurai `{groupId}:method:{fqn}#{startline}`
+5. AI 后续只从缓存 GET，INCR count，**禁止直接读文件或查 codegraph 获取源码**
+
+**铁律**：所有源码相关信息只能从缓存拿。codegraph 只用于构建调用拓扑关系，不用于获取方法体。
+
+缓存时机：**调用链构建完成后、AI 分析前**，把链上所有方法体批量预取到 Memurai（见 AR-07）。AI 分析阶段直接 `GET`，不再每次读文件或查 codegraph。
+
+### method_cache count key（访问计数）
+
+**格式**：
+```
+{groupId}:method:{fqn}#{startline}:count
+```
+
+**value**：int（通过 memurai INCR 原子递增）
+**TTL**：无（跟随主 key，session 结束 hook 清理）
+
+**使用流程**：
+1. AI 需要方法体 → `GET {groupId}:method:{fqn}#{startline}`
+2. 拿到方法体后 → `INCR {groupId}:method:{fqn}#{startline}:count`
+3. 或 memurai_client 封装 `get_and_count(key)` 一步完成
+
+**统计用途**：
+- 高 count = 被频繁访问的方法（可能复杂/可疑，值得深入分析）
+- AR-13 加载次数追踪可从 count key 直接统计
+- load_ratio = sum(count) / chain_method_count
+
+**字段用途与消费者**：
+
+| 元素 | 用途 | 消费者 |
+|------|------|--------|
+| `:count` 后缀 | 区分计数 key 与方法体 key | memurai INCR 原子递增 |
+| value: int | 该方法被加载次数 | load_counter 写入 loads.db |
+| INCR 原子操作 | 并发安全计数 | method_body_loader 调 get_and_count |
+
+### errors:log key（犯错记录）
+
+**格式**：
+```
+{groupId}:errors:log
+```
+
+**value**：JSON array
+```json
+[
+  {
+    "position": "fqn#startline — 犯错位置",
+    "reason": "string — 犯错原因",
+    "count": "int — 该位置犯错次数（重复犯错 INCR）",
+    "last_seen": "ISO8601 — 最后一次犯错时间"
+  }
+]
+```
+
+**TTL**：无（session 结束 hook 清理，但合并到 knowledge 后可跨轮次保留）
+
+**用途**：
+- 统计执行过程中哪些方法/位置犯错最多
+- 分析常见犯错原因（如假阳、漏报、误判）
+- session 结束时合并高频错误到 `{groupId}:knowledge:errors` 供下次审计参考
+
+**字段用途与消费者**：
+
+| 字段 | 用途 | 消费者 |
+|------|------|--------|
+| position | 犯错位置（fqn#startline） | knowledge 合并去重键 |
+| reason | 犯错原因 | 误报模式沉淀 |
+| count | 重复犯错次数（INCR） | 高频错误优先合并 |
+| last_seen | 最后犯错时间 | 新鲜度判定 |
 
 ### auth_class_cache key（Memurai）
 
@@ -192,6 +329,15 @@ key:   {groupId}:auth:class:{fqn}
 value: 鉴权类 FQN + 类型清单（Filter / Interceptor / 注解）
 TTL:   跨轮次保留（无 TTL，或与 knowledge 同寿）
 ```
+
+**字段用途与消费者**：
+
+| 元素 | 用途 | 消费者 |
+|------|------|--------|
+| `auth:class:` 段 | 标记鉴权类缓存命名空间 | auth_class_cacher 写 / Phase 3 读 |
+| value: 鉴权类 FQN | 命中的 Filter/Interceptor/注解 | 链上是否有鉴权上下文判定 |
+| value: 类型清单 | 区分鉴权机制类型 | sink 是否被鉴权覆盖判定 |
+| 跨轮 TTL | 项目级鉴权稳定，可跨轮复用 | Phase 0 清理 hook 保留 |
 
 ---
 
@@ -225,6 +371,24 @@ TTL:   跨轮次保留（无 TTL，或与 knowledge 同寿）
 
 `verdict` 三值枚举对齐 Phase 4 的 `vuln_chains` / `safe_chains` / `unknown_chains` 计数。`findings[]` 仅在 `verdict=vuln` 时非空。**严禁**包含 `remediation` / `fix_suggestion` / `secure_alternative` 字段（硬约束，含则自评分 0）。
 
+**字段用途与消费者**：
+
+| 字段 | 用途 | 消费者 |
+|------|------|--------|
+| chain_id | 关联调用链 | poc-monitor 取链 + 报告引用 |
+| entry_fqn | 入口方法 | 报告定位 + 入口分析 |
+| verdict | vuln\|safe\|unknown 三态结论 | **统计指标**（round_metrics 的 vuln/safe/unknown_chains） |
+| loaded_methods | 本次实际加载方法数 | **load_ratio 计算**（loaded_method_count 累加） |
+| total_methods | 链上方法体总数 | load_ratio 分母 + chain_method_count |
+| load_ratio | 加载效率 | 性能评估 |
+| findings[].type | 漏洞类型枚举 | **PoC**（poc-monitor 按 type 派发） |
+| findings[].root_cause | 根因描述 | PoC payload 构造依据 |
+| findings[].entry_point | HTTP 入口 | PoC 目标定位 |
+| findings[].payload | PoC 草稿 | poc-monitor 发送 payload |
+| findings[].impact | 业务影响 | 严重性评估 |
+| findings[].cvss_4.base_score | 0.0~10.0 | 优先级再排序 |
+| findings[].cvss_4.vector | CVSS 4.0 向量 | 复现性分析 |
+
 ---
 
 ## Phase 4
@@ -242,6 +406,16 @@ TTL:   跨轮次保留（无 TTL，或与 knowledge 同寿）
 ```
 
 仅 `confirmed` 计入 `vuln_chains` 与 `vuln_exposed_surface`。
+
+**字段用途与消费者**：
+
+| 字段 | 用途 | 消费者 |
+|------|------|--------|
+| chain_id | 关联调用链 | round_metrics 统计 |
+| poc_status | confirmed\|denied\|inconclusive 三态 | **统计指标**（vuln_chains / safe_chains / unknown_chains） |
+| payload_sent | 实际发送 payload | 审计证据 + 复现 |
+| response_evidence | 响应证据片段或状态码 | 验证结论佐证 |
+| executed_at | 执行时间 | 时序追踪 |
 
 ### round_metrics.json（最终 6 指标）
 
@@ -262,6 +436,21 @@ TTL:   跨轮次保留（无 TTL，或与 knowledge 同寿）
 
 6 项核心指标：`chain_method_count` / `loaded_method_count` / `vuln_chains` / `safe_chains` / `unknown_chains` / `vuln_exposed_surface`。其他字段作参考分母，不进入收敛判定。
 
+**字段用途与消费者**（6 核心指标的消费者明确标注）：
+
+| 字段 | 用途 | 消费者 |
+|------|------|--------|
+| round | 轮次序号 | self_evolution 轮次对齐 + 趋势追踪 |
+| chain_method_count | 链上方法体总数 | **load_ratio 分母** |
+| loaded_method_count | 实际加载数（来自 load_counter） | **load_ratio 分子** |
+| load_ratio | loaded/chain_method_count | **效率收敛指标**（理想 < 0.3） |
+| vuln_chains | verdict=vuln 链数 | **收敛判定 4-AND 之一 + 暴露面** |
+| safe_chains | verdict=safe 链数 | **收敛判定**（质量稳定信号） |
+| unknown_chains | verdict=unknown 链数 | **收敛判定**（越少越好，理想 0） |
+| vuln_exposed_surface | 确认漏洞端点数 | **收敛判定 4-AND 之一**（覆盖率反推） |
+| total_chains | 链总数（分母参考） | 不计入 6 核心指标 |
+| total_endpoints | 端点总数（分母参考） | 端点覆盖率计算 |
+
 ### knowledge.json（跨轮次知识）
 
 ```json
@@ -280,6 +469,17 @@ TTL:   跨轮次保留（无 TTL，或与 knowledge 同寿）
 ```
 
 跨轮持久化在 `{groupId}:knowledge:*` Memurai 键与 `{loop_audit_dir}/knowledge.json`，下一轮经 `merge_knowledge_from_memurai()` 自动合并。
+
+**字段用途与消费者**：
+
+| 字段 | 用途 | 消费者 |
+|------|------|--------|
+| custom_annotations | 项目自定义路由/鉴权注解 FQN | Phase 1 路由发现 + Phase 2 鉴权识别 |
+| known_sanitizers | 已确认消毒器（PreparedStatement、HtmlUtils.escape 等） | **L2 剪枝**（消毒器匹配即剪枝） |
+| dynamic_route_patterns | 反射/动态路由模式 | Phase 1 动态路由发现 |
+| false_positive_patterns[].pattern | 误报特征 | finding 过滤 + L3 跨轮剪枝 |
+| false_positive_patterns[].reason | 误报依据 | 审计可解释性 |
+| last_updated | 最后更新时间 | 知识新鲜度判定 |
 
 ---
 
