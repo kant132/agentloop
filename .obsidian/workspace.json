@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "design-docs/data-schema.md",
+                "file": "design-docs/重构方向.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "data-schema"
+              "title": "重构方向"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "design-docs/data-schema.md",
+                "file": "design-docs/重构方向.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "data-schema 的反向链接列表"
+              "title": "重构方向 的反向链接列表"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "design-docs/data-schema.md",
+                "file": "design-docs/重构方向.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "data-schema 的出链列表"
+              "title": "重构方向 的出链列表"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "design-docs/data-schema.md",
+                "file": "design-docs/重构方向.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "data-schema 的大纲"
+              "title": "重构方向 的大纲"
             }
           }
         ],
@@ -185,6 +185,7 @@
   },
   "active": "4418a8d397fbf005",
   "lastOpenFiles": [
+    "design-docs/data-schema.md",
     "docs/TDD.md",
     "scripts/generated/README.md",
     "scripts/generated",
@@ -214,7 +215,6 @@
     "design-docs/人类答复--（无动）.md",
     "design-docs/工作流.md",
     "design-docs/会话记录-最终方案.md",
-    "design-docs/data-schema.md",
     "docs/_archive/v3.3.8-release-notes.md",
     "docs/_archive/TDD.md",
     "docs/_archive/README.md",
