@@ -1,7 +1,7 @@
 id: find-jaxrs-endpoints
 language: java
 framework: jaxrs
-description: "JAX-RS 路由 + 请求参数扫描"
+description: "JAX-RS 路由 + 请求参数扫描（全限定名+短名变体）"
 
 # 类级规则：JAX-RS 资源类（@Path）
 class_rules:
@@ -9,24 +9,42 @@ class_rules:
     pattern-either:
       - pattern: "@javax.ws.rs.Path($$$)"
       - pattern: "@Path($$$)"
+      - pattern: "@Path"
     role: resource
     http_method: ANY
 
-# 方法级规则：HTTP 动词 + 子路径
+# 方法级规则：HTTP 动词（2 变体：全限定名+短名）
 method_rules:
-  - pattern: "@GET"
+  - id: jaxrs_get
+    pattern-either:
+      - pattern: "@javax.ws.rs.GET"
+      - pattern: "@GET"
     http_method: GET
-  - pattern: "@POST"
+  - id: jaxrs_post
+    pattern-either:
+      - pattern: "@javax.ws.rs.POST"
+      - pattern: "@POST"
     http_method: POST
-  - pattern: "@PUT"
+  - id: jaxrs_put
+    pattern-either:
+      - pattern: "@javax.ws.rs.PUT"
+      - pattern: "@PUT"
     http_method: PUT
-  - pattern: "@DELETE"
+  - id: jaxrs_delete
+    pattern-either:
+      - pattern: "@javax.ws.rs.DELETE"
+      - pattern: "@DELETE"
     http_method: DELETE
-  - pattern: "@PATCH"
+  - id: jaxrs_patch
+    pattern-either:
+      - pattern: "@javax.ws.rs.PATCH"
+      - pattern: "@PATCH"
     http_method: PATCH
-  - pattern-either:
+  - id: jaxrs_sub_path
+    pattern-either:
       - pattern: "@javax.ws.rs.Path($$$)"
       - pattern: "@Path($$$)"
+      - pattern: "@Path"
     http_method: ANY
 
 # 请求参数规则：JAX-RS 参数注解

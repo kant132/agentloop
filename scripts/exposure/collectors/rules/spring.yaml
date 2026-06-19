@@ -1,47 +1,143 @@
 id: find-spring-endpoints
 language: java
 framework: spring
-description: "Spring MVC 路由 + 控制器 + 请求参数扫描"
+description: "Spring MVC 路由 + 控制器 + 请求参数扫描（全限定名+短名+无括号变体）"
 
-# 类级规则：识别控制器类（@RestController / @Controller）
+# 类级规则：识别控制器类
 class_rules:
   - id: rest_controller
     pattern-either:
       - pattern: "@org.springframework.web.bind.annotation.RestController($$$)"
       - pattern: "@RestController($$$)"
+      - pattern: "@RestController"
     role: rest_controller
     http_method: ANY
   - id: controller
     pattern-either:
       - pattern: "@org.springframework.web.bind.annotation.Controller($$$)"
       - pattern: "@Controller($$$)"
+      - pattern: "@Controller"
     role: controller
     http_method: ANY
-
-# 方法级规则：HTTP 路由映射注解
-method_rules:
-  - pattern: "@GetMapping($$$)"
-    http_method: GET
-  - pattern: "@PostMapping($$$)"
-    http_method: POST
-  - pattern: "@PutMapping($$$)"
-    http_method: PUT
-  - pattern: "@DeleteMapping($$$)"
-    http_method: DELETE
-  - pattern: "@PatchMapping($$$)"
-    http_method: PATCH
-  - pattern: "@RequestMapping($$$)"
+  - id: controller_advice
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.ControllerAdvice($$$)"
+      - pattern: "@ControllerAdvice($$$)"
+      - pattern: "@ControllerAdvice"
+    role: controller_advice
+    http_method: ANY
+  - id: rest_controller_advice
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.RestControllerAdvice($$$)"
+      - pattern: "@RestControllerAdvice($$$)"
+      - pattern: "@RestControllerAdvice"
+    role: rest_controller_advice
     http_method: ANY
 
-# 请求参数规则：方法形参上的注解
+# 方法级规则：HTTP 路由映射注解（3 变体：全限定名+短名带括号+短名无括号）
+method_rules:
+  - id: get_mapping
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.GetMapping($$$)"
+      - pattern: "@GetMapping($$$)"
+      - pattern: "@GetMapping"
+    http_method: GET
+  - id: post_mapping
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.PostMapping($$$)"
+      - pattern: "@PostMapping($$$)"
+      - pattern: "@PostMapping"
+    http_method: POST
+  - id: put_mapping
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.PutMapping($$$)"
+      - pattern: "@PutMapping($$$)"
+      - pattern: "@PutMapping"
+    http_method: PUT
+  - id: delete_mapping
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.DeleteMapping($$$)"
+      - pattern: "@DeleteMapping($$$)"
+      - pattern: "@DeleteMapping"
+    http_method: DELETE
+  - id: patch_mapping
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.PatchMapping($$$)"
+      - pattern: "@PatchMapping($$$)"
+      - pattern: "@PatchMapping"
+    http_method: PATCH
+  - id: request_mapping
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.RequestMapping($$$)"
+      - pattern: "@RequestMapping($$$)"
+      - pattern: "@RequestMapping"
+    http_method: ANY
+  - id: message_mapping
+    pattern-either:
+      - pattern: "@org.springframework.messaging.handler.annotation.MessageMapping($$$)"
+      - pattern: "@MessageMapping($$$)"
+      - pattern: "@MessageMapping"
+    http_method: WS
+  - id: exception_handler
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.ExceptionHandler($$$)"
+      - pattern: "@ExceptionHandler($$$)"
+      - pattern: "@ExceptionHandler"
+    http_method: ANY
+
+# 请求参数规则：方法形参上的注解（3 变体）
 param_rules:
-  - pattern: "@RequestHeader($$$)"
+  - id: request_header
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.RequestHeader($$$)"
+      - pattern: "@RequestHeader($$$)"
+      - pattern: "@RequestHeader"
     param_type: header
-  - pattern: "@RequestParam($$$)"
+  - id: request_param
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.RequestParam($$$)"
+      - pattern: "@RequestParam($$$)"
+      - pattern: "@RequestParam"
     param_type: query
-  - pattern: "@PathVariable($$$)"
+  - id: path_variable
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.PathVariable($$$)"
+      - pattern: "@PathVariable($$$)"
+      - pattern: "@PathVariable"
     param_type: path
-  - pattern: "@RequestBody($$$)"
+  - id: request_body
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.RequestBody($$$)"
+      - pattern: "@RequestBody($$$)"
+      - pattern: "@RequestBody"
     param_type: body
-  - pattern: "@CookieValue($$$)"
+  - id: cookie_value
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.CookieValue($$$)"
+      - pattern: "@CookieValue($$$)"
+      - pattern: "@CookieValue"
     param_type: cookie
+  - id: matrix_variable
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.MatrixVariable($$$)"
+      - pattern: "@MatrixVariable($$$)"
+      - pattern: "@MatrixVariable"
+    param_type: path
+  - id: model_attribute
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.ModelAttribute($$$)"
+      - pattern: "@ModelAttribute($$$)"
+      - pattern: "@ModelAttribute"
+    param_type: form
+  - id: request_part
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.RequestPart($$$)"
+      - pattern: "@RequestPart($$$)"
+      - pattern: "@RequestPart"
+    param_type: body
+  - id: session_attribute
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.SessionAttribute($$$)"
+      - pattern: "@SessionAttribute($$$)"
+      - pattern: "@SessionAttribute"
+    param_type: session
