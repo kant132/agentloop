@@ -185,6 +185,7 @@
   },
   "active": "4418a8d397fbf005",
   "lastOpenFiles": [
+    "scripts/exposure/collectors/tests/__pycache__/test_route_collector.cpython-314-pytest-9.0.3.pyc.24528",
     "scripts/exposure/collectors/tests/__pycache__/test_route_collector.cpython-314-pytest-9.0.3.pyc.5968",
     "scripts/exposure/collectors/tests/__pycache__/test_route_collector.cpython-314-pytest-9.0.3.pyc.53188",
     "scripts/exposure/collectors/route/__pycache__/javaparser_scanner.cpython-314.pyc",
@@ -195,7 +196,6 @@
     "scripts/exposure/collectors/tests/fixtures/sample_route.java",
     "scripts/exposure/collectors/tests/fixtures",
     "tools/javaparser-service/target/original-java-method-call-extractor-1.0.0.jar",
-    "tools/javaparser-service/target/java-method-call-extractor-1.0.0-shaded.jar",
     "tools/javaparser-service/README.md",
     "scripts/exposure/collectors/rules/README.md",
     "design-docs/重构方向.md",

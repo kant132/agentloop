@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""enricher.py — 路由条目富化：HTTP方法、nodes_id、sig_hash、params。
+"""enricher.py — 路由条目富化：HTTP方法、nodes_id、params。
 
 两套入口：
 - ``enrich``/``enrich_batch``/``scan_params``：旧 ast-grep 正则路径，保留向后兼容
 - ``enrich_routes``：新 javaparser RouteExtractor 路径，full_url + http_methods
-  列表已由 javaparser 解析，enricher 只补 nodes_id/sig_hash/has_external_param
+  列表已由 javaparser 解析，enricher 只补 nodes_id/has_external_param
 
 依赖：
 - contracts.ExposureContext
@@ -29,7 +29,7 @@ from .rule_loader import RuleLoader
 
 
 class RouteEnricher:
-    """富化路由条目：HTTP方法、nodes_id、sig_hash、params。"""
+    """富化路由条目：HTTP方法、nodes_id、params。"""
 
     @staticmethod
     def enrich(
@@ -41,7 +41,7 @@ class RouteEnricher:
         """富化单条路由。
 
         补字段：fqn（缺失时推导）、http_method、has_external_param、params、
-        nodes_id、sig_hash（无 codegraph 时为空字符串）。
+        nodes_id（无 codegraph 时为 None）。
         """
         item = dict(raw)
         # fqn: 缺失时由 file + class_fqn 推导（ast-grep 命中未带 fqn 时）
@@ -57,10 +57,9 @@ class RouteEnricher:
         item["has_external_param"] = bool(args) or item.get("method_name", "") != ""
         # 请求参数列表：[{param_type, name}]
         item["params"] = RouteEnricher._lookup_params(item, param_index)
-        # sig_hash 与 nodes_id（codegraph 可用时）
+        # nodes_id（codegraph 可用时）
         nodes_id = RouteEnricher.lookup_nodes_id(item, ctx)
         item["nodes_id"] = nodes_id
-        item["sig_hash"] = nodes_id or ""
         return item
 
     @staticmethod
@@ -86,7 +85,6 @@ class RouteEnricher:
         javaparser 已提供 full_url（类+方法拼接）和 http_methods（列表，含
         ``{GET,POST}`` 数组展开），enricher 只补：
         - ``nodes_id`` （codegraph 反查）
-        - ``sig_hash`` （nodes_id 缺失时为空字符串）
         - ``has_external_param`` （从 full_url 是否含 ``{param}`` 推断）
         - ``fqn`` （统一为 method_fqn）
 
@@ -104,7 +102,6 @@ class RouteEnricher:
                 ctx,
             )
             item["nodes_id"] = nodes_id
-            item["sig_hash"] = nodes_id or ""
             # has_external_param: 路径模板含 {param} 占位
             url = route.get("full_url", "") or ""
             item["has_external_param"] = "{" in url
@@ -154,35 +151,45 @@ class RouteEnricher:
     def lookup_nodes_id(
         raw: dict[str, Any], ctx: ExposureContext
     ) -> str | None:
-        """通过 codegraph SQLite 按 file_path + 行号范围精确查 nodes.id。
+        """通过 codegraph SQLite 用 file_path LIKE 模糊匹配 + 行号范围查 nodes.id。
 
-        复用 scanner_utils.lookup_nodes_id（基于 file_path + annotation_line），
-        不再用 fqn LIKE 模糊匹配。
+        用 LIKE '%包路径末尾4段' 匹配，天然兼容绝对路径和相对路径。
         """
         if not ctx.codegraph_db or not ctx.codegraph_db.exists():
             return None
-        import sys
-        _ast_dir = Path(__file__).resolve().parents[4] / "scripts" / "ast"
-        if str(_ast_dir) not in sys.path:
-            sys.path.insert(0, str(_ast_dir))
-        try:
-            from scanner_utils import lookup_nodes_id as _lookup
-        except ImportError:
-            return None
+        import sqlite3
 
         file_path = raw.get("file") or ""
         annotation_line = raw.get("start_line") or raw.get("line") or 0
         if not file_path or annotation_line < 1:
             return None
 
-        return _lookup(
-            codegraph_db=ctx.codegraph_db,
-            file_path=file_path,
-            annotation_line=int(annotation_line),
-            project_root=ctx.project_root,
-        )
+        # 统一路径分隔符为正斜杠
+        norm = file_path.replace("\\", "/")
+        # 取路径末尾的包路径段作为 LIKE 匹配键（避免同名文件冲突）
+        parts = norm.split("/")
+        # 取最后 4 段：如 org/owasp/webgoat/xxx/Foo.java
+        key = "/".join(parts[-4:]) if len(parts) >= 4 else norm
 
+        like_pattern = f"%{key}"
 
+        try:
+            conn = sqlite3.connect(f"file:{ctx.codegraph_db}?mode=ro", uri=True)
+            try:
+                row = conn.execute(
+                    "SELECT id FROM nodes "
+                    "WHERE kind = 'method' "
+                    "  AND file_path LIKE ? "
+                    "  AND start_line <= ? AND end_line >= ? "
+                    "ORDER BY (end_line - start_line) ASC "
+                    "LIMIT 1",
+                    (like_pattern, annotation_line, annotation_line),
+                ).fetchone()
+                return str(row[0]) if row else None
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return None
 
     @staticmethod
     def count_by_method(items: list[dict[str, Any]]) -> dict[str, int]:
