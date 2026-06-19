@@ -22,15 +22,22 @@ Phase 2 (调用链 + 缓存 + 排序)                                  │
                                ─► priority_calc   ─► chain_data.json (priority 队列, dynamic×1 + preset×10)
                               ─► auth_class_cacher ─► memurai {group_id}:auth:class:*
 
-Phase 3 (AI 分析)
-  chain_data.json (按 priority) ─► method_body_loader ─► method 体 (memurai GET)
-                                  ─► chain_report_generator ─► analysis_report.json
-                                  ─► load_counter ─► loads.db
+Phase 3a (环境配置导出 + AI 配置分析)
+  env_export (SSH 可达时) ─► config_collector ─► env_export/*.{conf,sql,xml}
+                            ─► AI 配置分析   ─► config_analysis.json
+
+Phase 3b (AI 认证鉴权分析，先于调用链)
+  auth_code assets + config_analysis ─► AI 鉴权分析 ─► auth_analysis.json
+
+Phase 3c (AI 调用链分析)
+  chain_data.json (按 priority) + auth_analysis ─► method_body_loader ─► method 体 (memurai GET)
+                                                   ─► chain_report_generator ─► chain_analysis_report.json
+                                                   ─► load_counter ─► loads.db
 
 Phase 4 (PoC + 收敛)
-  analysis_report.json ─► poc-monitor      ─► poc_result.json
-                        ─► self_evolution  ─► convergence.json + knowledge.json
-                        ─► metric_simplifier ─► round_metrics.json (6 指标)
+  chain_analysis_report.json ─► poc-monitor      ─► poc_result.json
+                              ─► self_evolution  ─► convergence.json + knowledge.json
+                              ─► metric_simplifier ─► round_metrics.json (6 指标)
 ```
 
 字段约定：`必填` 表示该字段不可缺；`可选` 表示可省略，缺省时取约定默认值；`枚举` 表示只能取列出的值之一。
@@ -56,14 +63,14 @@ Phase 4 (PoC + 收敛)
 
 **字段用途与消费者**：
 
-| 字段 | 用途 | 消费者 |
-|------|------|--------|
-| projectRoot | 定位目标项目源码根 | 所有 collector + chain_builder + JAR 抽取 |
+| 字段          | 用途                  | 消费者                                           |
+| ----------- | ------------------- | --------------------------------------------- |
+| projectRoot | 定位目标项目源码根           | 所有 collector + chain_builder + JAR 抽取         |
 | codegraphDb | 调用拓扑查询 + sink 识别数据源 | chain_builder、sink_registry、auth_class_cacher |
-| groupId | Memurai 键隔离前缀 | 所有 memurai 读写 + Phase 0 清理 hook |
-| loopDir | 输出目录定位 | 所有产物落盘路径 |
-| sshTarget | 远程环境检查目标 | env_filter collector（缺失则降级，见 AR-19） |
-| commitHash | 缓存键版本隔离 | method_cache key（用于轮次隔离参考） |
+| groupId     | Memurai 键隔离前缀       | 所有 memurai 读写 + Phase 0 清理 hook               |
+| loopDir     | 输出目录定位              | 所有产物落盘路径                                      |
+| sshTarget   | 远程环境检查目标            | env_filter collector（缺失则降级，见 AR-19）           |
+| commitHash  | 缓存键版本隔离             | method_cache key（用于轮次隔离参考）                    |
 
 ---
 
@@ -343,7 +350,121 @@ TTL:   跨轮次保留（无 TTL，或与 knowledge 同寿）
 
 ## Phase 3
 
-### analysis_report.json（单链报告）
+> 分析顺序：先搞清楚"门"（配置+鉴权），再分析"内部"（调用链）。3a 配置 → 3b 鉴权 → 3c 调用链。鉴权有漏洞会影响所有调用链的风险评估，故鉴权分析先于调用链。
+
+### config_analysis.json（AI 配置分析报告）
+
+> Phase 3a 产出。环境配置导出 + AI 分析。所有环境配置（filter/nginx/svc/建表语句）**先从环境导出到本地** `loop_audit/env_export/`，再在本地分析，与代码对比。
+
+```json
+{
+  "db_schema": [
+    {
+      "table_name": "string (必填) — 表名",
+      "columns": [
+        {"name": "string (必填)", "type": "string (必填)", "is_sensitive": "bool (可选，缺省 false)"}
+      ]
+    }
+  ],
+  "nginx_routes": [
+    {
+      "location": "string (必填) — nginx location 匹配规则",
+      "proxy_pass": "string (必填) — 后端转发目标"
+    }
+  ],
+  "jvm_args": "object (必填) — JVM 启动参数（键值对）",
+  "svc_configs": [
+    {"...": "服务配置（Spring Cloud Gateway / Dubbo 等），各框架自有字段"}
+  ],
+  "config_mismatches": [
+    {
+      "type": "string (必填) — 枚举 missing|extra|changed",
+      "detail": "string (必填) — 具体差异描述"
+    }
+  ],
+  "exported_at": "string ISO8601 (必填)",
+  "source": "string (必填) — 枚举 ssh|local|offline"
+}
+```
+
+**字段用途与消费者**：
+
+| 字段 | 类型 | 用途 | 消费者 |
+|------|------|------|--------|
+| db_schema | array | 数据库表结构（从环境 DDL 或代码 JPA/Mapper 推断） | 调用链分析（SQL 注入需要表名） |
+| db_schema[].table_name | string | 表名 | SQL 注入 PoC 构造 |
+| db_schema[].columns | array | 列定义 [{name, type, is_sensitive}] | 判断敏感字段 |
+| nginx_routes | array | nginx 路由配置（从环境导出） | 确认外部可达端点 |
+| nginx_routes[].location | string | nginx location 匹配规则 | 路径遍历/绕过分析 |
+| nginx_routes[].proxy_pass | string | 后端转发目标 | SSRF 分析 |
+| jvm_args | object | JVM 启动参数 | 配置风险（如 -Dspring.config.location） |
+| svc_configs | array | 服务配置（Spring Cloud Gateway / Dubbo 等） | 动态路由分析 |
+| config_mismatches | array | 代码配置 vs 环境实际配置的差异 | 配置风险标注 |
+| config_mismatches[].type | string | 差异类型（missing/extra/changed） | 风险评级 |
+| config_mismatches[].detail | string | 具体差异描述 | 人工复核 |
+| exported_at | string ISO8601 | 导出时间 | 时效性判断 |
+| source | string | 导出来源（ssh/local/offline） | 降级判断 |
+
+### auth_analysis.json（AI 认证鉴权分析报告）
+
+> Phase 3b 产出。**先于调用链分析**，鉴权是第一道防线。结合环境实际进程加载顺序分析 filter 链。
+
+```json
+{
+  "filter_chain": [
+    {
+      "fqn": "string (必填) — Filter 类全限定名",
+      "order": "int (必填) — 加载顺序（来自环境或 @Order）",
+      "path_pattern": "string (必填) — URL 匹配模式",
+      "is_custom": "bool (必填) — 是否用户自定义"
+    }
+  ],
+  "interceptors": [
+    {"...": "拦截器链，字段同 filter_chain"}
+  ],
+  "auth_mechanisms": [
+    {
+      "type": "string (必填) — 枚举 JWT|OAuth|Session|Basic|APIKey",
+      "config_fqn": "string (必填) — 配置类 FQN"
+    }
+  ],
+  "bypass_risks": [
+    {
+      "type": "string (必填) — 枚举 path_normalization|url_encoding|filter_order|annotation_invalidation",
+      "affected_endpoints": ["string (必填) — 受影响端点列表"],
+      "severity": "string (必填) — 枚举 high|medium|low",
+      "root_cause": "string (必填) — 根因"
+    }
+  ],
+  "access_control": "object (必填) — 访问控制摘要（RBAC/ABAC/无）",
+  "analyzed_at": "string ISO8601 (必填)"
+}
+```
+
+**字段用途与消费者**：
+
+| 字段 | 类型 | 用途 | 消费者 |
+|------|------|------|--------|
+| filter_chain | array | Filter 链（按实际加载顺序） | 绕过分析 |
+| filter_chain[].fqn | string | Filter 类全限定名 | 关联代码 |
+| filter_chain[].order | int | 加载顺序（来自环境或 @Order） | 顺序正确性判断 |
+| filter_chain[].path_pattern | string | URL 匹配模式 | 路径覆盖判断 |
+| filter_chain[].is_custom | bool | 是否用户自定义 | 框架 Filter vs 自定义 |
+| interceptors | array | 拦截器链 | 同上 |
+| auth_mechanisms | array | 认证机制清单（JWT/OAuth/Session/Basic/API Key） | 认证完整性判断 |
+| auth_mechanisms[].type | string | 机制类型 | 关联分析 |
+| auth_mechanisms[].config_fqn | string | 配置类 FQN | 关联代码 |
+| bypass_risks | array | 识别的鉴权绕过风险 | 调用链分析消费 |
+| bypass_risks[].type | string | 绕过类型（path_normalization/url_encoding/filter_order/annotation_invalidation） | PoC 构造 |
+| bypass_risks[].affected_endpoints | array | 受影响端点列表 | 调用链风险标注 |
+| bypass_risks[].severity | string | high/medium/low | 优先级调整 |
+| bypass_risks[].root_cause | string | 根因 | 报告 |
+| access_control | object | 访问控制摘要（RBAC/ABAC/无） | IDOR 分析 |
+| analyzed_at | string ISO8601 | 分析时间 | 时效性 |
+
+### chain_analysis_report.json（单链报告，原 analysis_report.json）
+
+> Phase 3c 产出。原 `analysis_report.json` 重命名，schema 字段不变。
 
 ```json
 {
