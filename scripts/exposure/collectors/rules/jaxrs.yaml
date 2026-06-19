@@ -1,10 +1,19 @@
 id: find-jaxrs-endpoints
 language: java
 framework: jaxrs
-description: "JAX-RS 路由注解扫描"
-rules:
-  - pattern: "@Path($$$)"
+description: "JAX-RS 路由 + 请求参数扫描"
+
+# 类级规则：JAX-RS 资源类（@Path）
+class_rules:
+  - id: jaxrs_path
+    pattern-either:
+      - pattern: "@javax.ws.rs.Path($$$)"
+      - pattern: "@Path($$$)"
+    role: resource
     http_method: ANY
+
+# 方法级规则：HTTP 动词 + 子路径
+method_rules:
   - pattern: "@GET"
     http_method: GET
   - pattern: "@POST"
@@ -13,3 +22,28 @@ rules:
     http_method: PUT
   - pattern: "@DELETE"
     http_method: DELETE
+  - pattern: "@PATCH"
+    http_method: PATCH
+  - pattern-either:
+      - pattern: "@javax.ws.rs.Path($$$)"
+      - pattern: "@Path($$$)"
+    http_method: ANY
+
+# 请求参数规则：JAX-RS 参数注解
+param_rules:
+  - pattern: "@javax.ws.rs.HeaderParam($$$)"
+    param_type: header
+  - pattern: "@HeaderParam($$$)"
+    param_type: header
+  - pattern: "@javax.ws.rs.QueryParam($$$)"
+    param_type: query
+  - pattern: "@QueryParam($$$)"
+    param_type: query
+  - pattern: "@javax.ws.rs.PathParam($$$)"
+    param_type: path
+  - pattern: "@PathParam($$$)"
+    param_type: path
+  - pattern: "@FormParam($$$)"
+    param_type: form
+  - pattern: "@BeanParam"
+    param_type: bean

@@ -1,8 +1,25 @@
 id: find-spring-endpoints
 language: java
 framework: spring
-description: "Spring MVC 路由注解扫描"
-rules:
+description: "Spring MVC 路由 + 控制器 + 请求参数扫描"
+
+# 类级规则：识别控制器类（@RestController / @Controller）
+class_rules:
+  - id: rest_controller
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.RestController($$$)"
+      - pattern: "@RestController($$$)"
+    role: rest_controller
+    http_method: ANY
+  - id: controller
+    pattern-either:
+      - pattern: "@org.springframework.web.bind.annotation.Controller($$$)"
+      - pattern: "@Controller($$$)"
+    role: controller
+    http_method: ANY
+
+# 方法级规则：HTTP 路由映射注解
+method_rules:
   - pattern: "@GetMapping($$$)"
     http_method: GET
   - pattern: "@PostMapping($$$)"
@@ -15,3 +32,16 @@ rules:
     http_method: PATCH
   - pattern: "@RequestMapping($$$)"
     http_method: ANY
+
+# 请求参数规则：方法形参上的注解
+param_rules:
+  - pattern: "@RequestHeader($$$)"
+    param_type: header
+  - pattern: "@RequestParam($$$)"
+    param_type: query
+  - pattern: "@PathVariable($$$)"
+    param_type: path
+  - pattern: "@RequestBody($$$)"
+    param_type: body
+  - pattern: "@CookieValue($$$)"
+    param_type: cookie
