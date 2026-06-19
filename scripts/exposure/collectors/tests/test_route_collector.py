@@ -228,18 +228,17 @@ class TestRouteCollectorDegradation:
         assert result.items == []
 
     def test_nodes_id_none_when_codegraph_missing(self, ctx):
-        """codegraph_db 缺失时，nodes_id=None，sig_hash 降级为 md5。"""
+        """codegraph_db 缺失时，nodes_id=None，sig_hash 为空字符串。"""
         ctx.codegraph_db = None
         routes = [_jp_route(file="a.java", start_line=1, annotation="GetMapping")]
         with patch.object(FileLocator, "locate", return_value=[Path("a.java")]):
             with patch.object(JavaparserScanner, "scan_directory", return_value=routes):
                 result = RouteCollector().collect(ctx)
 
-        # JAR 存在时 degraded=False（本次仅 codegraph 缺）
-        assert result.degraded is False
+        # nodes_id 缺失 → degraded=True（新逻辑）
+        assert result.degraded is True
         assert result.items[0].get("nodes_id") is None
-        assert "sig_hash" in result.items[0]
-        assert len(result.items[0]["sig_hash"]) == 16  # md5[:16]
+        assert result.items[0]["sig_hash"] == ""
 
 
 # ============================================================
@@ -587,13 +586,60 @@ class TestRouteEnricherUnits:
         )["http_method"] == "ANY"
 
     def test_enricher_adds_sig_hash_when_no_codegraph(self, ctx):
-        """codegraph_db 缺失时，nodes_id=None，sig_hash 退化为 md5。"""
+        """codegraph_db 缺失时，nodes_id=None，sig_hash 为空字符串。"""
         ctx.codegraph_db = None
         raw = {"fqn": "x#m", "annotation": "GetMapping", "file": "a.java", "line": 1}
         result = RouteEnricher.enrich(raw, ctx, {"GetMapping": "GET"})
         assert result["nodes_id"] is None
-        assert result["sig_hash"]  # 非 None、非空
-        assert len(result["sig_hash"]) == 16  # md5[:16]
+        assert result["sig_hash"] == ""
+
+    def test_enricher_lookup_nodes_id_calls_scanner_utils(self, ctx, tmp_path: Path):
+        """lookup_nodes_id 应调用 scanner_utils.lookup_nodes_id（精确行号匹配）。"""
+        fake_db = tmp_path / "codegraph.db"
+        fake_db.write_text("dummy", encoding="utf-8")
+        ctx.codegraph_db = fake_db
+
+        raw = {"file": "src/main/java/com/example/UserController.java", "start_line": 9}
+        expected_id = "method:abc123def456"
+
+        with patch.dict("sys.modules", {"scanner_utils": type("M", (), {
+            "lookup_nodes_id": staticmethod(lambda codegraph_db, file_path,
+                                            annotation_line, project_root=None:
+                                            expected_id),
+        })}):
+            result = RouteEnricher.lookup_nodes_id(raw, ctx)
+            assert result == expected_id
+
+    def test_enricher_lookup_nodes_id_returns_none_on_import_error(self, ctx, tmp_path: Path):
+        """scanner_utils 导入失败时 lookup_nodes_id 返回 None。"""
+        fake_db = tmp_path / "codegraph.db"
+        fake_db.write_text("dummy", encoding="utf-8")
+        ctx.codegraph_db = fake_db
+
+        # 确保 scanner_utils 不在 sys.modules 中以触发 ImportError
+        with patch.dict("sys.modules", {}, clear=False):
+            # 移除 scanner_utils（如果存在）
+            saved = sys.modules.pop("scanner_utils", None)
+            try:
+                raw = {"file": "a.java", "start_line": 5}
+                result = RouteEnricher.lookup_nodes_id(raw, ctx)
+                assert result is None
+            finally:
+                if saved is not None:
+                    sys.modules["scanner_utils"] = saved
+
+    def test_enricher_lookup_nodes_id_returns_none_missing_file_or_line(self, ctx, tmp_path: Path):
+        """file 或 start_line 缺失时返回 None。"""
+        fake_db = tmp_path / "codegraph.db"
+        fake_db.write_text("dummy", encoding="utf-8")
+        ctx.codegraph_db = fake_db
+
+        # 缺 file
+        assert RouteEnricher.lookup_nodes_id({"start_line": 5}, ctx) is None
+        # 缺 start_line
+        assert RouteEnricher.lookup_nodes_id({"file": "a.java"}, ctx) is None
+        # start_line = 0
+        assert RouteEnricher.lookup_nodes_id({"file": "a.java", "start_line": 0}, ctx) is None
 
     def test_enricher_derives_fqn_from_path(self, ctx):
         """fqn 缺失时由 file + class_fqn 推导。"""
@@ -824,12 +870,12 @@ class TestEnrichRoutesUnits:
         assert it["fqn"] == "com.example.UserController#getUser"
 
     def test_enrich_routes_adds_sig_hash_when_no_codegraph(self, ctx):
-        """codegraph_db 缺失时 nodes_id=None，sig_hash 降级为 md5[:16]。"""
+        """codegraph_db 缺失时 nodes_id=None，sig_hash 为空字符串。"""
         ctx.codegraph_db = None
         routes = [_jp_route(file="a.java", start_line=1, annotation="GetMapping")]
         items = RouteEnricher.enrich_routes(routes, ctx)
         assert items[0]["nodes_id"] is None
-        assert len(items[0]["sig_hash"]) == 16
+        assert items[0]["sig_hash"] == ""
 
     def test_enrich_routes_has_external_param_from_url(self, ctx):
         """has_external_param 由 full_url 含 {param} 推断。"""

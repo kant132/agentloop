@@ -51,8 +51,9 @@ class RouteCollector:
         # 3. 富化（codegraph nodes_id + has_external_param）
         items = RouteEnricher.enrich_routes(routes, ctx)
 
-        # 降级判定：javaparser JAR 不存在 → 全程空结果
-        degraded = not JavaparserScanner.jar_path().exists()
+        # 降级判定：nodes_id 缺失或 javaparser JAR 不存在
+        degraded = any(it.get("nodes_id") is None for it in items) \
+            or not JavaparserScanner.jar_path().exists()
         return CollectorResult(
             asset_type=self.asset_type,
             source="javaparser RouteExtractor + ast-grep file location",

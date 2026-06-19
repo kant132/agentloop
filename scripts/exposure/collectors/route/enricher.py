@@ -16,7 +16,7 @@ file 取回（参数注解条目无 method_name 信息，与原实现一致）�
 """
 from __future__ import annotations
 
-import hashlib
+
 import json
 import re
 import shutil
@@ -41,7 +41,7 @@ class RouteEnricher:
         """富化单条路由。
 
         补字段：fqn（缺失时推导）、http_method、has_external_param、params、
-        nodes_id、sig_hash（codegraph 缺失时降级为 md5）。
+        nodes_id、sig_hash（无 codegraph 时为空字符串）。
         """
         item = dict(raw)
         # fqn: 缺失时由 file + class_fqn 推导（ast-grep 命中未带 fqn 时）
@@ -60,7 +60,7 @@ class RouteEnricher:
         # sig_hash 与 nodes_id（codegraph 可用时）
         nodes_id = RouteEnricher.lookup_nodes_id(item, ctx)
         item["nodes_id"] = nodes_id
-        item["sig_hash"] = nodes_id or RouteEnricher.md5_legacy(item)
+        item["sig_hash"] = nodes_id or ""
         return item
 
     @staticmethod
@@ -86,7 +86,7 @@ class RouteEnricher:
         javaparser 已提供 full_url（类+方法拼接）和 http_methods（列表，含
         ``{GET,POST}`` 数组展开），enricher 只补：
         - ``nodes_id`` （codegraph 反查）
-        - ``sig_hash`` （nodes_id 缺失时降级为 md5）
+        - ``sig_hash`` （nodes_id 缺失时为空字符串）
         - ``has_external_param`` （从 full_url 是否含 ``{param}`` 推断）
         - ``fqn`` （统一为 method_fqn）
 
@@ -104,11 +104,7 @@ class RouteEnricher:
                 ctx,
             )
             item["nodes_id"] = nodes_id
-            item["sig_hash"] = nodes_id or RouteEnricher.md5_legacy({
-                "file": route.get("file", ""),
-                "line": route.get("start_line", 0),
-                "annotation": route.get("annotation", ""),
-            })
+            item["sig_hash"] = nodes_id or ""
             # has_external_param: 路径模板含 {param} 占位
             url = route.get("full_url", "") or ""
             item["has_external_param"] = "{" in url
@@ -158,36 +154,35 @@ class RouteEnricher:
     def lookup_nodes_id(
         raw: dict[str, Any], ctx: ExposureContext
     ) -> str | None:
-        """通过 codegraph SQLite 反查 nodes.id。
+        """通过 codegraph SQLite 按 file_path + 行号范围精确查 nodes.id。
 
-        缺失 codegraph_db 时返回 None（降级）。
+        复用 scanner_utils.lookup_nodes_id（基于 file_path + annotation_line），
+        不再用 fqn LIKE 模糊匹配。
         """
         if not ctx.codegraph_db or not ctx.codegraph_db.exists():
             return None
-        import sqlite3
-        fqn = raw.get("fqn") or ""
-        method = raw.get("method_name") or ""
-        if not fqn or not method:
-            return None
+        import sys
+        _ast_dir = Path(__file__).resolve().parents[4] / "scripts" / "ast"
+        if str(_ast_dir) not in sys.path:
+            sys.path.insert(0, str(_ast_dir))
         try:
-            conn = sqlite3.connect(f"file:{ctx.codegraph_db}?mode=ro", uri=True)
-            try:
-                cur = conn.execute(
-                    "SELECT id FROM nodes WHERE fqn LIKE ? AND type='method' LIMIT 1",
-                    (f"%{fqn}%{method}%",),
-                )
-                row = cur.fetchone()
-                return str(row[0]) if row else None
-            finally:
-                conn.close()
-        except sqlite3.Error:
+            from scanner_utils import lookup_nodes_id as _lookup
+        except ImportError:
             return None
 
-    @staticmethod
-    def md5_legacy(raw: dict[str, Any]) -> str:
-        """回退 hash：md5(file|line|annotation)[:16]。"""
-        key = f"{raw.get('file','')}|{raw.get('line',0)}|{raw.get('annotation','')}"
-        return hashlib.md5(key.encode("utf-8")).hexdigest()[:16]
+        file_path = raw.get("file") or ""
+        annotation_line = raw.get("start_line") or raw.get("line") or 0
+        if not file_path or annotation_line < 1:
+            return None
+
+        return _lookup(
+            codegraph_db=ctx.codegraph_db,
+            file_path=file_path,
+            annotation_line=int(annotation_line),
+            project_root=ctx.project_root,
+        )
+
+
 
     @staticmethod
     def count_by_method(items: list[dict[str, Any]]) -> dict[str, int]:
