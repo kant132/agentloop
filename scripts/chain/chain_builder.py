@@ -109,6 +109,12 @@ _rbp = _load_module_from_file(
     _HERE.parent / "redis" / "redis-batch-prefetch.py",
 )
 
+# scripts/chain/chain_file_writer.py — 同目录模块 (合法模块名, 但用 importlib 保持一致性)
+_cfw = _load_module_from_file(
+    "_chain_builder_chain_file_writer",
+    _HERE / "chain_file_writer.py",
+)
+
 # scripts/ast/scanner_utils.py — 通过 sys.path 走普通 import
 _ast_dir = _REPO_ROOT / "scripts" / "ast"
 if str(_ast_dir) not in sys.path:
@@ -414,6 +420,7 @@ def build_chain(
     ttl: int = 86400,
     jar_path: Optional[Path] = None,
     source_root: Optional[Path] = None,
+    loop_audit_dir: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """构建**单条**调用链 (entry → 所有 reachable 节点, depth-ordered)。
 
@@ -581,6 +588,19 @@ def build_chain(
         "file_calls_failures": fetch_failures,
     }
 
+    # 6a. Write chain file if loop_audit_dir is provided
+    if loop_audit_dir is not None:
+        try:
+            chain_data = [{
+                "entry_fqn": entry_fqn,
+                "chain": [{"fqn": n.fqn, "node_id": n.node_id} for n in chain_nodes]
+            }]
+            written_paths = _cfw.ChainFileWriter.write_all(chain_data, loop_audit_dir)
+            result["chain_file"] = str(written_paths[0]) if written_paths else None
+        except Exception as e:  # noqa: BLE001
+            _log("chain_file_writer failed: %s", e)
+            result["chain_file_error"] = str(e)
+
     # 6b. redis-batch-prefetch: 批量预取方法体到 Memurai (可选, 在写链缓存之前)
     if memurai_client is not None:
         chain_for_prefetch = [
@@ -632,6 +652,7 @@ def build_all_chains_for_endpoint(
     ttl: int = 86400,
     jar_path: Optional[Path] = None,
     source_root: Optional[Path] = None,
+    loop_audit_dir: Optional[Path] = None,
 ) -> List[Dict[str, Any]]:
     """同一 entry 的**所有**根→叶路径变体。
 
@@ -792,6 +813,23 @@ def build_all_chains_for_endpoint(
             "file_calls_cache_size": len(file_calls_cache),
         }
         results.append(result)
+
+    # Write chain files if loop_audit_dir is provided
+    if loop_audit_dir is not None:
+        try:
+            chain_data = []
+            for r in results:
+                chain_data.append({
+                    "entry_fqn": entry_fqn,
+                    "chain": [{"fqn": n["fqn"], "node_id": n["node_id"]} for n in r["chain"]]
+                })
+            written_paths = _cfw.ChainFileWriter.write_all(chain_data, loop_audit_dir)
+            for i, r in enumerate(results):
+                r["chain_file"] = str(written_paths[i]) if i < len(written_paths) else None
+        except Exception as e:  # noqa: BLE001
+            _log("chain_file_writer failed: %s", e)
+            for r in results:
+                r["chain_file_error"] = str(e)
 
     # Prefetch: 批量预取所有变体的方法体到 Memurai (可选, 在写链缓存之前)
     if memurai_client is not None and results:
@@ -985,6 +1023,10 @@ def _build_argparser() -> argparse.ArgumentParser:
                    help="缓存 TTL 秒数 (默认 86400 = 24h)")
     p.add_argument("--all-variants", action="store_true",
                    help="调用 build_all_chains_for_endpoint 而非 build_chain")
+    p.add_argument("--loop-dir",
+                   type=Path,
+                   default=None,
+                   help="Loop audit directory for chain file output (optional)")
     p.add_argument("--quiet", action="store_true",
                    help="降低日志输出")
     return p
@@ -1049,6 +1091,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         ttl=args.ttl,
         jar_path=jar_path,
         source_root=source_root,
+        loop_audit_dir=args.loop_dir,
     )
 
     try:
