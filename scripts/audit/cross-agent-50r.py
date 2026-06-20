@@ -5,7 +5,7 @@ cross-agent-50r.py — Thin daemon wrapper.
 Per round: cleanup Memurai → check convergence → clear loop results →
 start monitor → spawn opencode → kill monitor → merge knowledge → log round.
 """
-import argparse, json, logging, os, shutil, subprocess, sys, tempfile, time
+import argparse, hashlib, json, logging, os, shutil, subprocess, sys, tempfile, time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -14,6 +14,15 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "analysis"))
 from load_counter import LoadCounter
 from metric_simplifier import simplify
+
+# --- auth_class_cacher integration (AR-10) ------------------------------------
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "chain"))
+from auth_class_cacher import AuthClassCacher, create_cacher
+
+# --- priority_calculator integration (AR-09) ---------------------------------
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "chain"))
+from priority_calculator import rank_chains, calculate_priority, _base
+from sink_registry import count_sinks_in_chain, match_preset_sinks
 
 PER_ROUND_TIMEOUT = 3600
 OPENCODE_CMD = Path(r"C:\Users\Administrator\AppData\Roaming\npm\opencode.cmd")
@@ -111,6 +120,37 @@ def cleanup_memurai(gid: str) -> int:
     except Exception as e:
         logging.error("Memurai cleanup failed: %s", e)
         return -1
+
+# --- Auth class query helper (AR-10) -----------------------------------------
+def _query_auth_classes(db_path: Path) -> list:
+    """Query codegraph SQLite for classes with auth/security annotations."""
+    if not db_path or not db_path.exists():
+        return []
+    import sqlite3
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT DISTINCT n.qualified_name as fqn, n.file_path, n.start_line "
+            "FROM nodes n "
+            "LEFT JOIN annotations a ON a.node_id = n.id "
+            "WHERE n.kind = 'class' AND ("
+            "  a.name LIKE '%Auth%' OR a.name LIKE '%Secur%' OR "
+            "  a.name LIKE '%Permit%' OR a.name LIKE '%Role%' OR "
+            "  a.name LIKE '%PreAuthorize%' OR a.name LIKE '%PostAuthorize%' OR "
+            "  a.name LIKE '%RolesAllowed%' OR a.name LIKE '%DenyAll%' OR "
+            "  a.name LIKE '%PermitAll%'"
+            ")"
+        ).fetchall()
+        return [{"fqn": r["fqn"], "file_path": r["file_path"], "start_line": r["start_line"]} for r in rows]
+    except Exception as e:
+        logging.warning("_query_auth_classes failed: %s", e)
+        return []
+    finally:
+        try:
+            conn.close()
+        except:
+            pass
 
 # --- Loop result cleanup -----------------------------------------------------
 def cleanup_loop_results(ld: Path) -> None:
@@ -418,6 +458,58 @@ def main() -> int:
 
     for n in range(start, max_r+1):
         cleanup_memurai(gid)
+        # Auth class caching (AR-10): after cleanup_memurai, before opencode session
+        try:
+            cacher = create_cacher()
+            auth_items = _query_auth_classes(db_path)
+            if auth_items:
+                cached_count = cacher.cache_auth_classes(auth_items, gid)
+                logging.info("Auth class cache: %d classes cached", cached_count)
+            else:
+                logging.info("Auth class cache: no auth classes found in codegraph")
+        except Exception as e:
+            logging.warning("Auth class caching failed: %s", e)
+
+        # Endpoint priority calculation (AR-09)
+        exposure_path = ld / "exposure_assets.json"
+        if exposure_path.exists():
+            try:
+                exposure = json.loads(exposure_path.read_text(encoding="utf-8"))
+                endpoints_meta = exposure.get("endpoints", [])
+
+                priority_items = []
+                for ep in endpoints_meta:
+                    meta = {
+                        "http_method": ep.get("http_method", "GET"),
+                        "has_external_params": ep.get("has_external_params", False),
+                        "fqn": ep.get("fqn", ""),
+                    }
+
+                    # Try to get prior chain data from Memurai for sink counts
+                    sink_count = 0
+                    preset_count = 0
+                    if se_client and meta["fqn"]:
+                        chain_key = f"{gid}:audit:chain:{hashlib.sha256(meta['fqn'].encode())[:16].decode()}"
+                        chain_data = se_client.get_json(chain_key)
+                        if chain_data and "chain" in chain_data:
+                            chain_nodes = chain_data["chain"]
+                            sink_count = count_sinks_in_chain(chain_nodes)
+                            preset_count = match_preset_sinks(chain_nodes)
+
+                    priority = calculate_priority(meta, sink_count, preset_count)
+                    priority_items.append({**meta, "priority": priority, "sink_count": sink_count, "preset_count": preset_count})
+
+                ranked = rank_chains(priority_items)
+                priority_path = ld / "endpoint_priority.json"
+                priority_path.write_text(
+                    json.dumps(ranked, indent=2, ensure_ascii=False), encoding="utf-8"
+                )
+                logging.info("Endpoint priority: %d endpoints ranked", len(ranked))
+            except Exception as e:
+                logging.warning("Endpoint priority calculation failed: %s", e)
+        else:
+            logging.info("No exposure_assets.json found, skipping priority calculation")
+
         if check_convergence(dd):
             logging.info("Converged — breaking after R%d", n-1); break
         cleanup_loop_results(ld)
