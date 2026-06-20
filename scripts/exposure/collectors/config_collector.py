@@ -1,21 +1,26 @@
 # -*- coding: utf-8 -*-
 """config_collector.py — 配置文件采集器。
 
-单一职责：扫描 Java 项目配置文件，输出标准化 config 条目。
+单一职责：扫描 Java 项目配置文件，记录文件路径和元信息到 JSON。
+不复制文件，AI 分析时直接读原文件。
 
 采集来源：
-1. application.yml / application.yaml / application-*.yml
+1. application.yml / application.yaml / application-*.yml / application-*.yaml
 2. application.properties / application-*.properties
-3. bootstrap.yml / bootstrap.properties
+3. bootstrap.yml / bootstrap.yaml / bootstrap.properties
 4. *.xml（spring 配置、web.xml）
 
-敏感值自动检测并脱敏，不写入原始密码/密钥。
+输出：
+- {exposure_dir}/config.json：配置文件清单（路径、类型、大小、sha256、敏感标记）
 
 参考 RFC-0001 §3.2 / AC-1
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -34,16 +39,19 @@ _PROPS_GLOBS = ["application.properties", "application-*.properties",
                 "bootstrap.properties"]
 _XML_GLOBS = ["*.xml"]
 
-# 敏感值正则模式
+# 文件扩展名 → 类型标签映射
+_EXT_TYPE_MAP: dict[str, str] = {
+    ".yml": "yaml",
+    ".yaml": "yaml",
+    ".properties": "properties",
+    ".xml": "xml",
+}
+
+# 敏感值正则模式（文件级检测：扫描文件全部内容）
 _SECRET_PATTERNS = re.compile(
     r"(password|passwd|pwd|secret|key|token|credential|private[_-]?key|access[_-]?key|jdbc:.*password=)",
     re.IGNORECASE,
 )
-
-# YAML key-value 行模式（简化解析，不依赖 PyYAML）
-_YAML_KV_RE = re.compile(r"^(\s{0,})([a-zA-Z0._-]+)\s*:\s*(.+?)\s*$")
-# Properties 行模式
-_PROPS_KV_RE = re.compile(r"^([a-zA-Z0._-]+)\s*[=:]\s*(.+?)\s*$")
 
 
 # ============================================================
@@ -52,8 +60,9 @@ _PROPS_KV_RE = re.compile(r"^([a-zA-Z0._-]+)\s*[=:]\s*(.+?)\s*$")
 
 @register_collector("config")
 class ConfigCollector:
-    """配置文件采集器：扫描 yaml/properties/xml 配置项。
+    """配置文件采集器：扫描配置文件，记录路径和元信息。
 
+    不复制文件，只在 JSON 中记录原始路径。AI 分析时直接读原文件。
     依据 Collector 协议（contracts.py），实现 name/asset_type/collect/is_available。
     """
     name = "config_collector"
@@ -64,197 +73,142 @@ class ConfigCollector:
         return True
 
     def collect(self, ctx: ExposureContext) -> CollectorResult:
-        """主采集入口：扫描项目根下所有配置文件。"""
+        """主采集入口：扫描项目根下所有配置文件，记录路径和元信息。"""
         root = ctx.project_root
         if not root.exists():
             return CollectorResult(
                 asset_type=self.asset_type, source="config file scan",
-                items=[], stats={"total": 0},
+                items=[], stats={"total_files": 0, "by_type": {}, "secrets_detected": 0},
             )
 
-        items: list[dict[str, Any]] = []
-        # 递归扫描所有配置文件
-        items.extend(self._scan_yaml(root))
-        items.extend(self._scan_properties(root))
-        items.extend(self._scan_xml(root))
+        # 收集所有配置文件路径
+        all_files: list[Path] = []
+        all_files.extend(self._find_yaml(root))
+        all_files.extend(self._find_properties(root))
+        all_files.extend(self._find_xml(root))
 
+        items: list[dict[str, Any]] = []
+        for fp in all_files:
+            item = self._process_file(fp, root)
+            if item is not None:
+                items.append(item)
+
+        # 统计
         secret_count = sum(1 for it in items if it.get("contains_secret"))
+        by_type: dict[str, int] = {}
+        for it in items:
+            t = it.get("file_type", "unknown")
+            by_type[t] = by_type.get(t, 0) + 1
+
         return CollectorResult(
             asset_type=self.asset_type,
-            source="config file scan (yaml/properties/xml)",
+            source="config file scan",
             items=items,
             stats={
-                "total": len(items),
+                "total_files": len(items),
+                "by_type": by_type,
                 "secrets_detected": secret_count,
-                "by_source": self._count_by_source(items),
             },
         )
 
     # ----------------------------------------------------------
-    # YAML 解析（简化版，不依赖第三方库）
+    # 文件发现（保持原有 glob 不变）
     # ----------------------------------------------------------
-    def _scan_yaml(self, root: Path) -> list[dict[str, Any]]:
-        """扫描 YAML 配置文件，解析 key-value 条目。"""
-        items: list[dict[str, Any]] = []
+    def _find_yaml(self, root: Path) -> list[Path]:
+        """发现 YAML 配置文件。"""
+        found: list[Path] = []
         for glob_pat in _YAML_GLOBS:
             for fp in root.rglob(glob_pat):
-                # 跳过 node_modules 等无关目录
                 if self._should_skip(fp):
                     continue
-                items.extend(self._parse_yaml_file(fp))
-        return items
+                found.append(fp)
+        return found
 
-    @staticmethod
-    def _parse_yaml_file(fp: Path) -> list[dict[str, Any]]:
-        """简化 YAML 解析：只提取扁平 key-value 行。
-
-        不处理嵌套结构（多级 key 用点号拼接需 yaml 库，此处仅提取 leaf 行）。
-        """
-        items: list[dict[str, Any]] = []
-        try:
-            lines = fp.read_text(encoding="utf-8", errors="replace").splitlines()
-        except OSError:
-            return items
-
-        prefix_parts: list[str] = []  # 当前嵌套层级 key 拼接
-        prev_indent = 0
-
-        for i, line in enumerate(lines, 1):
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            m = _YAML_KV_RE.match(line)
-            if not m:
-                continue
-            indent_str, key, value = m.group(1), m.group(2), m.group(3)
-            indent = len(indent_str)
-
-            # 缩进变化时调整层级
-            if indent > prev_indent:
-                prefix_parts.append(key)
-            elif indent < prev_indent and prefix_parts:
-                # 弹出层级直到对齐
-                depth = indent // 2
-                prefix_parts = prefix_parts[:depth]
-                prefix_parts.append(key)
-            else:
-                if prefix_parts:
-                    prefix_parts[-1] = key
-                else:
-                    prefix_parts = [key]
-
-            prev_indent = indent
-
-            # 仅收集 leaf value（非空且非嵌套指示）
-            if value and not value.startswith("|") and not value.startswith(">"):
-                full_key = ".".join(prefix_parts)
-                contains_secret = bool(_SECRET_PATTERNS.search(key) or _SECRET_PATTERNS.search(value))
-                display_value = ConfigCollector._redact(value) if contains_secret else value
-                items.append({
-                    "file": str(fp),
-                    "key": full_key,
-                    "value": display_value,
-                    "line": i,
-                    "contains_secret": contains_secret,
-                    "source": "yaml",
-                })
-
-        return items
-
-    # ----------------------------------------------------------
-    # Properties 解析
-    # ----------------------------------------------------------
-    def _scan_properties(self, root: Path) -> list[dict[str, Any]]:
-        items: list[dict[str, Any]] = []
+    def _find_properties(self, root: Path) -> list[Path]:
+        """发现 Properties 配置文件。"""
+        found: list[Path] = []
         for glob_pat in _PROPS_GLOBS:
             for fp in root.rglob(glob_pat):
                 if self._should_skip(fp):
                     continue
-                items.extend(self._parse_properties_file(fp))
-        return items
+                found.append(fp)
+        return found
 
-    @staticmethod
-    def _parse_properties_file(fp: Path) -> list[dict[str, Any]]:
-        """解析 .properties 文件，提取 key=value 条目。"""
-        items: list[dict[str, Any]] = []
-        try:
-            lines = fp.read_text(encoding="utf-8", errors="replace").splitlines()
-        except OSError:
-            return items
-
-        for i, line in enumerate(lines, 1):
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#") or stripped.startswith("!"):
-                continue
-            m = _PROPS_KV_RE.match(stripped)
-            if not m:
-                continue
-            key, value = m.group(1), m.group(2)
-            contains_secret = bool(_SECRET_PATTERNS.search(key) or _SECRET_PATTERNS.search(value))
-            display_value = ConfigCollector._redact(value) if contains_secret else value
-            items.append({
-                "file": str(fp),
-                "key": key,
-                "value": display_value,
-                "line": i,
-                "contains_secret": contains_secret,
-                "source": "properties",
-            })
-        return items
-
-    # ----------------------------------------------------------
-    # XML 解析（简化版，仅扫描属性值）
-    # ----------------------------------------------------------
-    def _scan_xml(self, root: Path) -> list[dict[str, Any]]:
-        items: list[dict[str, Any]] = []
+    def _find_xml(self, root: Path) -> list[Path]:
+        """发现 XML 配置文件。"""
+        found: list[Path] = []
         for glob_pat in _XML_GLOBS:
             for fp in root.rglob(glob_pat):
                 if self._should_skip(fp):
                     continue
-                items.extend(self._parse_xml_file(fp))
-        return items
-
-    @staticmethod
-    def _parse_xml_file(fp: Path) -> list[dict[str, Any]]:
-        """简化 XML 解析：提取属性 name=value 条目。"""
-        items: list[dict[str, Any]] = []
-        try:
-            text = fp.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            return items
-
-        # 扫描 XML 属性（name="value" 模式）
-        attr_re = re.compile(r'([a-zA-Z0._-]+)\s*=\s*"(.*?)"')
-        for i, line in enumerate(text.splitlines(), 1):
-            for m in attr_re.finditer(line):
-                attr_name, attr_val = m.group(1), m.group(2)
-                if not attr_val:
-                    continue
-                # key 用标签路径+属性名（简化：直接用属性名）
-                contains_secret = bool(_SECRET_PATTERNS.search(attr_name) or _SECRET_PATTERNS.search(attr_val))
-                display_value = ConfigCollector._redact(attr_val) if contains_secret else attr_val
-                items.append({
-                    "file": str(fp),
-                    "key": attr_name,
-                    "value": display_value,
-                    "line": i,
-                    "contains_secret": contains_secret,
-                    "source": "xml",
-                })
-        return items
+                found.append(fp)
+        return found
 
     # ----------------------------------------------------------
-    # 敏感检测与脱敏
+    # 单文件处理：记录路径 + 元信息（不复制文件）
+    # ----------------------------------------------------------
+    def _process_file(self, fp: Path, root: Path) -> dict[str, Any] | None:
+        """处理单个配置文件：记录路径、计算 sha256、检测敏感内容。不复制文件。"""
+        try:
+            relative = fp.relative_to(root)
+        except ValueError:
+            return None
+
+        # 确定文件类型
+        ext = fp.suffix.lower()
+        file_type = _EXT_TYPE_MAP.get(ext, "unknown")
+
+        # 计算 sha256
+        sha256 = self._compute_sha256(fp)
+
+        # 文件大小
+        try:
+            size_bytes = fp.stat().st_size
+        except OSError:
+            size_bytes = 0
+
+        # 文件级敏感检测
+        contains_secret = self._detect_secret_in_file(fp)
+
+        return {
+            "file": str(relative),
+            "file_type": file_type,
+            "size_bytes": size_bytes,
+            "sha256": sha256,
+            "contains_secret": contains_secret,
+        }
+
+    # ----------------------------------------------------------
+    # 敏感检测（文件级）
     # ----------------------------------------------------------
     @staticmethod
     def detect_secret(value: str) -> bool:
-        """检测值是否包含敏感信息模式。"""
+        """检测字符串是否包含敏感信息模式。保持原有接口兼容。"""
         return bool(_SECRET_PATTERNS.search(value))
 
     @staticmethod
-    def _redact(value: str) -> str:
-        """脱敏：将敏感值替换为 ****。"""
-        return "****"
+    def _detect_secret_in_file(fp: Path) -> bool:
+        """文件级敏感检测：扫描文件全部内容判断是否含敏感信息。"""
+        try:
+            text = fp.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return False
+        return bool(_SECRET_PATTERNS.search(text))
+
+    # ----------------------------------------------------------
+    # sha256 计算
+    # ----------------------------------------------------------
+    @staticmethod
+    def _compute_sha256(fp: Path) -> str:
+        """计算文件 sha256 哈希值（hex digest）。"""
+        h = hashlib.sha256()
+        try:
+            with open(fp, "rb") as f:
+                for chunk in iter(lambda: f.read(8192), b""):
+                    h.update(chunk)
+        except OSError:
+            return ""
+        return h.hexdigest()
 
     # ----------------------------------------------------------
     # 辅助
@@ -265,11 +219,3 @@ class ConfigCollector:
         parts = fp.parts
         skip_dirs = {"node_modules", ".git", "target", "build", "__pycache__"}
         return any(p in skip_dirs for p in parts)
-
-    @staticmethod
-    def _count_by_source(items: list[dict[str, Any]]) -> dict[str, int]:
-        counts: dict[str, int] = {}
-        for it in items:
-            s = it.get("source", "unknown")
-            counts[s] = counts.get(s, 0) + 1
-        return counts

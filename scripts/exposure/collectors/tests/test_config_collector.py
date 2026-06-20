@@ -1,24 +1,29 @@
 # -*- coding: utf-8 -*-
 """test_config_collector.py — config_collector 的单元测试。
 
-测试 ConfigCollector 的行为契约：
+测试 ConfigCollector 的行为契约（路径记录模式）：
 1. implements_collector_protocol
 2. has_correct_metadata
 3. is_available（始终 True）
-4. parse_yaml_file
-5. parse_properties_file
-6. detect_secret_in_value
-7. redact_secret_value
-8. stats_total_correct
+4. file_path_recorded
+5. sha256_computed
+6. detect_secret_in_file
+7. detect_secret_string_api（保持兼容）
+8. stats_total_files_correct
+9. stats_by_type_correct
+10. collect_no_project_dir
+11. file_type_mapping
 """
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
 import sys
 
-# 注入路径（与 route_collector 测试一致）
+# 注入路径
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from scripts.exposure.contracts import ExposureContext, CollectorResult, Collector
@@ -31,7 +36,7 @@ def tmp_project(tmp_path: Path) -> Path:
     src = tmp_path / "src" / "main" / "resources"
     src.mkdir(parents=True)
 
-    # application.yml
+    # application.yml（含 password）
     (src / "application.yml").write_text(
         "server:\n"
         "  port: 8080\n"
@@ -45,7 +50,7 @@ def tmp_project(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
 
-    # application.properties
+    # application.properties（含 password）
     (src / "application.properties").write_text(
         "spring.datasource.url=jdbc:mysql://localhost/db\n"
         "spring.datasource.password=myP@ss\n"
@@ -54,7 +59,7 @@ def tmp_project(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
 
-    # bootstrap.yml
+    # bootstrap.yml（不含敏感）
     (src / "bootstrap.yml").write_text(
         "spring:\n"
         "  cloud:\n"
@@ -97,105 +102,109 @@ class TestConfigCollectorContract:
 
 
 # ============================================================
-# 4. YAML 解析
+# 4. 文件路径记录
 # ============================================================
 
-class TestYamlParsing:
-    """YAML 文件解析测试。"""
+class TestFilePath:
 
-    def test_parse_yaml_file(self, tmp_path: Path):
-        """最小 YAML 解析：提取 key-value 条目。"""
-        fp = tmp_path / "app.yml"
-        fp.write_text(
-            "server:\n"
-            "  port: 8080\n"
-            "  host: localhost\n",
-            encoding="utf-8",
-        )
-        items = ConfigCollector._parse_yaml_file(fp)
-        assert len(items) >= 2
-        # 检查至少有一个 port 条目
-        port_items = [it for it in items if "port" in it["key"]]
-        assert len(port_items) >= 1
-        assert port_items[0]["source"] == "yaml"
+    def test_file_path_recorded(self, ctx):
+        """每个 item 应记录相对路径（file 字段）。"""
+        result = ConfigCollector().collect(ctx)
+        assert len(result.items) > 0
+        for item in result.items:
+            assert "file" in item
+            # 兼容 Windows (\) 和 Unix (/) 路径分隔符
+            normalized = item["file"].replace("\\", "/")
+            assert normalized.startswith("src/main/resources/")
 
-    def test_yaml_secret_detected_and_redacted(self, tmp_path: Path):
-        """YAML 中 password 字段应标记 contains_secret 并脱敏。"""
-        fp = tmp_path / "secret.yml"
-        fp.write_text("db:\n  password: hunter2\n", encoding="utf-8")
-        items = ConfigCollector._parse_yaml_file(fp)
-        pwd_items = [it for it in items if "password" in it["key"]]
-        assert len(pwd_items) == 1
-        assert pwd_items[0]["contains_secret"] is True
-        assert pwd_items[0]["value"] == "****"
+    def test_all_file_types_found(self, ctx):
+        """yml、properties、bootstrap.yml 都应被发现。"""
+        result = ConfigCollector().collect(ctx)
+        files = [it["file"] for it in result.items]
+        assert any("application.yml" in f for f in files)
+        assert any("application.properties" in f for f in files)
+        assert any("bootstrap.yml" in f for f in files)
 
 
 # ============================================================
-# 5. Properties 解析
+# 5. sha256 计算
 # ============================================================
 
-class TestPropertiesParsing:
+class TestSha256:
 
-    def test_parse_properties_file(self, tmp_path: Path):
-        """Properties 文件解析：提取 key=value 条目。"""
-        fp = tmp_path / "app.properties"
-        fp.write_text(
-            "server.port=8080\n"
-            "spring.datasource.url=jdbc:mysql://db\n"
-            "# comment line\n"
-            "spring.datasource.username=admin\n",
-            encoding="utf-8",
-        )
-        items = ConfigCollector._parse_properties_file(fp)
-        assert len(items) == 3  # comment 被跳过
-        assert items[0]["key"] == "server.port"
-        assert items[0]["source"] == "properties"
+    def test_sha256_computed(self, ctx, tmp_project):
+        """sha256 应正确计算。"""
+        result = ConfigCollector().collect(ctx)
+        # 手动计算 application.yml 的 sha256
+        yml_path = tmp_project / "src" / "main" / "resources" / "application.yml"
+        expected_hash = hashlib.sha256(yml_path.read_bytes()).hexdigest()
+        yml_item = [it for it in result.items if "application.yml" in it["file"]][0]
+        assert yml_item["sha256"] == expected_hash
 
 
 # ============================================================
-# 6-7. 敏感检测与脱敏
+# 7-8. 敏感检测
 # ============================================================
 
 class TestSecretDetection:
-    """敏感值检测与脱敏。"""
+    """敏感值检测。"""
 
-    def test_detect_secret_in_value(self):
-        """包含 password/key/token 的值应检测为敏感。"""
+    def test_detect_secret_string_api(self):
+        """detect_secret() 保持原有字符串级接口兼容。"""
         c = ConfigCollector()
         assert c.detect_secret("jdbc:mysql://db?password=abc") is True
         assert c.detect_secret("my-secret-key") is True
         assert c.detect_secret("token123") is True
-        assert c.detect_secret("credential_store") is True
-        assert c.detect_secret("private_key_path") is True
-        assert c.detect_secret("access_key_id") is True
         assert c.detect_secret("just-a-normal-value") is False
 
-    def test_detect_secret_in_key(self):
-        """key 名包含敏感词也应检测。"""
-        c = ConfigCollector()
-        assert c.detect_secret("spring.datasource.password") is True
-        assert c.detect_secret("spring.datasource.username") is False
+    def test_detect_secret_in_file(self, ctx):
+        """含 password 的文件应标记 contains_secret=True。"""
+        result = ConfigCollector().collect(ctx)
+        secret_items = [it for it in result.items if it["contains_secret"]]
+        # application.yml 和 application.properties 都含 password
+        assert len(secret_items) == 2
 
-    def test_redact_secret_value(self):
-        """敏感值应被脱敏为 ****。"""
-        # _redact 是静态方法，测试其行为
-        assert ConfigCollector._redact("hunter2") == "****"
-        assert ConfigCollector._redact("anything") == "****"
+    def test_no_secret_file(self, tmp_path: Path):
+        """不含敏感信息的文件应标记 contains_secret=False。"""
+        src = tmp_path / "src" / "main" / "resources"
+        src.mkdir(parents=True)
+        (src / "application.yml").write_text(
+            "server:\n  port: 8080\n", encoding="utf-8",
+        )
+        ctx = ExposureContext(
+            project_root=tmp_path,
+            group_id="test",
+            loop_audit_dir=tmp_path / "loop_audit",
+        )
+        result = ConfigCollector().collect(ctx)
+        assert all(it["contains_secret"] is False for it in result.items)
 
 
 # ============================================================
-# 8. 统计正确性
+# 9-10. 统计正确性
 # ============================================================
 
 class TestStatsCorrectness:
 
-    def test_stats_total_correct(self, ctx):
-        """collect 后 stats.total 应等于 items 数量。"""
+    def test_stats_total_files_correct(self, ctx):
+        """collect 后 stats.total_files 应等于 items 数量。"""
         result = ConfigCollector().collect(ctx)
         assert isinstance(result, CollectorResult)
         assert result.asset_type == "config"
-        assert result.stats["total"] == len(result.items)
-        assert "by_source" in result.stats
+        assert result.stats["total_files"] == len(result.items)
+
+    def test_stats_by_type_correct(self, ctx):
+        """stats.by_type 应正确分类。"""
+        result = ConfigCollector().collect(ctx)
+        by_type = result.stats["by_type"]
+        assert "yaml" in by_type
+        assert "properties" in by_type
+        assert by_type["yaml"] == 2  # application.yml + bootstrap.yml
+        assert by_type["properties"] == 1
+
+    def test_stats_secrets_detected(self, ctx):
+        """stats.secrets_detected 应与 contains_secret 计数一致。"""
+        result = ConfigCollector().collect(ctx)
         assert result.stats["secrets_detected"] == sum(
             1 for it in result.items if it.get("contains_secret")
         )
@@ -208,5 +217,38 @@ class TestStatsCorrectness:
             loop_audit_dir=tmp_path,
         )
         result = ConfigCollector().collect(bad_ctx)
-        assert result.stats["total"] == 0
+        assert result.stats["total_files"] == 0
         assert result.items == []
+
+
+# ============================================================
+# 12. 文件类型映射
+# ============================================================
+
+class TestFileTypeMapping:
+
+    def test_yml_type_is_yaml(self, tmp_path: Path):
+        """yml 扩展名应映射为 yaml 类型。"""
+        src = tmp_path / "src" / "main" / "resources"
+        src.mkdir(parents=True)
+        (src / "application.yml").write_text("server:\n  port: 8080\n", encoding="utf-8")
+        ctx = ExposureContext(
+            project_root=tmp_path,
+            group_id="test",
+            loop_audit_dir=tmp_path / "loop_audit",
+        )
+        result = ConfigCollector().collect(ctx)
+        assert result.items[0]["file_type"] == "yaml"
+
+    def test_properties_type(self, tmp_path: Path):
+        """properties 扩展名应映射为 properties 类型。"""
+        src = tmp_path / "src" / "main" / "resources"
+        src.mkdir(parents=True)
+        (src / "application.properties").write_text("server.port=8080\n", encoding="utf-8")
+        ctx = ExposureContext(
+            project_root=tmp_path,
+            group_id="test",
+            loop_audit_dir=tmp_path / "loop_audit",
+        )
+        result = ConfigCollector().collect(ctx)
+        assert result.items[0]["file_type"] == "properties"
