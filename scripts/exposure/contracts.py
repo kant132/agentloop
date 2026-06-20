@@ -128,19 +128,3 @@ class Synthesizer(Protocol):
     ) -> dict[str, Any]:
         """输入所有 collector 结果（dict 形式），输出清洗后的资产 JSON。"""
         ...
-
-
-# ============================================================
-# Ranker 协议 — 决策阶段（20% 热点）
-# ============================================================
-
-@runtime_checkable
-class Ranker(Protocol):
-    """决策阶段协议：标注 20% 决定 80% 安全的关键代码。"""
-    name: str
-
-    def rank(
-        self, assets: dict[str, Any], ctx: ExposureContext
-    ) -> list[dict[str, Any]]:
-        """返回按风险排序的热点条目列表。"""
-        ...

@@ -14,9 +14,6 @@
 
     # 综合阶段
     python -m scripts.exposure.cli synthesize --input-dir ... --output ...
-
-    # 决策阶段（热点排序）
-    python -m scripts.exposure.cli rank --input assets.json --output hotspots.json
 """
 from __future__ import annotations
 
@@ -135,27 +132,6 @@ def cmd_synthesize(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_rank(args: argparse.Namespace) -> int:
-    """决策阶段：热点排序。"""
-    from .hotspot_ranker import DefaultHotspotRanker
-
-    assets = json.loads(Path(args.input).read_text(encoding="utf-8"))
-    ctx = ExposureContext(
-        project_root=Path(args.project).resolve(),
-        group_id=args.group_id,
-        loop_audit_dir=Path(args.output).resolve(),
-    )
-    ranker = DefaultHotspotRanker()
-    hotspots = ranker.rank(assets, ctx)
-
-    out_file = Path(args.output).resolve() / "hotspots.json"
-    out_file.write_text(
-        json.dumps(hotspots, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    print(f"[ok] 热点 → {out_file}（top {len(hotspots)}）")
-    return 0
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="scripts.exposure",
@@ -186,12 +162,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--input-dir", required=True, help="collector 输出目录（exposure/）"
     )
     p_synth.set_defaults(func=cmd_synthesize)
-
-    # rank
-    p_rank = sub.add_parser("rank", help="决策阶段（热点排序）")
-    _add_common(p_rank)
-    p_rank.add_argument("--input", required=True, help="exposure_assets.json")
-    p_rank.set_defaults(func=cmd_rank)
 
     return parser
 

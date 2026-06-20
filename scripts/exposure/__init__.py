@@ -10,11 +10,10 @@
 - AI 边界：确定性工作 100% 脚本化，AI 只做分类/判定/PoC
 
 子模块：
-- contracts:  抽象协议（Collector/Synthesizer/Ranker）
+- contracts:  抽象协议（Collector/Synthesizer）
 - registry:  collector 注册表与发现机制
 - cli:        统一命令行入口
 - collectors: 8 个具体采集器
 - synthesizer: 综合阶段（数据清洗）
-- hotspot_ranker: 决策阶段（20% 热点代码）
 """
 __version__ = "0.1.0"
