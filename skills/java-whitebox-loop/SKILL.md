@@ -46,37 +46,63 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 
 #### 方法体加载
 
-主 agent 提供工具给 subagent 按需加载方法体：
+**主 agent 只读链元数据**（chain_path, node_path, priority, total_sinks, status），不加载方法体。
+**子 agent 自己加载方法体**，通过 task() 独立上下文，不与主 agent 共享。
+
+主 agent 提供给子 agent的数据：
+- `chain_id` — 链 ID
+- `endpoint_fqn` — 入口方法
+- `chain_path` — 人可读链路径（含 sink num）
+- `node_path` — node_id 序列（`method:id1 -> method:id2 -> ...`）
+- `total_sinks` — sink 总数
+- `group_id` — 项目 groupId（用于 Memurai key）
+
+子 agent 加载方法体工具：
+
+```powershell
+# 加载一条链的前 5 层方法体（认证鉴权 / 业务逻辑用）
+python scripts/chain/load_method_body.py --group-id {groupId} --node-path "method:id1 -> method:id2 -> ..." --max-depth 5
+
+# 加载一条链的所有方法体（注入类用）
+python scripts/chain/load_method_body.py --group-id {groupId} --node-path "method:id1 -> method:id2 -> ..."
+
+# 加载单个方法体
+python scripts/chain/load_method_body.py --group-id {groupId} --node-id "method:abc123"
+```
+
+输出 JSON 数组，每个元素含 `fqn`, `node_id`, `body`（含 `// #fqn` 注释）, `depth`。
+
+#### 主 agent 调度逻辑
 
 ```python
-# 主 agent 从 chains.db 取链
 from chain_db import ChainDB
 db = ChainDB("{loop_audit_dir}/chains.db")
 
-# 取所有有 sink 的链（注入类 + 文件类）
 all_chains = db.batch_by_priority(limit=100, status="pending")
-sink_chains = [c for c in all_chains if c["total_sinks"] > 0]
 
-# 按 endpoint 分组，每个 endpoint 取 1 条链（认证鉴权 + 业务逻辑）
+# 1. 注入类 + 文件类：所有有 sink 的链
+sink_chains = [c for c in all_chains if c["total_sinks"] > 0]
+# 主 agent 判断 sink 是否涉及文件路径 → 决定加载 file-audit 还是 injection-audit skill
+
+# 2. 认证鉴权 + 业务逻辑：每个 endpoint 只取 1 条链，前 5 层
 endpoints_seen = set()
-auth_chains = []
-biz_chains = []
 for c in all_chains:
     ep = c["endpoint_fqn"]
     if ep not in endpoints_seen:
         endpoints_seen.add(ep)
-        auth_chains.append(c)  # 取前 5 层
-        biz_chains.append(c)   # 取前 5 层
+        # task(auth-chain-audit, chain=c, max_depth=5)
+        # task(business-logic-audit, chain=c, max_depth=5)
+
+# 3. 无 sink 的链：跳过注入/文件类，只走认证鉴权 + 业务逻辑
+
+# 4. 专家返回结论 → 写回 chains.db
+# db.update_status(chain_id, "vuln")  # 或 "safe"
 ```
 
-Subagent 加载方法体：
-```python
-# 从 node_path 解析 node_id
-node_ids = chain["node_path"].split(" -> ")
-# 从 Memurai 加载方法体
-for nid in node_ids[:5]:  # 前 5 层
-    body = memurai.get(f"{groupId}:method:{nid}")
-```
+**上下文隔离**：
+- 主 agent 上下文：只含链元数据（轻量，不污染）
+- 子 agent 上下文：独立，含方法体（通过 load_method_body.py 加载）
+- 子 agent 返回：结论文本（小，不污染主 agent）
 
 ### Phase 4: PoC 验证
 

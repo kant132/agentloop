@@ -171,11 +171,13 @@ Audit terminates when ALL are true simultaneously:
 
 **关键设计**：
 - **skill 机制**，不是 prompt 机制 — 主 agent 根据需要加载 skill，subagent 加载对应专家 skill
+- **上下文隔离** — 主 agent 只读链元数据（chain_path/node_path/priority/sinks），不加载方法体；子 agent 通过 task() 独立上下文，自己用 `load_method_body.py` 加载方法体
+- **主 agent 不污染** — 只持有链元数据（轻量），方法体只在子 agent 上下文中
 - 不启动独立 opencode 子进程 — 主 agent 直接消费 chains.db + Memurai 数据
-- 主 agent 保持完整上下文 — 知道 Phase 1 发现了什么，Phase 2 构建了什么
-- 专家 agent 通过 task() 委派 — 主 agent 整理好数据后发放
+- 专家 agent 通过 task() 委派 — 主 agent 整理好链元数据后发放，子 agent 加载方法体分析
 - 专家返回结论后主 agent 写回 chains.db — status: pending → analyzed → vuln/safe
-- **注入类**：审计所有有 sink 的链
-- **文件类**：涉及文件路径的链，subagent 加载 file-audit skill
+- **注入类**：审计所有有 sink 的链，子 agent 加载 `injection-audit` skill
+- **文件类**：涉及文件路径的链，子 agent 加载 `file-audit` skill
 - **认证鉴权 + 业务逻辑**：每个 endpoint 只调 1 次，只审计前 5 层，只审计 1 条链
 - **无 sink 的链**：不调注入类 agent，只走认证鉴权 + 业务逻辑
+- **方法体加载工具**：`scripts/chain/load_method_body.py` — 子 agent 从 Memurai 按需加载
