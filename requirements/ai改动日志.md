@@ -705,4 +705,61 @@ groupId=org.owasp.webgoat projectRoot=D:\code\WebGoat-2025.3 loopDir=D:\agentloo
 
 - 2026-06-19 Memurai key 格式修正：audit:{groupId}:commit:{hash}:method:{fqn}#{sigHash} → {groupId}:method:{fqn}#{startline}，新增 count key
 
+---
+
+## 2026-06-20 Phase 2 集成完成 — AR-06/07/08/09/10 全部接入主管线
+
+**需求维度**: Phase 2 调用链 + 缓存 + 排序（原子需求 AR-06 ~ AR-10）
+
+**目的**: 5 个独立模块（chain_file_writer、redis-batch-prefetch、sink_registry、priority_calculator、auth_class_cacher）已实现但未接入 chain_builder 和 cross-agent-50r 主管线。本次将它们全部集成，使 Phase 2 端到端流程完整。
+
+**行为**:
+- **Wave 0（前置修复）**:
+  - T1: 修复 `cleanup_memurai()` 保留 `knowledge:*` 键并合并 `errors:log`
+  - T2: 修复 `test_scripts/` 中 5 个文件的中文路径引用（`脚本` → `scripts`）
+  - T3: 添加 `codegraphDb` 到 `_REQUIRED` preset 字段
+- **Wave 1（TDD 测试编写）**:
+  - T4: 编写 chain_builder 集成测试（AR-06/07/08，9 个测试）
+  - T5: 编写 daemon 集成测试（AR-09/10，7 个测试）
+- **Wave 2（chain_builder 集成）**:
+  - T6: 集成 sink_registry 替换 naive is_sink（AR-08）
+  - T7: 集成 redis-batch-prefetch 方法体缓存（AR-07）
+  - T8: 集成 chain_file_writer + `--loop-dir` 参数（AR-06）
+- **Wave 3（daemon 集成）**:
+  - T9: 集成 auth_class_cacher 到 cross-agent-50r（AR-10）
+  - T10: 集成 priority_calculator 端点排序（AR-09）
+- **Wave 4（验证）**:
+  - T11: 全量测试 117 个测试全部通过（chain: 39, audit: 7, redis: 71）
+  - T12: 更新 `原子需求-v2.md` 状态标记（AR-06 从 ⚠️ → ✅）
+
+**验证结果**:
+- `pytest scripts/chain/tests/` → 39 passed
+- `pytest scripts/audit/tests/` → 7 passed
+- `pytest scripts/redis/tests/` → 71 passed
+- `chain_builder.py --help` 显示 `--loop-dir` 参数（可选，默认 None）
+- 向后兼容：`build_chain()` 和 `build_all_chains_for_endpoint()` 的 `loop_audit_dir` 参数默认为 None
+
+**影响范围**:
+- `scripts/chain/chain_builder.py` — 集成 sink_registry、redis-batch-prefetch、chain_file_writer
+- `scripts/audit/cross-agent-50r.py` — 集成 auth_class_cacher、priority_calculator，修复 cleanup_memurai
+- `test_scripts/` — 5 个文件路径修复
+- `scripts/chain/tests/test_chain_builder_integration.py` — 新增 9 个集成测试
+- `scripts/audit/tests/test_cross_agent_integration.py` — 新增 7 个集成测试
+- `design-docs/原子需求-v2.md` — AR-06 状态从 ⚠️ 更新为 ✅
+
+**原子需求状态更新**:
+- AR-06（链文件格式）: ⚠️ → ✅
+- AR-07（方法体缓存）: ✅（已确认）
+- AR-08（sink 识别）: ✅（已确认）
+- AR-09（调用链优先级排序）: ✅（已确认）
+- AR-10（鉴权类缓存）: ✅（已确认）
+
+**Git 提交**:
+- `7ca070e` fix(phase2): preserve knowledge:* in cleanup_memurai, fix test imports, add codegraphDb to preset
+- `5cec12e` test(phase2): add TDD integration tests for AR-06/07/08/09/10 (Wave 1 RED)
+- `e0f1a09` feat(chain_builder): integrate redis-batch-prefetch for method body caching (AR-07)
+- `c2eef37` feat(cross-agent-50r): integrate auth_class_cacher before opencode session (AR-10)
+
+---
+
 (End of file - total 706 lines)
