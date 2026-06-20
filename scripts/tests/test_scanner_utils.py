@@ -52,7 +52,7 @@ def test_fqn_to_method_name_with_dots():
 # =============================================================================
 
 def test_inject_sink_comment_no_match():
-    """行中没有 third_party_calls 不匹配 sink,不注入"""
+    """行中没有 third_party_calls 不匹配,不注入"""
     line = '    String result = client.get(url);'
     third_party_calls = ["com.example.Utils#helper"]
     fqn_sink_set = {"com.example.Utils#helper"}
@@ -61,19 +61,18 @@ def test_inject_sink_comment_no_match():
 
 
 def test_inject_sink_comment_with_match():
-    """行中包含 sink FQN 且方法调用带括号,注入 sink 注释"""
+    """行中包含外部调用且方法调用带括号,注入 #fqn 注释"""
     line = '    client.get(url);'
     third_party_calls = ["com.example.MyClient#get"]
     fqn_sink_set = {"com.example.MyClient#get"}
     result = inject_sink_comment(line, third_party_calls, fqn_sink_set)
-    # 注释行有原始缩进,body 跟在后面
-    assert "// sink: com.example.MyClient#get" in result
+    assert "// #com.example.MyClient#get" in result
     assert "client.get(url);" in result
 
 
 def test_inject_sink_comment_already_commented():
     """已以 // /* * 开头的行不注入"""
-    for prefix in ["// sink: xxx", "/* blocked", " * comment"]:
+    for prefix in ["// #xxx", "/* blocked", " * comment"]:
         line = f"    {prefix}  client.get(url);"
         result = inject_sink_comment(line, ["com.example.MyClient#get"],
                                      {"com.example.MyClient#get"})
@@ -81,12 +80,12 @@ def test_inject_sink_comment_already_commented():
 
 
 def test_inject_sink_comment_multiple_sinks():
-    """多个 sink 匹配到第一个时注入"""
+    """多个外部调用匹配到第一个时注入"""
     line = '    resp = http.get(url);'
     third_party_calls = ["com.http.HttpClient#get", "com.http.HttpClient#post"]
     fqn_sink_set = {"com.http.HttpClient#get", "com.http.HttpClient#post"}
     result = inject_sink_comment(line, third_party_calls, fqn_sink_set)
-    assert "// sink: com.http.HttpClient#get" in result
+    assert "// #com.http.HttpClient#get" in result
 
 
 # =============================================================================

@@ -530,8 +530,9 @@ def build_chain(
         if file_p is not None and start_line > 0:
             body = _read_method_body(file_p, start_line, end_line)
 
-        # 该 method 的 sink FQN 列表
+        # 该 method 的 sink FQN 列表 + 所有非 groupId 调用
         sinks: List[str] = []
+        all_external_calls: List[str] = []
         if file_p is not None and start_line > 0:
             all_calls = _get_file_calls(file_p)
             # JAR startLine 是 0-based, codegraph.start_line 是 1-based
@@ -545,9 +546,15 @@ def build_chain(
             sinks = [s["fqn"] for s in dynamic_sinks]
             all_dynamic_sinks.extend(dynamic_sinks)
             total_sinks += len(sinks)
+            # 所有非 groupId 调用都标注（不只是 sink）
+            all_external_calls = [
+                c["called_fqn"] for c in method_calls
+                if not c["called_fqn"].startswith(group_id + ".")
+                and not c["called_fqn"].startswith(group_id + "#")
+            ]
 
-        # body 注入 sink 注释 (仅对实际 body 存在 + 有 sink 的行)
-        annotated_body = _annotate_body_with_sinks(body or "", sinks)
+        # body 注入外部调用注释 (#fqn 格式, 不区分 sink 类型)
+        annotated_body = _annotate_body_with_sinks(body or "", all_external_calls)
 
         chain_nodes.append(ChainNode(
             fqn=fqn,
@@ -769,6 +776,7 @@ def build_all_chains_for_endpoint(
                 body = _read_method_body(file_p, r_start, r_end)
 
             sinks: List[str] = []
+            ext_calls: List[str] = []
             if file_p is not None and r_start and r_start > 0:
                 all_calls = _get_file_calls(file_p)
                 jar_start = r_start - 1
@@ -781,6 +789,12 @@ def build_all_chains_for_endpoint(
                 sinks = [s["fqn"] for s in dynamic_sinks]
                 all_dynamic_sinks.extend(dynamic_sinks)
                 total_sinks += len(sinks)
+                # 所有非 groupId 调用都标注
+                ext_calls = [
+                    c["called_fqn"] for c in method_calls
+                    if not c["called_fqn"].startswith(group_id + ".")
+                    and not c["called_fqn"].startswith(group_id + "#")
+                ]
 
             chain_nodes.append(ChainNode(
                 fqn=fqn,
@@ -788,7 +802,7 @@ def build_all_chains_for_endpoint(
                 file=file_path_str,
                 start_line=r_start or 0,
                 end_line=r_end,
-                body=_annotate_body_with_sinks(body or "", sinks) or None,
+                body=_annotate_body_with_sinks(body or "", ext_calls) or None,
                 depth=depth,
                 sinks=sinks,
                 edges=edges_map.get(nid, []),
