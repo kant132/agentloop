@@ -828,4 +828,56 @@ groupId=org.owasp.webgoat projectRoot=D:\code\WebGoat-2025.3 loopDir=D:\agentloo
 
 ---
 
+### 2026-06-20 Phase 1 重构 + Phase 2 补充 — 统一缓存模式 + filter 优先级
+
+**需求维度**: Phase 1 暴露面采集统一化 + Phase 2 优先级补全
+
+**目的**:
+1. Phase 1 非 route 类 collector 统一为"记录文件路径 + 缓存完整文件到 Memurai"模式
+2. 消除 auth_code_collector 与 filter_collector 的重叠
+3. Phase 2 添加 filter 优先级排序
+4. Phase 1 添加综合统计（各类资产数量、缓存数量）
+5. 遵循 SOLID 原则
+
+**行为**:
+
+**Phase 1 Collector 重构（4 个 collector）**:
+- **db_schema_collector**: 删除 JPA/MyBatis/Jooq 内容解析方法，改为记录文件路径 + 缓存到 Memurai
+- **config_collector**: 添加 Memurai 缓存（`{groupId}:config:{file_path}`）
+- **auth_code_collector**: 添加 Memurai 缓存，移除 Filter/Interceptor 检测（由 filter_collector 负责）
+- **waf_collector**: 完全重写，记录安全配置文件路径 + 缓存到 Memurai（不再提取 snippet）
+
+**Phase 2 补充**:
+- **priority_calculator.py**: 新增 `calculate_filter_priority()` 和 `rank_filters()` 函数
+  - Filter 优先级公式: `filter_base + order_bonus + sink_bonus + custom_bonus`
+  - filter_base: interceptor=20, servlet_filter=15, spring_filter=15, webfilter=10
+  - 新增 6 个测试（13 个总计，全部通过）
+
+**综合统计**:
+- **cli.py**: `_summary.json` 新增 `overview` 字段，包含 `total_assets`、`total_cached`、`by_type` 分项统计
+- 采集完成后打印人类可读的统计摘要
+
+**验证结果**:
+- `pytest scripts/exposure/collectors/tests/` → 145 passed, 1 skipped
+- `pytest scripts/chain/tests/test_priority_calculator.py` → 13 passed
+- 所有 collector 现在遵循统一模式：find files → record paths → cache to Memurai
+
+**影响范围**:
+- `scripts/exposure/collectors/db_schema_collector.py` — 完全重构
+- `scripts/exposure/collectors/config_collector.py` — 添加 Memurai 缓存
+- `scripts/exposure/collectors/auth_code_collector.py` — 添加缓存，移除 filter 检测
+- `scripts/exposure/collectors/waf_collector.py` — 完全重写
+- `scripts/exposure/collectors/tests/` — 4 个测试文件更新
+- `scripts/chain/priority_calculator.py` — 新增 filter 优先级函数
+- `scripts/chain/tests/test_priority_calculator.py` — 新增 6 个测试
+- `scripts/exposure/cli.py` — 综合统计
+- `design-docs/原子需求-v2.md` — AR-03 更新采集模式描述
+
+**Git 提交**:
+- `bcfbf0f` refactor(phase1): 4 collectors to record paths + cache to Memurai
+- `369bad6` feat(priority): add filter prioritization (rank_filters + calculate_filter_priority)
+- `e2c8959` feat(cli): add comprehensive statistics to _summary.json
+
+---
+
 (End of file - total 706 lines)
