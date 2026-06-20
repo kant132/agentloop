@@ -102,22 +102,17 @@ def test_ar09_rank_chains_called_before_session():
 
 
 def test_ar09_endpoint_metadata_loaded_from_exposure_assets():
-    """endpoint metadata 应从 exposure_assets.json 加载"""
-    # After AR-09, daemon should read exposure_assets.json
-    # This test verifies the integration point by checking if the daemon
-    # has code that references exposure_assets.json
-    
+    """链数据应从 chains.db 加载"""
     daemon_source = Path(_daemon_path).read_text(encoding='utf-8')
-    assert 'exposure_assets.json' in daemon_source, \
-        "daemon should reference exposure_assets.json for endpoint metadata"
+    assert 'chains.db' in daemon_source, \
+        "daemon should reference chains.db for chain data"
 
 
 def test_ar09_ordered_endpoint_list_written_to_file():
-    """排序后的端点列表应写入 endpoint_priority.json"""
-    # After AR-09, daemon should write endpoint_priority.json
+    """批次应写入 chain_batch.json"""
     daemon_source = Path(_daemon_path).read_text(encoding='utf-8')
-    assert 'endpoint_priority.json' in daemon_source, \
-        "daemon should write endpoint_priority.json"
+    assert 'chain_batch.json' in daemon_source, \
+        "daemon should write chain_batch.json"
 
 
 def test_ar09_base_priority_without_prior_chains():

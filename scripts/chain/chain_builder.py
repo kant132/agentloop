@@ -595,18 +595,34 @@ def build_chain(
         "file_calls_failures": fetch_failures,
     }
 
-    # 6a. Write chain file if loop_audit_dir is provided
+    # 6a. Write chain to SQLite if loop_audit_dir is provided
     if loop_audit_dir is not None:
         try:
-            chain_data = [{
-                "entry_fqn": entry_fqn,
-                "chain": [{"fqn": n.fqn, "node_id": n.node_id} for n in chain_nodes]
-            }]
-            written_paths = _cfw.ChainFileWriter.write_all(chain_data, loop_audit_dir)
-            result["chain_file"] = str(written_paths[0]) if written_paths else None
+            from chain_db import ChainDB
+            db = ChainDB(loop_audit_dir / "chains.db")
+            # 构建 chain_path: fqn(sink num: N) -> fqn(sink num: N) -> ...
+            chain_path_parts = []
+            node_path_parts = []
+            for n in chain_nodes:
+                sink_num = len(n.sinks)
+                chain_path_parts.append(f"{n.fqn}(sink num: {sink_num})")
+                node_path_parts.append(f"method:{n.node_id}")
+            chain_path_str = " -> ".join(chain_path_parts)
+            node_path_str = " -> ".join(node_path_parts)
+            db.insert_chain(
+                chain_id=sig_hash,
+                endpoint_fqn=entry_fqn,
+                priority=result.get("preset_sink_count", 0) * 10 + total_sinks,
+                total_sinks=total_sinks,
+                preset_sinks=result.get("preset_sink_count", 0),
+                cycle_detected=cycle_detected,
+                chain_path=chain_path_str,
+                node_path=node_path_str,
+            )
+            result["chain_db"] = str(loop_audit_dir / "chains.db")
         except Exception as e:  # noqa: BLE001
-            _log("chain_file_writer failed: %s", e)
-            result["chain_file_error"] = str(e)
+            _log("chain_db write failed: %s", e)
+            result["chain_db_error"] = str(e)
 
     # 6b. redis-batch-prefetch: 批量预取方法体到 Memurai (可选, 在写链缓存之前)
     if memurai_client is not None:
@@ -828,22 +844,36 @@ def build_all_chains_for_endpoint(
         }
         results.append(result)
 
-    # Write chain files if loop_audit_dir is provided
-    if loop_audit_dir is not None:
+    # Write chains to SQLite if loop_audit_dir is provided
+    if loop_audit_dir is not None and results:
         try:
-            chain_data = []
+            from chain_db import ChainDB
+            db = ChainDB(loop_audit_dir / "chains.db")
+            chains_to_insert = []
             for r in results:
-                chain_data.append({
-                    "entry_fqn": entry_fqn,
-                    "chain": [{"fqn": n["fqn"], "node_id": n["node_id"]} for n in r["chain"]]
+                chain_path_parts = []
+                node_path_parts = []
+                for n in r["chain"]:
+                    sink_num = len(n.get("sinks", []))
+                    chain_path_parts.append(f"{n['fqn']}(sink num: {sink_num})")
+                    node_path_parts.append(f"method:{n['node_id']}")
+                chains_to_insert.append({
+                    "chain_id": f"{sig_hash}_{r.get('variant_index', 0)}",
+                    "endpoint_fqn": entry_fqn,
+                    "priority": r.get("preset_sink_count", 0) * 10 + r.get("total_sinks", 0),
+                    "total_sinks": r.get("total_sinks", 0),
+                    "preset_sinks": r.get("preset_sink_count", 0),
+                    "cycle_detected": r.get("cycle_detected", False),
+                    "chain_path": " -> ".join(chain_path_parts),
+                    "node_path": " -> ".join(node_path_parts),
                 })
-            written_paths = _cfw.ChainFileWriter.write_all(chain_data, loop_audit_dir)
-            for i, r in enumerate(results):
-                r["chain_file"] = str(written_paths[i]) if i < len(written_paths) else None
-        except Exception as e:  # noqa: BLE001
-            _log("chain_file_writer failed: %s", e)
+            db.insert_chains_batch(chains_to_insert)
             for r in results:
-                r["chain_file_error"] = str(e)
+                r["chain_db"] = str(loop_audit_dir / "chains.db")
+        except Exception as e:  # noqa: BLE001
+            _log("chain_db write failed: %s", e)
+            for r in results:
+                r["chain_db_error"] = str(e)
 
     # Prefetch: 批量预取所有变体的方法体到 Memurai (可选, 在写链缓存之前)
     if memurai_client is not None and results:

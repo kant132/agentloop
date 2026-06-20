@@ -470,45 +470,31 @@ def main() -> int:
         except Exception as e:
             logging.warning("Auth class caching failed: %s", e)
 
-        # Endpoint priority calculation (AR-09)
-        exposure_path = ld / "exposure_assets.json"
-        if exposure_path.exists():
+        # Load chains from SQLite, batch by priority (100 per batch)
+        chains_db_path = ld / "chains.db"
+        if chains_db_path.exists():
             try:
-                exposure = json.loads(exposure_path.read_text(encoding="utf-8"))
-                endpoints_meta = exposure.get("endpoints", [])
-
-                priority_items = []
-                for ep in endpoints_meta:
-                    meta = {
-                        "http_method": ep.get("http_method", "GET"),
-                        "has_external_params": ep.get("has_external_params", False),
-                        "fqn": ep.get("fqn", ""),
-                    }
-
-                    # Try to get prior chain data from Memurai for sink counts
-                    sink_count = 0
-                    preset_count = 0
-                    if se_client and meta["fqn"]:
-                        chain_key = f"{gid}:audit:chain:{hashlib.sha256(meta['fqn'].encode()).hexdigest()[:16]}"
-                        chain_data = se_client.get_json(chain_key)
-                        if chain_data and "chain" in chain_data:
-                            chain_nodes = chain_data["chain"]
-                            sink_count = count_sinks_in_chain(chain_nodes)
-                            preset_count = match_preset_sinks(chain_nodes)
-
-                    priority = calculate_priority(meta, sink_count, preset_count)
-                    priority_items.append({**meta, "priority": priority, "sink_count": sink_count, "preset_count": preset_count})
-
-                ranked = rank_chains(priority_items)
-                priority_path = ld / "endpoint_priority.json"
-                priority_path.write_text(
-                    json.dumps(ranked, indent=2, ensure_ascii=False), encoding="utf-8"
+                sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "chain"))
+                from chain_db import ChainDB
+                db = ChainDB(chains_db_path)
+                batch = db.batch_by_priority(limit=100, status="pending")
+                stats = db.stats()
+                logging.info("Chains DB: %d total, %d pending, avg_priority=%.1f",
+                             stats["total_chains"],
+                             stats["by_status"].get("pending", 0),
+                             stats["avg_priority"])
+                # Write batch info for AI agent to consume
+                batch_path = ld / "diag" / "chain_batch.json"
+                batch_path.parent.mkdir(parents=True, exist_ok=True)
+                batch_path.write_text(
+                    json.dumps({"batch": batch, "stats": stats},
+                              ensure_ascii=False, indent=2),
+                    encoding="utf-8",
                 )
-                logging.info("Endpoint priority: %d endpoints ranked", len(ranked))
             except Exception as e:
-                logging.warning("Endpoint priority calculation failed: %s", e)
+                logging.warning("Chains DB load failed: %s", e)
         else:
-            logging.info("No exposure_assets.json found, skipping priority calculation")
+            logging.info("No chains.db found, chain building not yet done")
 
         if check_convergence(dd):
             logging.info("Converged — breaking after R%d", n-1); break
