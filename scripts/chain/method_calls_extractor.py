@@ -41,6 +41,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -100,6 +101,38 @@ def _is_sink(called_fqn: str, group_id: str | None) -> bool:
     if not called_fqn:
         return True
     return not called_fqn.startswith(group_id + ".")
+
+
+def _is_external_sink_fqn(called_fqn: str, group_id: str | None) -> bool:
+    """--config 模式专用 sink 重判定: 修正 JAR ``determineSink`` 的链式调用假阳性。
+
+    JAR 的 ``determineSink`` 把整个 calledFQN (含实参文本) 按 ``.`` 切分计段数,
+    导致 ``success(this).feedback("idor.edit.profile.success1")`` 被切成 5 段 →
+    误判为 sink。实际上 ``success`` 是项目内部方法 (只是符号解析失败)。
+
+    本函数先剥离实参 (第一个 ``(`` 之前的部分), 再按 ``.`` 计段数:
+
+    - 以 ``"<group_id>."`` 开头 → 内部, False
+    - ≥3 段且不以 groupId 开头 → 真外部 sink (如 ``java.lang.String.equals``)
+    - <3 段 → 短名/链式调用, 符号解析失败, 保守 False (避免假阳性)
+
+    这与 JAR ``determineSink`` 的设计意图一致 (短名 → false), 只修正了
+    "实参里的点号被误计" 这一个缺陷。
+    """
+    if not group_id:
+        return False
+    if not called_fqn:
+        return True
+    # 剥离实参: success(this).feedback("a.b.c") → success(this).feedback
+    #           java.lang.String.equals(authUserId) → java.lang.String.equals
+    paren_idx = called_fqn.find("(")
+    fqn_no_args = called_fqn[:paren_idx] if paren_idx >= 0 else called_fqn
+    if fqn_no_args.startswith(group_id + "."):
+        return False
+    # 计段数: 真正的 FQN (java.lang.String.equals) ≥3 段;
+    # 短名/链式 (success.feedback, req.getUri) <3 段
+    segments = fqn_no_args.split(".")
+    return len(segments) >= 3
 
 
 def _relative_file(file_path: Path, source_root: Path | None) -> str:
@@ -222,6 +255,19 @@ def extract_method_calls(
             _log(f"未找到 .java 文件: {java_path}")
         return []
 
+    # 多文件优先用 --config 方式 (符号跨文件解析更准确, 短名不会被误判为 sink)
+    if len(files) > 1:
+        if log:
+            _log(f"使用 --config 方式处理 {len(files)} 个文件")
+        return extract_method_calls_via_config(
+            files=files,
+            source_root=source_root,
+            group_id=group_id,
+            jar_path=jar_path,
+            workers=max_workers,
+            log=log,
+        )
+
     if log:
         _log(
             f"待处理: {len(files)} 个文件, group_id={group_id!r}, "
@@ -282,6 +328,149 @@ def extract_method_calls(
                 _log(f"  失败样本: {f} -> {msg}")
             if len(failed) > 5:
                 _log(f"  ... 还有 {len(failed) - 5} 个失败未列出")
+    return results
+
+
+# ============================================================== --config 批量入口
+
+def extract_method_calls_via_config(
+    files: list[Path],
+    source_root: Path | None = None,
+    group_id: str | None = None,
+    jar_path: Path | None = None,
+    timeout: int = 300,
+    workers: int = 4,
+    log: bool = True,
+) -> list[dict[str, Any]]:
+    """用 ``--config`` 方式一次性把所有文件交给 JAR。
+
+    生成临时 properties 文件, 调 ``java -jar extractor.jar --config tmp.properties``。
+    JAR 内部多线程解析所有文件 + 自动推导 groupId, 符号跨文件解析更准确,
+    短名不会被误判为 sink (旧 per-file 模式有此问题)。
+
+    输出记录字段名与 :func:`extract_method_calls` 一致 (标准化由本函数完成):
+    ``file`` / ``method_start_line`` / ``method_signature`` / ``called_fqn`` / ``is_sink``。
+
+    Parameters
+    ----------
+    files:
+        待处理的 ``.java`` 文件列表 (已展平, 不再递归)。
+    source_root:
+        可选, 传给 JAR 的 ``sourceRoot`` (跨文件 FQN 解析根)。
+    group_id:
+        可选, 项目 groupId。给出后 JAR 自行判定 sink; 省略时 JAR 从首文件
+        package 自动推导 (取前 3 段)。
+    jar_path:
+        可选, 覆盖 ``DEFAULT_JAR_PATH``。
+    timeout:
+        整批 JAR 调用超时 (秒), 默认 300。多文件批量应给足时间。
+    workers:
+        JAR 内部并行线程数, 默认 4。
+    log:
+        是否往 stderr 输出进度, 默认 True。
+
+    Returns
+    -------
+    list[dict], 每条记录字段同 :func:`extract_method_calls`。
+    """
+    _jar = Path(jar_path) if jar_path else DEFAULT_JAR_PATH
+    if not _jar.exists():
+        raise FileNotFoundError(f"JAR 不存在: {_jar}")
+    if not files:
+        return []
+
+    # 生成临时 config 文件 (JAR --config 模式按 file.N 读取)
+    # 注意: Java Properties.load() 把反斜杠当转义字符, Windows 路径 D:\code\...
+    # 会被吞成 D:code... → 必须用正斜杠 (Java Path.of 接受正斜杠)
+    config_lines: list[str] = ["mode=calls", f"workers={workers}"]
+    if source_root:
+        config_lines.append(f"sourceRoot={Path(source_root).as_posix()}")
+    if group_id:
+        config_lines.append(f"groupId={group_id}")
+    for i, f in enumerate(files, 1):
+        config_lines.append(f"file.{i}={Path(f).as_posix()}")
+
+    config_content = "\n".join(config_lines) + "\n"
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".properties", delete=False, encoding="utf-8"
+    ) as tf:
+        tf.write(config_content)
+        config_file = tf.name
+
+    if log:
+        _log(
+            f"--config 模式: {len(files)} 个文件, group_id={group_id!r}, "
+            f"workers={workers}, timeout={timeout}s"
+        )
+
+    try:
+        cmd: list[str] = ["java", "-jar", str(_jar), "--config", config_file]
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            encoding="utf-8",
+            errors="replace",
+        )
+    finally:
+        try:
+            Path(config_file).unlink()
+        except OSError:
+            pass
+
+    if proc.returncode != 0:
+        stderr_tail = (proc.stderr or "").strip().splitlines()[-5:]
+        raise RuntimeError(
+            f"JAR 退出码 {proc.returncode}: " + " | ".join(stderr_tail)[:300]
+        )
+
+    stdout = (proc.stdout or "").strip()
+    if not stdout:
+        return []
+
+    try:
+        data = json.loads(stdout)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(
+            f"JAR --config 输出非 JSON (line {e.lineno} col {e.colno}): "
+            f"{stdout[:200]!r}"
+        ) from e
+
+    if not isinstance(data, list):
+        raise RuntimeError(
+            f"JAR --config 输出不是 JSON 数组 (got {type(data).__name__})"
+        )
+
+    # 标准化字段名: JAR 输出 startLine/methodSignature/calledFQN/isSink/file
+    #              → 统一为 method_start_line/method_signature/called_fqn/is_sink/file
+    results: list[dict[str, Any]] = []
+    sink_count = 0
+    for rec in data:
+        try:
+            line = int(rec.get("startLine", 0))
+        except (TypeError, ValueError):
+            line = 0
+        fqn = rec.get("calledFQN", "") or ""
+        is_sink = bool(rec.get("isSink", False))
+        # 修正 JAR determineSink 的链式调用假阳性 (实参里的点号被误计为段数)。
+        # 单向过滤: 只移除假阳性 (JAR=true→False), 不新增 sink。
+        if is_sink and group_id:
+            is_sink = _is_external_sink_fqn(fqn, group_id)
+        if is_sink:
+            sink_count += 1
+        results.append({
+            "file": (rec.get("file", "") or "").replace("\\", "/"),
+            "method_start_line": line,
+            "method_signature": rec.get("methodSignature", "") or "",
+            "called_fqn": fqn,
+            "is_sink": is_sink,
+        })
+
+    if log:
+        _log(f"--config 完成: {len(results)} 条记录, sinks={sink_count}")
+
     return results
 
 

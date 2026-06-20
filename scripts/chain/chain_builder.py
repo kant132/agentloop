@@ -271,6 +271,127 @@ def _annotate_body_with_sinks(
     return "".join(annotated)
 
 
+# ============================================================== 批量 JAR 调用 (--config 方式)
+#
+# 旧的 per-file 调用 (extract_method_calls 每文件 1 次 subprocess) 有两个问题:
+#   1. 符号无法跨文件解析 → 短名 (e.g. "execute(query)") 被误判为 sink
+#   2. N 次 subprocess 启动开销
+# --config 方式一次性把所有文件交给 JAR, JAR 内部多线程 + 跨文件符号解析。
+
+def _batch_fetch_file_calls(
+    file_paths: List[Path],
+    source_root: Optional[Path],
+    group_id: str,
+    jar_path: Optional[Path],
+    log: bool = True,
+) -> Tuple[Dict[str, List[Dict[str, Any]]], List[str]]:
+    """一次性调 ``extract_method_calls_via_config`` 处理所有文件。
+
+    Returns
+    -------
+    (cache, failures):
+        cache 的 key = ``str(fp.resolve())`` (Windows 绝对路径, 反斜杠)。
+        调用方用 :func:`_get_file_calls_with_cache` 查; miss 时自动回退到
+        旧 per-file 模式。
+        failures 仅记录回退仍失败 (raise) 的文件, 不记录 batch miss (miss 会
+        触发回退, 回退成功就不算失败)。
+    """
+    cache: Dict[str, List[Dict[str, Any]]] = {}
+    failures: List[str] = []
+    if not file_paths:
+        return cache, failures
+
+    try:
+        all_records = _mce.extract_method_calls_via_config(
+            files=file_paths,
+            source_root=source_root,
+            group_id=group_id,
+            jar_path=jar_path,
+            workers=4,
+            timeout=300,
+            log=log,
+        )
+    except Exception as e:  # noqa: BLE001 - 整批失败, 全部回退到单文件
+        _log("batch extract FAIL (将逐文件回退): %s", e)
+        return cache, failures
+
+    # JAR 返回的 file 字段 = str(fp).replace("\\", "/") (forward-slash 绝对路径)
+    # 构建 forward-slash → input fp 映射, 把 records 挂到 resolved abs key 下
+    fs_to_fp: Dict[str, Path] = {
+        str(fp).replace("\\", "/"): fp for fp in file_paths
+    }
+    matched = 0
+    for rec in all_records:
+        rec_file = rec.get("file", "")
+        fp = fs_to_fp.get(rec_file)
+        if fp is not None:
+            key = str(fp.resolve())
+            cache.setdefault(key, []).append(rec)
+            matched += 1
+        else:
+            # 未匹配的 record (JAR 可能对配置外的文件输出) — 按 rec_file 索引兜底
+            cache.setdefault(rec_file, []).append(rec)
+
+    _log(
+        "batch extract OK: %d records, %d/%d files matched",
+        len(all_records), len({k for k, v in cache.items() if v}), len(file_paths),
+    )
+    return cache, failures
+
+
+def _get_file_calls_with_cache(
+    file_path: Path,
+    cache: Dict[str, List[Dict[str, Any]]],
+    source_root: Optional[Path],
+    group_id: str,
+    jar_path: Optional[Path],
+    failures: List[str],
+) -> List[Dict[str, Any]]:
+    """从 cache 查 ``file_path`` 的 records, miss 时回退到单文件 JAR 调用。
+
+    cache 由 :func:`_batch_fetch_file_calls` 预填, key = resolved abs 路径。
+    miss (文件未在 batch 列表, 或 JAR 没输出该文件) 时调旧 per-file
+    :func:`extract_method_calls`, 结果也写回 cache 避免重复回退。
+    """
+    # 主 key: resolved abs (Windows 反斜杠) — batch fetch 用这个
+    key = str(file_path.resolve())
+    if key in cache:
+        return cache[key]
+    # 备选 key: forward-slash abs
+    fs_key = key.replace("\\", "/")
+    if fs_key in cache:
+        return cache[fs_key]
+    # 备选 key: relative POSIX (旧 extract_method_calls 返回这个)
+    if source_root:
+        try:
+            rel = file_path.resolve().relative_to(
+                Path(source_root).resolve()
+            ).as_posix()
+            if rel in cache:
+                return cache[rel]
+        except ValueError:
+            pass
+
+    # Miss → 旧 per-file 回退 (符号无法跨文件, 但至少能拿到本文件内调用)
+    try:
+        records = _mce.extract_method_calls(
+            java_path=file_path,
+            source_root=source_root,
+            group_id=group_id,
+            jar_path=jar_path,
+            timeout=30,
+            max_workers=1,         # 单文件, 无需并行
+            recursive=False,
+            log=False,
+        )
+    except Exception as e:  # noqa: BLE001
+        _log("file calls extract FAIL: %s : %s", file_path, e)
+        records = []
+        failures.append(str(file_path))
+    cache[key] = records  # 写回 cache 避免同一文件重复回退
+    return records
+
+
 # ============================================================== 主 API
 
 def build_chain(
@@ -353,31 +474,25 @@ def build_chain(
         meta_map = _fetch_node_meta(conn, node_ids)
         edges_map = _fetch_outgoing_edges(conn, node_ids)
 
-    # 4. 文件级 cache: method_calls_extractor 是按文件返回的, 同文件多个 method 共用
-    file_calls_cache: Dict[str, List[Dict[str, Any]]] = {}
-    fetch_failures: List[str] = []
+    # 4. 收集链上所有唯一文件路径, 一次性调 JAR --config (符号跨文件解析更准,
+    #    短名不会被误判为 sink; 旧 per-file 模式有此问题)
+    chain_file_paths: List[Path] = []
+    seen_files: set[str] = set()
+    for r in raw_rows:
+        fp = _resolve_file_path(r.get("file_path"), project_root)
+        if fp is not None and str(fp) not in seen_files:
+            seen_files.add(str(fp))
+            chain_file_paths.append(fp)
+
+    file_calls_cache, fetch_failures = _batch_fetch_file_calls(
+        chain_file_paths, source_root, group_id, jar_path, log=True,
+    )
 
     def _get_file_calls(file_path: Path) -> List[Dict[str, Any]]:
-        key = str(file_path.resolve())
-        if key in file_calls_cache:
-            return file_calls_cache[key]
-        try:
-            records = _mce.extract_method_calls(
-                java_path=file_path,
-                source_root=source_root,
-                group_id=group_id,
-                jar_path=jar_path,
-                timeout=30,
-                max_workers=1,         # 内部已经 batch, 一次一个
-                recursive=False,
-                log=False,
-            )
-        except Exception as e:  # noqa: BLE001
-            _log("file calls extract FAIL: %s : %s", file_path, e)
-            records = []
-            fetch_failures.append(str(file_path))
-        file_calls_cache[key] = records
-        return records
+        return _get_file_calls_with_cache(
+            file_path, file_calls_cache, source_root,
+            group_id, jar_path, fetch_failures,
+        )
 
     # 5. 构建 ChainNode 列表 (按 depth 升序, 同 depth 维持 CTE 顺序)
     chain_nodes: List[ChainNode] = []
@@ -509,38 +624,43 @@ def build_all_chains_for_endpoint(
         _log("entry %s → 无可达路径", entry_id)
         return []
 
-    # 收集所有出现过的 node id (去重) → 一次性反查 meta + edges
+    # 收集所有出现过的 node id (去重) → 一次性反查 meta + edges + file_path
     all_ids: set[str] = set()
     for p in paths:
         for nid in p["nodes"]:
             all_ids.add(nid)
+    all_ids_list = list(all_ids)
     with _open_db(db_path) as conn:
-        meta_map = _fetch_node_meta(conn, list(all_ids))
-        edges_map = _fetch_outgoing_edges(conn, list(all_ids))
+        meta_map = _fetch_node_meta(conn, all_ids_list)
+        edges_map = _fetch_outgoing_edges(conn, all_ids_list)
+        # 额外批量查 file_path, 供 JAR --config 批量调用收集文件 (避免 N+1)
+        node_file_paths: Dict[str, Optional[str]] = {}
+        if all_ids_list:
+            placeholders = ",".join("?" * len(all_ids_list))
+            cur = conn.execute(
+                f"SELECT id, file_path FROM nodes WHERE id IN ({placeholders})",
+                tuple(all_ids_list),
+            )
+            node_file_paths = {row["id"]: row["file_path"] for row in cur.fetchall()}
 
-    # 文件级 JAR cache (整个 endpoint 只解析一次)
-    file_calls_cache: Dict[str, List[Dict[str, Any]]] = {}
+    # 收集所有唯一文件路径, 一次性调 JAR --config (整个 endpoint 只解析一次)
+    chain_file_paths: List[Path] = []
+    seen_files: set[str] = set()
+    for nid in all_ids_list:
+        fp = _resolve_file_path(node_file_paths.get(nid), project_root)
+        if fp is not None and str(fp) not in seen_files:
+            seen_files.add(str(fp))
+            chain_file_paths.append(fp)
+
+    file_calls_cache, _fetch_failures = _batch_fetch_file_calls(
+        chain_file_paths, source_root, group_id, jar_path, log=True,
+    )
 
     def _get_file_calls(file_path: Path) -> List[Dict[str, Any]]:
-        key = str(file_path.resolve())
-        if key in file_calls_cache:
-            return file_calls_cache[key]
-        try:
-            records = _mce.extract_method_calls(
-                java_path=file_path,
-                source_root=source_root,
-                group_id=group_id,
-                jar_path=jar_path,
-                timeout=30,
-                max_workers=1,
-                recursive=False,
-                log=False,
-            )
-        except Exception as e:  # noqa: BLE001
-            _log("file calls extract FAIL: %s : %s", file_path, e)
-            records = []
-        file_calls_cache[key] = records
-        return records
+        return _get_file_calls_with_cache(
+            file_path, file_calls_cache, source_root,
+            group_id, jar_path, _fetch_failures,
+        )
 
     sig_hash = _sig_hash_for_entry(entry_id)
     cache_key = f"{group_id}:audit:chain:{sig_hash}"
