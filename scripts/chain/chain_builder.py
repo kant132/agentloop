@@ -98,6 +98,10 @@ _mce = _load_module_from_file(
     "_chain_builder_method_calls_extractor",
     _HERE / "method_calls_extractor.py",
 )
+_sr = _load_module_from_file(
+    "_chain_builder_sink_registry",
+    _HERE / "sink_registry.py",
+)
 
 # scripts/ast/scanner_utils.py — 通过 sys.path 走普通 import
 _ast_dir = _REPO_ROOT / "scripts" / "ast"
@@ -497,6 +501,7 @@ def build_chain(
     # 5. 构建 ChainNode 列表 (按 depth 升序, 同 depth 维持 CTE 顺序)
     chain_nodes: List[ChainNode] = []
     total_sinks = 0
+    all_dynamic_sinks: List[Dict[str, Any]] = []
     for r in raw_rows:
         nid = r["id"]
         meta = meta_map.get(nid, {})
@@ -522,7 +527,10 @@ def build_chain(
                 c for c in all_calls
                 if int(c.get("method_start_line") or -1) == jar_start_line
             ]
-            sinks = [c["called_fqn"] for c in method_calls if c.get("is_sink")]
+            all_called_fqns = [c["called_fqn"] for c in method_calls]
+            dynamic_sinks = _sr.identify_dynamic_sinks(group_id, all_called_fqns)
+            sinks = [s["fqn"] for s in dynamic_sinks]
+            all_dynamic_sinks.extend(dynamic_sinks)
             total_sinks += len(sinks)
 
         # body 注入 sink 注释 (仅对实际 body 存在 + 有 sink 的行)
@@ -560,6 +568,8 @@ def build_chain(
         "total_nodes": total_nodes,
         "total_edges": total_edges,
         "total_sinks": total_sinks,
+        "sink_categories": {s["fqn"]: s["category"] for s in all_dynamic_sinks},
+        "preset_sink_count": _sr.match_preset_sinks([_chain_node_to_dict(n) for n in chain_nodes]),
         "cycle_detected": cycle_detected,
         "file_calls_cache_size": len(file_calls_cache),
         "file_calls_failures": fetch_failures,
@@ -670,6 +680,7 @@ def build_all_chains_for_endpoint(
         node_ids = p["nodes"]
         chain_nodes: List[ChainNode] = []
         total_sinks = 0
+        all_dynamic_sinks: List[Dict[str, Any]] = []
         cycle_in_variant = False
         seen: set[str] = set()
 
@@ -715,7 +726,10 @@ def build_all_chains_for_endpoint(
                     c for c in all_calls
                     if int(c.get("method_start_line") or -1) == jar_start
                 ]
-                sinks = [c["called_fqn"] for c in method_calls if c.get("is_sink")]
+                all_called_fqns = [c["called_fqn"] for c in method_calls]
+                dynamic_sinks = _sr.identify_dynamic_sinks(group_id, all_called_fqns)
+                sinks = [s["fqn"] for s in dynamic_sinks]
+                all_dynamic_sinks.extend(dynamic_sinks)
                 total_sinks += len(sinks)
 
             chain_nodes.append(ChainNode(
@@ -744,6 +758,8 @@ def build_all_chains_for_endpoint(
             "total_nodes": len(chain_nodes),
             "total_edges": total_edges,
             "total_sinks": total_sinks,
+            "sink_categories": {s["fqn"]: s["category"] for s in all_dynamic_sinks},
+            "preset_sink_count": _sr.match_preset_sinks([_chain_node_to_dict(n) for n in chain_nodes]),
             "file_calls_cache_size": len(file_calls_cache),
         }
         results.append(result)
