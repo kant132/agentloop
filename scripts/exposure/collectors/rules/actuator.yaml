@@ -1,0 +1,40 @@
+id: find-actuator-endpoints
+language: java
+framework: actuator
+description: "Spring Boot Actuator 自定义端点扫描"
+
+class_rules:
+  - id: endpoint
+    pattern-either:
+      - pattern: "@org.springframework.boot.actuate.endpoint.annotation.Endpoint($$$)"
+      - pattern: "@Endpoint($$$)"
+      - pattern: "@Endpoint"
+    role: endpoint
+    http_method: ANY
+  - id: web_endpoint
+    pattern-either:
+      - pattern: "@org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint($$$)"
+      - pattern: "@WebEndpoint($$$)"
+      - pattern: "@WebEndpoint"
+    role: web_endpoint
+    http_method: ANY
+
+method_rules:
+  - id: read_operation
+    pattern-either:
+      - pattern: "@org.springframework.boot.actuate.endpoint.annotation.ReadOperation($$$)"
+      - pattern: "@ReadOperation($$$)"
+      - pattern: "@ReadOperation"
+    http_method: GET
+  - id: write_operation
+    pattern-either:
+      - pattern: "@org.springframework.boot.actuate.endpoint.annotation.WriteOperation($$$)"
+      - pattern: "@WriteOperation($$$)"
+      - pattern: "@WriteOperation"
+    http_method: POST
+  - id: delete_operation
+    pattern-either:
+      - pattern: "@org.springframework.boot.actuate.endpoint.annotation.DeleteOperation($$$)"
+      - pattern: "@DeleteOperation($$$)"
+      - pattern: "@DeleteOperation"
+    http_method: DELETE

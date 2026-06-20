@@ -1,0 +1,130 @@
+{
+  "asset_type": "codegraph",
+  "source": "codegraph SQLite pattern search",
+  "stats": {
+    "total": 14,
+    "by_category": {
+      "sql": 3,
+      "startup": 5,
+      "reflection": 5,
+      "serialization": 1
+    }
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-20T15:55:56.273459+00:00",
+  "items": [
+    {
+      "fqn": "org.owasp.webgoat.lessons.pathtraversal::ProfileUploadBase::execute",
+      "category": "sql",
+      "nodes_id": "method:a25491ad66be656fb2163415c7ac0a44",
+      "file": "src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUploadBase.java",
+      "line": 40,
+      "snippet": "    this.webGoatHomeDirectory = webGoatHomeDirectory;\n  }\n\n  protected AttackResult execute(MultipartFile file, String fullName, String username) {\n    if (file.isEmpty()) {\n      return failed(this).feedback(\"path-traversal-profile-empty-file\").build();\n    }"
+    },
+    {
+      "fqn": "org.owasp.webgoat.lessons.pathtraversal::ProfileUploadRetrieval::execute",
+      "category": "sql",
+      "nodes_id": "method:a8d6a69d98fbdef116cc80767bd3d6df",
+      "file": "src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUploadRetrieval.java",
+      "line": 79,
+      "snippet": "    }\n  }\n\n  @PostMapping(\"/PathTraversal/random\")\n  @ResponseBody\n  public AttackResult execute(\n      @RequestParam(value = \"secret\", required = false) String secret,"
+    },
+    {
+      "fqn": "org.owasp.webgoat.lessons.sqlinjection.advanced::SqlInjectionLesson6a::executeSqlInjection",
+      "category": "sql",
+      "nodes_id": "method:00676052b6999f35365c4537a8830439",
+      "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionLesson6a.java",
+      "line": 68,
+      "snippet": "    return accountName.matches(\"(?i)(^[^-/*;)]*)(\\\\s*)UNION(.*$)\");\n  }\n\n  private AttackResult executeSqlInjection(Connection connection, String query, boolean usedUnion) {\n    try (Statement statement =\n        connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {\n"
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons::CourseConfiguration",
+      "category": "startup",
+      "nodes_id": "class:2fee481c50e037769641794dbcf1c7bf",
+      "file": "src/main/java/org/owasp/webgoat/container/lessons/CourseConfiguration.java",
+      "line": 24,
+      "snippet": "import org.springframework.web.bind.annotation.PutMapping;\nimport org.springframework.web.bind.annotation.RequestMapping;\n\n@Configuration\npublic class CourseConfiguration {\n  private final List<Lesson> lessons;\n  private final List<AssignmentEndpoint> assignments;"
+    },
+    {
+      "fqn": "org.owasp.webgoat.container::DatabaseConfiguration",
+      "category": "startup",
+      "nodes_id": "class:31643633c8c5a931fb2428b90b776879",
+      "file": "src/main/java/org/owasp/webgoat/container/DatabaseConfiguration.java",
+      "line": 21,
+      "snippet": "import org.springframework.context.annotation.Primary;\nimport org.springframework.jdbc.datasource.DriverManagerDataSource;\n\n@Configuration\n@RequiredArgsConstructor\n@Slf4j\npublic class DatabaseConfiguration {"
+    },
+    {
+      "fqn": "org.owasp.webgoat.container::MvcConfiguration",
+      "category": "startup",
+      "nodes_id": "class:a091af701aeac9d4183941e3ca71263c",
+      "file": "src/main/java/org/owasp/webgoat/container/MvcConfiguration.java",
+      "line": 42,
+      "snippet": "import org.thymeleaf.templateresource.StringTemplateResource;\n\n/** Configuration for Spring MVC */\n@Configuration\n@RequiredArgsConstructor\n@Slf4j\npublic class MvcConfiguration implements WebMvcConfigurer {"
+    },
+    {
+      "fqn": "org.owasp.webgoat.container::MvcConfiguration::lessonThymeleafTemplateResolver::<FileTemplateResolver$anon@75>",
+      "category": "startup",
+      "nodes_id": "class:ba1a83fb18923e0fc292a1e817e1d325",
+      "file": "src/main/java/org/owasp/webgoat/container/MvcConfiguration.java",
+      "line": 75,
+      "snippet": "  @Bean\n  public ITemplateResolver lessonThymeleafTemplateResolver(ResourceLoader resourceLoader) {\n    var resolver =\n        new FileTemplateResolver() {\n          @Override\n          protected ITemplateResource computeTemplateResource(\n              IEngineConfiguration configuration,"
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf::MvcConfiguration",
+      "category": "startup",
+      "nodes_id": "class:c99802670b49c923e4816ee310dac6df",
+      "file": "src/main/java/org/owasp/webgoat/webwolf/MvcConfiguration.java",
+      "line": 21,
+      "snippet": " * @author nbaars\n * @since 8/13/17.\n */\n@Configuration\npublic class MvcConfiguration implements WebMvcConfigurer {\n\n  @Value(\"${webwolf.fileserver.location}\")"
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons::CourseConfiguration::methodReturnTypeIsOfTypeAttackResult",
+      "category": "reflection",
+      "nodes_id": "method:1ccb2d9467298cfc73cf6b8d5fba672a",
+      "file": "src/main/java/org/owasp/webgoat/container/lessons/CourseConfiguration.java",
+      "line": 126,
+      "snippet": "            + \" 'ResponseEntity<AttackResult>' please consider adding one\");\n  }\n\n  private boolean methodReturnTypeIsOfTypeAttackResult(Method m) {\n    if (m.getReturnType() == AttackResult.class) {\n      return true;\n    }"
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons::LessonConnectionInvocationHandler::invoke",
+      "category": "reflection",
+      "nodes_id": "method:a12d2d7397342ecb085604e2c611b962",
+      "file": "src/main/java/org/owasp/webgoat/container/lessons/LessonConnectionInvocationHandler.java",
+      "line": 26,
+      "snippet": "    this.targetConnection = targetConnection;\n  }\n\n  @Override\n  public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {\n    var authentication = SecurityContextHolder.getContext().getAuthentication();\n    if (authentication != null && authentication.getPrincipal() instanceof WebGoatUser user) {"
+    },
+    {
+      "fqn": "org.owasp.webgoat.lessons.clientsidefiltering::Salaries::invoke",
+      "category": "reflection",
+      "nodes_id": "method:8c976796ae44d03791513bd0137880d2",
+      "file": "src/main/java/org/owasp/webgoat/lessons/clientsidefiltering/Salaries.java",
+      "line": 55,
+      "snippet": "    }\n  }\n\n  @GetMapping(\"clientSideFiltering/salaries\")\n  @ResponseBody\n  public List<Map<String, Object>> invoke() {\n    NodeList nodes = null;"
+    },
+    {
+      "fqn": "org.owasp.webgoat.lessons.csrf::CSRFGetFlag::invoke",
+      "category": "reflection",
+      "nodes_id": "method:09e0c8d0e8edeab78c7223d7105b580b",
+      "file": "src/main/java/org/owasp/webgoat/lessons/csrf/CSRFGetFlag.java",
+      "line": 25,
+      "snippet": "  @Autowired LessonSession userSessionData;\n  @Autowired private PluginMessages pluginMessages;\n\n  @PostMapping(\n      path = \"/csrf/basic-get-flag\",\n      produces = {\"application/json\"})\n  @ResponseBody"
+    },
+    {
+      "fqn": "org.owasp.webgoat.lessons.idor::IDORViewOwnProfile::invoke",
+      "category": "reflection",
+      "nodes_id": "method:8af20cdc61fa8e31675309527436cdec",
+      "file": "src/main/java/org/owasp/webgoat/lessons/idor/IDORViewOwnProfile.java",
+      "line": 25,
+      "snippet": "    this.userSessionData = userSessionData;\n  }\n\n  @GetMapping(\n      path = {\"/IDOR/own\", \"/IDOR/profile\"},\n      produces = {\"application/json\"})\n  @ResponseBody"
+    },
+    {
+      "fqn": "org.dummy.insecure.framework::VulnerableTaskHolder::readObject",
+      "category": "serialization",
+      "nodes_id": "method:1fd3c761141e3da9b5f3a987c357f97c",
+      "file": "src/main/java/org/dummy/insecure/framework/VulnerableTaskHolder.java",
+      "line": 48,
+      "snippet": "   *\n   * @author stupid develop\n   */\n  private void readObject(ObjectInputStream stream) throws Exception {\n    // unserialize data so taskName and taskAction are available\n    stream.defaultReadObject();\n"
+    }
+  ]
+}

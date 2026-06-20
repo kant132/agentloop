@@ -880,4 +880,67 @@ groupId=org.owasp.webgoat projectRoot=D:\code\WebGoat-2025.3 loopDir=D:\agentloo
 
 ---
 
+### 2026-06-20 架构重构 — 三层→两层 + 工具化 + SQLite 链存储
+
+**需求维度**: 架构简化 + Phase 2 数据存储改造
+
+**目的**:
+1. 去掉主管 agent（supervisor），Boss 直接对接专家 agent（两层架构）
+2. 不启动独立 opencode 子进程，主 agent 作为工具消费 chains.db + Memurai
+3. 调用链数据从 JSON 改为 SQLite 存储（chains.db）
+4. 方法体注释从 `// sink: fqn` 改为 `// #fqn`（标注所有非 groupId 调用，去掉 sink 标签）
+5. FQN 格式自动转换（route.json `pkg.Class#method` → codegraph `pkg::Class::method`）
+
+**行为**:
+
+**架构重构**:
+- 删除 `prompts/supervisor.md` 和 `prompts/analyst.md`
+- 更新 `AGENTS.md`：三层 → 两层（Boss → Experts）
+- 更新 `skills/AGENTS.md`：去掉 endpoint-supervisor tier
+- 更新 `skills/java-whitebox-loop/SKILL.md`：工具化工作流（不启动 opencode）
+- 更新 `prompts/boss.md`：直接分发专家 agent
+
+**SQLite 链存储**:
+- 新建 `scripts/chain/chain_db.py`：单表 chains，含 chain_path + node_path + priority + status
+- `chain_builder.py`：写入 chains.db 而非 JSON
+- `cross-agent-50r.py`：从 chains.db 批量取链（batch_by_priority）
+- 删除 chain_file_writer 集成（被 SQLite 替代）
+
+**方法体注释**:
+- `scanner_utils.inject_sink_comment`：`// sink: fqn` → `// #fqn`
+- 标注所有非 groupId 调用（不只是 sink）
+- 去掉 sink/类型标签（节省 token）
+
+**FQN 格式转换**:
+- `sqlite-extract-chain.py:resolve_entry()`：自动转换 `pkg.Class#method` → `pkg::Class::method`
+
+**完整流程验证**:
+- `run_phase1_to_4.py`：Phase 1→4 完整跑通（3 条链）
+- Phase 1: 9 collectors, 305 assets, 46 cached to Memurai
+- Phase 2: 3 chains built, 12 sinks, chains.db
+- Phase 3: 3 chains analyzed (模拟)
+- Phase 4: 3 PoC verified (模拟)
+
+**影响范围**:
+- `AGENTS.md` — 架构从三层改为两层
+- `skills/AGENTS.md` — 去掉 endpoint-supervisor
+- `skills/java-whitebox-loop/SKILL.md` — 工具化工作流
+- `prompts/boss.md` — 直接分发专家
+- `prompts/supervisor.md` — 删除
+- `prompts/analyst.md` — 删除
+- `scripts/chain/chain_db.py` — 新建（SQLite）
+- `scripts/chain/chain_builder.py` — 写 chains.db
+- `scripts/chain/sqlite-extract-chain.py` — FQN 转换
+- `scripts/ast/scanner_utils.py` — 注释格式改为 `// #fqn`
+- `scripts/audit/cross-agent-50r.py` — 从 chains.db 读
+- `run_phase1_to_4.py` — 新建（完整流程脚本）
+- `design-docs/原子需求-v2.md` — AR-12/13 更新
+
+**Git 提交**:
+- `e18c2f2` refactor(chain): replace JSON with SQLite chains.db
+- `859743e` refactor(chain): annotate all external calls as #fqn, remove sink labels
+- `9d881e7` fix: FQN format conversion + end-to-end Phase 1-4 runner
+
+---
+
 (End of file - total 706 lines)

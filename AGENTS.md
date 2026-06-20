@@ -2,7 +2,9 @@
 
 ## What This Is
 
-Automated Java whitebox security audit orchestrator. Multi-agent system (Boss → Supervisor → Analyst → Expert agents → PoC verifier) that discovers and verifies vulnerabilities in Java source code using codegraph, ast-grep, and Memurai.
+Automated Java whitebox security audit orchestrator. Two-layer agent architecture (Boss → Expert agents) that discovers and verifies vulnerabilities in Java source code using codegraph, ast-grep, and Memurai.
+
+主 agent（Boss）作为调度中心，对收集到的资源进行调度审计，直接发放给各个专家 agent。不再启动独立 opencode 会话，而是作为工具把数据整理好后由主 agent 直接消费。
 
 **Language**: All agent output, reports, and narrative content must be **Chinese**. Code, JSON keys, and enum values stay English.
 
@@ -20,17 +22,21 @@ Automated Java whitebox security audit orchestrator. Multi-agent system (Boss �
 ## Key Commands
 
 ```powershell
-# Main audit entry point (daemon mode)
-python scripts/audit/cross-agent-50r.py --preset projects/{group_id}/preset.json
+# Phase 0-2: 脚本执行（确定性工作，产 chains.db + Memurai 缓存）
+python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --limit 100
 
-# Verify endpoint coverage invariant (must pass before termination)
-python scripts/audit/verify-endpoint-coverage.py --endpoints loop_audit/external_endpoints/端点.jsonl --high-risk-dir loop_audit/routes/高风险端点/ --mid-low-risk-dir loop_audit/routes/中低险端点/
+# Phase 3-4: 主 agent 直接消费（不启动 opencode 子进程）
+# 主 agent 加载 java-whitebox-loop skill，从 chains.db 取 batch，分析+验证
 
-# Check cache hit rates (any metric > 30% duplicate = needs optimization)
-python scripts/audit/coverage-audit.py --stats
+# 单独执行各阶段：
+# Phase 1: 暴露面采集
+python -m scripts.exposure.cli collect --project {projectRoot} --group-id {groupId} --output {loopDir} --codegraph-db {codegraphDb}
 
-# Force-rescan a pruned endpoint
-python scripts/audit/force-rescan.py --endpoint "GET /api/foo" --modes "C,D"
+# Phase 2: 调用链构建（写入 chains.db）
+python scripts/chain/chain_builder.py --project-root {projectRoot} --db {codegraphDb} --group-id {groupId} --entry "{fqn}" --depth 20 --loop-dir {loopDir}
+
+# 查询 chains.db 统计
+python -c "from chain_db import ChainDB; db = ChainDB('{loopDir}/chains.db'); print(db.stats())"
 
 # Memurai (Redis-compatible) — NOT pip redis, uses native CLI
 # Path: C:\Program Files\Memurai\memurai-cli.exe
@@ -55,7 +61,7 @@ Before starting any audit:
 | Read method bodies | Memurai cache (pre-fetched via JAR + source files) | Direct `Read` of whole files; querying codegraph for method bodies |
 | Statistics/reports | Python scripts | ad-hoc code |
 
-**Subagents never call codegraph directly** — method bodies are pre-fetched to Memurai before subagent launch.
+**Subagents never call codegraph directly** — method bodies are pre-fetched to Memurai before subagent launch. 主 agent 从 chains.db 取 batch，从 Memurai 加载方法体，直接分发给专家 agent。
 
 ## Scope Boundary (Hard Constraint)
 
@@ -79,25 +85,26 @@ Any deviation = incomplete audit (loop cannot terminate).
 
 | Directory | Purpose |
 |-----------|---------|
-| `skills/` | 13 OpenCode skill definitions (java-whitebox-loop, injection-audit, poc-verify, etc.) |
+| `skills/` | OpenCode skill definitions (java-whitebox-loop, injection-audit, poc-verify, etc.) |
 | `scripts/ast/` | Attack surface scanner, AST finders, annotation enrichment |
-| `scripts/chain/` | Call chain builder, method extractor, SQLite multi-hop search |
-| `scripts/audit/` | Daemon (cross-agent-50r.py), PoC monitor, coverage verifiers, self-evolution |
+| `scripts/chain/` | Call chain builder, chain_db.py (SQLite), method extractor, sink registry |
+| `scripts/audit/` | PoC monitor, coverage verifiers, self-evolution (cross-agent-50r.py deprecated) |
 | `scripts/redis/` | Memurai client wrapper, batch prefetch, stats |
+| `scripts/exposure/` | Phase 1 暴露面采集（9 collectors + synthesizer + cli） |
 | `conduct/必读/` | 6 hard-constraint docs (MUST READ before any audit work) |
 | `conduct/经验/` | Learned patterns (PoC failures, false positive cases, pruning mistakes) |
 | `types/` | Global vulnerability pattern library (cross-project, deduplicated) |
 | `projects/{groupId}/` | Per-project preset.json, knowledge docs, loop_audit output |
 | `projects/_template/` | Template files for new projects (copy these, don't edit) |
-| `prompts/` | Sub-agent prompt stubs (boss.md, supervisor.md, expert-*.md, etc.) |
+| `prompts/` | Expert agent prompt stubs (boss.md, expert-*.md; supervisor.md removed) |
 | `checker/` | Multi-perspective review skills (Socrates, Feynman, Musk, etc.) — 触发于大版本改动前，非审计流程内置 |
 | `tools/` | External: arthas, javaparser-service (预编译 JAR) |
 | `conduct/优化路径/` | 4 份性能优化方向 (Token/并发/缓存/失败率) |
-| `design-docs/` | 会话记录、探索总结、实施方案 (13 files) |
-| `design-docs/_archive/` | 归档目录 — 禁止 AI 默认加载。归档日期 2026-06-19，归档原因 RFC-0001 暴露面管线重构后状态已过时 |
+| `design-docs/` | 会话记录、探索总结、实施方案 |
+| `design-docs/_archive/` | 归档目录 — 禁止 AI 默认加载 |
 | `requirements/` | 原子需求拆解 + ai改动日志 |
-| `proposals/` | 改进提案：本质系列 + 哲学分析 + 专家分析 (12 files) |
-| `doc/archive/` | 归档目录 — 禁止 AI 默认加载。归档日期 2026-06-19，归档原因文档描述的架构/脚本已被后续迭代完全替代 |
+| `proposals/` | 改进提案：本质系列 + 哲学分析 + 专家分析 |
+| `doc/archive/` | 归档目录 — 禁止 AI 默认加载 |
 | `doc/` | codegraph/ast-grep 使用指南、Boss 经验沉淀、版本实践记录 |
 
 ## Pruning Logic (3 Levels)
@@ -133,3 +140,33 @@ Audit terminates when ALL are true simultaneously:
 - **Do NOT write narrative content in English** — reports and summaries must be Chinese.
 - **Do NOT create new project knowledge in shared `types/`** without dedup check (similarity > 0.7 → reuse).
 - **Do NOT modify tool flow/scripts except via a dedicated tool sub-agent** — only the Boss agent authorizes modifications, and they must not overfit to one project.
+
+## Agent Architecture (Two-Layer)
+
+```
+主 agent (Boss) — 调度中心
+  │
+  ├── 脚本工具: Phase 0-2（确定性工作）
+  │     ├── Phase 0: check_core_tools.py + Memurai cleanup
+  │     ├── Phase 1: exposure/cli.py collect（9 collectors → exposure/*.json）
+  │     └── Phase 2: chain_builder.py → chains.db + Memurai 方法体缓存
+  │
+  ├── 专家 agent: Phase 3（AI 分析）
+  │     主 agent 从 chains.db batch_by_priority(limit=100) 取链
+  │     从 Memurai 加载方法体（含 #fqn 注释）
+  │     按链特征分发给专家：
+  │     ├── injection-audit      → SQL/CMD/XXE/SpEL/LDAP/反序列化
+  │     ├── auth-chain-audit     → Filter/Interceptor/JWT/OAuth/Session
+  │     ├── business-logic-audit → 竞态/流程绕过/IDOR/mass assignment
+  │     ├── file-audit           → 上传/下载/路径遍历/ZipSlip
+  │     └── login-audit          → 暴力破解/凭证/MFA/Session Fixation
+  │
+  └── 验证 agent: Phase 4（PoC）
+        主 agent 收集专家结论 → 生成 PoC → 验证 → 写回 chains.db status
+```
+
+**关键设计**：
+- 不启动独立 opencode 子进程 — 主 agent 直接消费 chains.db + Memurai 数据
+- 主 agent 保持完整上下文 — 知道 Phase 1 发现了什么，Phase 2 构建了什么
+- 专家 agent 通过 task() 委派 — 主 agent 整理好数据后发放给专家
+- 专家返回结论后主 agent 写回 chains.db — status: pending → analyzed → vuln/safe

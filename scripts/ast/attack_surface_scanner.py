@@ -16,7 +16,7 @@ hashkey 策略 (2026-06-15 迁移):
 
 外部依赖:
   - ``ast-grep`` (CLI, v0.43.0+) 在 PATH
-  - ``javaparser-service.jar`` 默认 ``<repo>/tools/javaparser-service/target/javaparser-service.jar``
+  - ``java-method-call-extractor-1.0.0.jar`` 默认 ``<repo>/tools/javaparser-service/target/java-method-call-extractor-1.0.0.jar``
     可通过 ``JAVAPARSER_SERVICE_JAR`` 环境变量覆盖
   - Java 17+ (执行 javaparser-service 需要)
   - ``codegraph`` CLI + ``<project>/.codegraph/codegraph.db`` (可选;缺失时降级 md5)
@@ -31,6 +31,7 @@ CLI 用法::
 """
 from __future__ import annotations
 
+import shutil
 import argparse
 import json
 import os
@@ -41,6 +42,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
     from scanner_utils import (
@@ -68,18 +70,18 @@ DEFAULT_CATEGORIES_PATH = _HERE / "annotation-categories.json"
 DEFAULT_CODEGRAPH_DB = _HERE.parent.parent / ".codegraph" / "codegraph.db"
 # If the above path is missing, scanner will look at <project_root>/.codegraph/codegraph.db.
 
-# javaparser-service.jar 解析优先级:
+# java-method-call-extractor-1.0.0.jar 解析优先级:
 #   1) 环境变量 JAVAPARSER_SERVICE_JAR
-#   2) 相对于本文件的推导路径: ../../tools/javaparser-service/target/javaparser-service.jar
+#   2) 相对于本文件的推导路径: ../../tools/javaparser-service/target/java-method-call-extractor-1.0.0.jar
 _JPS_JAR_ENV = os.environ.get("JAVAPARSER_SERVICE_JAR")
 _DEFAULT_JPS_JAR = (
     Path(_JPS_JAR_ENV) if _JPS_JAR_ENV
-    else _HERE.parent.parent / "tools" / "javaparser-service" / "target" / "javaparser-service.jar"
+    else _HERE.parent.parent / "tools" / "javaparser-service" / "target" / "java-method-call-extractor-1.0.0.jar"
 )
 JAVAPARSER_JAR: Path = _DEFAULT_JPS_JAR
 
 # ast-grep 可执行名 (可通过 AST_GREP_BIN 覆盖)
-AST_GREP_BIN: str = os.environ.get("AST_GREP_BIN", "ast-grep")
+AST_GREP_BIN: str = shutil.which("ast-grep")
 
 # Phase 2 调参常量
 JAVAPARSER_TIMEOUT_SEC: int = 120          # 单文件解析超时
@@ -639,56 +641,61 @@ def _call_javaparser_service(
 ) -> Optional[Dict[str, Any]]:
     """Invoke ``javaparser-service`` on a single Java file.
 
-    Writes a temp JSON, reads it back, returns parsed payload or ``None`` on
+    Captures stdout JSON, returns ``{"calls": [...]}`` or ``None`` on
     any failure (jar missing, non-zero exit, timeout, malformed JSON).
+
+    The JAR outputs method-call records to stdout (not to a file).
+    Uses ``--source-root`` + positional file arg; sets ``cwd=project_root``
+    so relative paths resolve correctly.
     """
     if not JAVAPARSER_JAR.is_file():
         log_warn(f"javaparser-service not found at {JAVAPARSER_JAR} — skipping enrichment")
         return None
 
-    fd, tmp_path = tempfile.mkstemp(suffix=".json", prefix="jps-")
-    os.close(fd)
+    cmd = [
+        "java", "-jar", str(JAVAPARSER_JAR),
+        "--source-root", str(project_root),
+        file_rel_path,
+    ]
+    log_debug(f"javaparser-service: {' '.join(cmd)}")
     try:
-        cmd = [
-            "java", "-jar", str(JAVAPARSER_JAR),
-            "--project-root", str(project_root),
-            "--files", file_rel_path,
-            "--output", tmp_path,
-        ]
-        log_debug(f"javaparser-service: {' '.join(cmd)}")
-        try:
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=JAVAPARSER_TIMEOUT_SEC,
-            )
-        except subprocess.TimeoutExpired:
-            log_warn(f"javaparser-service timed out for {file_rel_path}")
-            return None
-        except OSError as exc:
-            log_warn(f"javaparser-service launch failed for {file_rel_path}: {exc}")
-            return None
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=JAVAPARSER_TIMEOUT_SEC,
+            cwd=str(project_root),
+        )
+    except subprocess.TimeoutExpired:
+        log_warn(f"javaparser-service timed out for {file_rel_path}")
+        return None
+    except OSError as exc:
+        log_warn(f"javaparser-service launch failed for {file_rel_path}: {exc}")
+        return None
 
-        if proc.returncode != 0:
-            err = (proc.stderr or "").strip().splitlines()
-            err_tail = err[-1] if err else f"exit {proc.returncode}"
-            log_warn(f"javaparser-service failed for {file_rel_path}: {err_tail}")
-            return None
+    if proc.returncode != 0:
+        err = (proc.stderr or "").strip().splitlines()
+        err_tail = err[-1] if err else f"exit {proc.returncode}"
+        log_warn(f"javaparser-service failed for {file_rel_path}: {err_tail}")
+        return None
 
-        try:
-            with open(tmp_path, "r", encoding="utf-8") as fp:
-                return json.load(fp)
-        except (OSError, json.JSONDecodeError) as exc:
-            log_warn(f"javaparser-service output unreadable for {file_rel_path}: {exc}")
-            return None
-    finally:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
+    stdout = (proc.stdout or "").strip()
+    if not stdout:
+        log_warn(f"javaparser-service empty output for {file_rel_path}")
+        return None
+
+    try:
+        calls = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        log_warn(f"javaparser-service output unreadable for {file_rel_path}: {exc}")
+        return None
+
+    # JAR outputs a flat array; wrap in {"calls": [...]} for downstream
+    if isinstance(calls, list):
+        return {"calls": calls}
+    return calls
 
 
 def _format_third_party_calls(
@@ -899,13 +906,16 @@ def phase2_extract_methods(
     project_root: Path,
     route_annotations: List[Dict[str, Any]],
     group_id: Optional[str] = None,
+    max_workers: int = 8,
 ) -> List[Dict[str, Any]]:
-    """Phase 2 main enrichment.
+    """Phase 2 main enrichment (multithreaded).
 
     For each file with route annotations: (1) call javaparser-service to get
     the full call list; (2) attach full method source via ast-grep; (3) attach
     ``method_full_info`` containing source + 3rd-party calls in the
     attribution window after the annotation line.
+
+    Files are processed in parallel using ``max_workers`` threads.
     """
     if not route_annotations:
         return route_annotations
@@ -914,11 +924,12 @@ def phase2_extract_methods(
     for ann in route_annotations:
         by_file.setdefault(ann.get("file", ""), []).append(ann)
 
-    for file_rel_path, anns in by_file.items():
+    def _process_file(file_rel_path: str, anns: List[Dict[str, Any]]) -> None:
+        """Process all annotations in a single file (runs in worker thread)."""
         if not file_rel_path:
             for ann in anns:
                 ann.setdefault("method_full_info", {"source": "", "third_party_calls": []})
-            continue
+            return
 
         jp_result = _call_javaparser_service(project_root, file_rel_path)
         calls_in_file: List[Dict[str, Any]] = []
@@ -939,6 +950,28 @@ def phase2_extract_methods(
                     calls_in_file, ann_line, group_id or ""
                 ),
             }
+
+    n_files = len(by_file)
+    workers = min(max_workers, n_files) if n_files else 1
+    log_info(f"phase 2: processing {n_files} files with {workers} threads")
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {
+            pool.submit(_process_file, fp, anns): fp
+            for fp, anns in by_file.items()
+        }
+        done = 0
+        for fut in as_completed(futures):
+            fp = futures[fut]
+            done += 1
+            try:
+                fut.result()
+            except Exception as exc:
+                log_warn(f"phase 2: file {fp} failed: {exc}")
+            if done % 20 == 0 or done == n_files:
+                log_info(f"phase 2: {done}/{n_files} files done")
+
+    return route_annotations
     return route_annotations
 
 

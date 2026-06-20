@@ -1,0 +1,23 @@
+id: find-servlet-endpoints
+language: java
+framework: servlet
+description: "Servlet 3.0+ 注解扫描"
+
+class_rules:
+  - id: web_servlet
+    pattern-either:
+      - pattern: "@javax.servlet.annotation.WebServlet($$$)"
+      - pattern: "@WebServlet($$$)"
+      - pattern: "@WebServlet"
+    role: servlet
+    http_method: ANY
+  - id: web_filter
+    pattern-either:
+      - pattern: "@javax.servlet.annotation.WebFilter($$$)"
+      - pattern: "@WebFilter($$$)"
+      - pattern: "@WebFilter"
+    role: filter
+    http_method: ANY
+
+method_rules: []
+param_rules: []

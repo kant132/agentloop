@@ -1,0 +1,21 @@
+id: find-rsocket-endpoints
+language: java
+framework: rsocket
+description: "Spring RSocket 消息映射扫描"
+
+class_rules:
+  - id: rsocket_controller
+    pattern-either:
+      - pattern: "@org.springframework.stereotype.Controller($$$)"
+      - pattern: "@Controller($$$)"
+      - pattern: "@Controller"
+    role: controller
+    http_method: ANY
+
+method_rules:
+  - id: rsocket_message_mapping
+    pattern-either:
+      - pattern: "@org.springframework.messaging.handler.annotation.MessageMapping($$$)"
+      - pattern: "@MessageMapping($$$)"
+      - pattern: "@MessageMapping"
+    http_method: RSOCKET

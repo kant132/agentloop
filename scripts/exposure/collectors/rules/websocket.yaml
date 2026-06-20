@@ -1,0 +1,27 @@
+id: find-websocket-endpoints
+language: java
+framework: websocket
+description: "Spring WebSocket 消息映射扫描"
+
+class_rules:
+  - id: websocket_controller
+    pattern-either:
+      - pattern: "@org.springframework.stereotype.Controller($$$)"
+      - pattern: "@Controller($$$)"
+      - pattern: "@Controller"
+    role: controller
+    http_method: ANY
+
+method_rules:
+  - id: message_mapping
+    pattern-either:
+      - pattern: "@org.springframework.messaging.handler.annotation.MessageMapping($$$)"
+      - pattern: "@MessageMapping($$$)"
+      - pattern: "@MessageMapping"
+    http_method: WS
+  - id: subscribe_mapping
+    pattern-either:
+      - pattern: "@org.springframework.messaging.handler.annotation.SubscribeMapping($$$)"
+      - pattern: "@SubscribeMapping($$$)"
+      - pattern: "@SubscribeMapping"
+    http_method: WS_SUB

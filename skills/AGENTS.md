@@ -1,34 +1,44 @@
 # AGENTS.md — skills/
 
-13 个 OpenCode skill 定义。每个子目录以 SKILL.md 为唯一入口。
+OpenCode skill 定义。每个子目录以 SKILL.md 为唯一入口。
 
-## 层次拓扑
+## 层次拓扑（两层架构）
 
 ```
-Tier 0  java-whitebox-loop (Boss入口)
-          │
-Tier 1  endpoint-supervisor (端点协调器)
-          │ 按需派发
-          ├── injection-audit      (注入类专家)
-          ├── auth-chain-audit     (鉴权链专家)
-          ├── business-logic-audit (业务逻辑专家)
-          ├── file-audit           (文件安全专家)
-          ├── login-audit          (登录安全专家)
-          └── poc-verify           (PoC验证专家)
-                    │
-Tier 3  工具/基础设施
-          ├── arthas-deploy → ssh-skill
-          ├── arthas-audit (578文件，99%是Arthas离线文档)
-          ├── playwright-skill
-          └── jadx-python-decompile
+主 agent (Boss) — 调度中心，加载 java-whitebox-loop skill
+  │
+  ├── 脚本工具: Phase 0-2（确定性工作，不需要 AI）
+  │     ├── Phase 0: check_core_tools.py + Memurai cleanup
+  │     ├── Phase 1: exposure/cli.py collect（9 collectors）
+  │     └── Phase 2: chain_builder.py → chains.db + Memurai 方法体缓存
+  │
+  ├── 专家 agent: Phase 3（AI 分析，通过 task() 委派）
+  │     ├── injection-audit      → SQL/CMD/XXE/SpEL/LDAP/反序列化
+  │     ├── auth-chain-audit     → Filter/Interceptor/JWT/OAuth/Session
+  │     ├── business-logic-audit → 竞态/流程绕过/IDOR/mass assignment
+  │     ├── file-audit           → 上传/下载/路径遍历/ZipSlip
+  │     └── login-audit          → 暴力破解/凭证/MFA/Session Fixation
+  │
+  └── 验证 agent: Phase 4（PoC，通过 task() 委派）
+        └── poc-verify           → CVSS 评分 + curl/arthas/SSH 验证
+
+工具/基础设施（按需调用）：
+  ├── arthas-deploy → ssh-skill
+  ├── arthas-audit (578文件，99%是Arthas离线文档)
+  ├── playwright-skill
+  └── jadx-python-decompile
 ```
 
-## 13 Skill 清单
+**关键变化**：
+- 去掉 endpoint-supervisor（主管层），Boss 直接对接专家
+- 不启动独立 opencode 子进程，主 agent 直接消费 chains.db + Memurai 数据
+- 专家 agent 通过 task() 委派，主 agent 整理好数据后发放
+
+## Skill 清单
 
 | Skill | 文件数 | 一行描述 |
 |-------|-------|---------|
-| `java-whitebox-loop` | 11 | Boss编排入口，驱动Phase A→D全流程，含rules/ |
-| `endpoint-supervisor` | 1 | 端点协调器，串行链→分析→专家→汇总 |
+| `java-whitebox-loop` | 11 | Boss编排入口，驱动Phase 0→4全流程，含rules/ |
 | `injection-audit` | 1 | SQL/CMD/XXE/SpEL/SSTI/LDAP/NoSQL/反序列化 |
 | `auth-chain-audit` | 1 | Filter顺序/路径归一化/JWT/OAuth2/Session |
 | `business-logic-audit` | 1 | 竞态/流程绕过/数值边界/mass assignment/IDOR |
@@ -41,26 +51,23 @@ Tier 3  工具/基础设施
 | `playwright-skill` | 1 | 浏览器自动化PoC验证 |
 | `jadx-python-decompile` | 1 | jar反编译（仅jar-only项目） |
 
+**已移除**：
+- `endpoint-supervisor` — 主管层已去掉，Boss 直接对接专家
+
 ## 核心控制逻辑
 
 `java-whitebox-loop/rules/` 下 3 个现行规则文件：
-- `phase-gates.md` — 4阶段门控(A枚举→B安全上下文→C链+审计→D收敛)
+- `phase-gates.md` — 4阶段门控(Phase 0→Phase 4)
 - `self-evolution.md` — 收敛条件、评分公式、知识合并
 - `pruning-and-keys.md` — L1/L2/L3剪枝 + Memurai key schema
-
-7 个 DEPRECATED 旧版规则（01-07编号）仍保留作为历史参考。
 
 ## 硬依赖约束
 
 - **Phase 0强制前置**：清Memurai缓存，保留knowledge:*
 - **三核心工具缺一不可**：codegraph/ast-grep/Memurai，缺失→exit 2
 - **arthas先部署后审计**：arthas-deploy产出arthas-config.json(status=active)后才能probe
-- **expert超时60s**：超时标expert_timeout，不阻塞流水线
-- **poc-verify不直接派发**：由poc-monitor.py守护轮询Memurai再dispatch
-
-## 悬空引用
-
-`endpoint-supervisor/SKILL.md`引用`skills/call-chain-audit-thinking/SKILL.md`(analyst)，但该目录**不存在**。当前analyst能力可能由agent直接执行或已废弃。
+- **专家 agent 通过 task() 委派**：主 agent 整理好数据后发放，不启动 opencode 子进程
+- **PoC 由主 agent 直接调度**：不再通过 poc-monitor.py 守护轮询
 
 ## 注意
 

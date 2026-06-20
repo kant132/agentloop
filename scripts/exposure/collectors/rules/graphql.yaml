@@ -1,0 +1,47 @@
+id: find-graphql-endpoints
+language: java
+framework: graphql
+description: "Spring GraphQL 路由扫描"
+
+class_rules:
+  - id: graphql_controller
+    pattern-either:
+      - pattern: "@org.springframework.stereotype.Controller($$$)"
+      - pattern: "@Controller($$$)"
+      - pattern: "@Controller"
+    role: controller
+    http_method: ANY
+
+method_rules:
+  - id: query_mapping
+    pattern-either:
+      - pattern: "@org.springframework.graphql.data.method.annotation.QueryMapping($$$)"
+      - pattern: "@QueryMapping($$$)"
+      - pattern: "@QueryMapping"
+    http_method: QUERY
+  - id: mutation_mapping
+    pattern-either:
+      - pattern: "@org.springframework.graphql.data.method.annotation.MutationMapping($$$)"
+      - pattern: "@MutationMapping($$$)"
+      - pattern: "@MutationMapping"
+    http_method: MUTATION
+  - id: subscription_mapping
+    pattern-either:
+      - pattern: "@org.springframework.graphql.data.method.annotation.SubscriptionMapping($$$)"
+      - pattern: "@SubscriptionMapping($$$)"
+      - pattern: "@SubscriptionMapping"
+    http_method: SUBSCRIPTION
+  - id: schema_mapping
+    pattern-either:
+      - pattern: "@org.springframework.graphql.data.method.annotation.SchemaMapping($$$)"
+      - pattern: "@SchemaMapping($$$)"
+      - pattern: "@SchemaMapping"
+    http_method: ANY
+
+param_rules:
+  - id: argument
+    pattern-either:
+      - pattern: "@org.springframework.graphql.data.method.annotation.Argument($$$)"
+      - pattern: "@Argument($$$)"
+      - pattern: "@Argument"
+    param_type: query

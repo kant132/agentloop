@@ -5,6 +5,9 @@
 javaparser_scanner 负责）。
 
 ast-grep 不可用时降级为 glob 全量扫描 .java 文件。
+
+定位 pattern 从 YAML 规则文件动态加载（class_rules + method_rules），
+不再硬编码注解名列表。新增框架只需添加 YAML 规则文件即可自动覆盖。
 """
 from __future__ import annotations
 
@@ -14,25 +17,32 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-# 快速定位 pattern（只匹配注解名，不解析参数；规则名短，扫描快）
-# 不复用 RuleLoader 的复杂 any: 规则——这里只需快速过滤候选文件
-_LOCATE_PATTERN = """language: java
-rule:
-  any:
-    - pattern: "@RestController"
-    - pattern: "@Controller"
-    - pattern: "@GetMapping"
-    - pattern: "@PostMapping"
-    - pattern: "@PutMapping"
-    - pattern: "@DeleteMapping"
-    - pattern: "@PatchMapping"
-    - pattern: "@RequestMapping"
-    - pattern: "@Path"
-    - pattern: "@GET"
-    - pattern: "@POST"
-    - pattern: "@PUT"
-    - pattern: "@DELETE"
-"""
+from .rule_loader import RuleLoader
+
+# 规则目录：与 route 模块同级
+_RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
+
+
+def _build_locate_pattern() -> str:
+    """从 YAML 规则文件动态构建 ast-grep 定位 pattern。
+
+    加载所有 class_rules + method_rules 的 pattern（含 pattern-either 展开），
+    生成 ast-grep any: 语法规则文件内容。空规则集返回 fallback 硬编码 pattern。
+    """
+    categorized = RuleLoader.load(_RULES_DIR)
+    yaml_content = RuleLoader.build_ast_grep_rule_yaml(categorized)
+    if yaml_content:
+        return yaml_content
+    # Fallback：无规则文件时使用最小注解集合
+    return (
+        "language: java\n"
+        "rule:\n"
+        "  any:\n"
+        "    - pattern: '@RestController'\n"
+        "    - pattern: '@Controller'\n"
+        "    - pattern: '@RequestMapping'\n"
+        "    - pattern: '@Path'\n"
+    )
 
 
 class FileLocator:
@@ -56,10 +66,12 @@ class FileLocator:
     @staticmethod
     def _locate_with_astgrep(project_root: Path) -> list[Path]:
         """用 ast-grep scan 定位文件（只取文件路径，不解析参数）。"""
+        locate_pattern = _build_locate_pattern()
+
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".yml", delete=False, encoding="utf-8"
         ) as tf:
-            tf.write(_LOCATE_PATTERN)
+            tf.write(locate_pattern)
             rule_file = tf.name
 
         try:

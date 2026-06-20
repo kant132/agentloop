@@ -1,0 +1,12 @@
+{
+  "asset_type": "env_filter",
+  "source": "offline (no ssh_target configured)",
+  "stats": {
+    "total": 0,
+    "reason": "offline_mode"
+  },
+  "errors": [],
+  "degraded": true,
+  "collected_at": "2026-06-20T15:55:58.404936+00:00",
+  "items": []
+}
