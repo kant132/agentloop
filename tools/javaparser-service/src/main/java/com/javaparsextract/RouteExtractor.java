@@ -75,36 +75,76 @@ public class RouteExtractor {
                 continue;
             }
 
-            FrameworkHandler h = findMatchingHandler(cls, cu);
-            String basePath = h != null ? h.extractClassBasePath(cls) : null;
-            if (basePath == null) continue;
+            // Find all matching handlers, try each until one produces routes
+            List<FrameworkHandler> matchingHandlers = findMatchingHandlers(cls, cu);
+            for (FrameworkHandler h : matchingHandlers) {
+                String basePath = h.extractClassBasePath(cls);
+                if (basePath == null) continue;
 
-            for (MethodDeclaration m : cls.getMethods()) {
-                for (AnnotationExpr ann : m.getAnnotations()) {
-                    String name = AnnotationUtils.getShortAnnotationName(ann);
-                    Optional<RouteResult> result = h.handleMethodAnnotation(name, ann, m, basePath, fqn);
-                    if (result.isPresent()) {
-                        routes.add(result.get().withFile(filePath).toMap());
-                        break;
-                    }
+                List<Map<String, Object>> classRoutes = extractRoutesFromClass(cls, basePath, fqn, filePath, h);
+                if (!classRoutes.isEmpty()) {
+                    routes.addAll(classRoutes);
+                    break; // Found routes with this handler, done
                 }
             }
         }
         return routes;
     }
 
-    private FrameworkHandler findMatchingHandler(ClassOrInterfaceDeclaration cls, CompilationUnit cu) {
+    private List<FrameworkHandler> findMatchingHandlers(ClassOrInterfaceDeclaration cls, CompilationUnit cu) {
+        List<FrameworkHandler> matched = new ArrayList<>();
         for (FrameworkHandler h : handlers) {
             if (h.isController(cls)) {
                 if (h == wsFramework && rsocketFramework != null
-                        && SpringRSocketFramework.hasRSocketImports(cu)) return rsocketFramework;
+                        && SpringRSocketFramework.hasRSocketImports(cu)) {
+                    matched.add(rsocketFramework);
+                    continue;
+                }
                 if (h == rsocketFramework && wsFramework != null
                         && !SpringRSocketFramework.hasRSocketImports(cu)
-                        && SpringWebSocketFramework.hasWebSocketImports(cu)) return wsFramework;
-                return h;
+                        && SpringWebSocketFramework.hasWebSocketImports(cu)) {
+                    matched.add(wsFramework);
+                    continue;
+                }
+                matched.add(h);
             }
         }
-        return null;
+        // Priority: JAX-RS (@Path is explicit) > Actuator (@Endpoint) > specific frameworks > Spring MVC (@Controller fallback)
+        matched.sort((a, b) -> {
+            int pa = priority(a.frameworkName());
+            int pb = priority(b.frameworkName());
+            return pa - pb;
+        });
+        return matched;
+    }
+
+    private int priority(String name) {
+        // Lower priority = tried first
+        if ("jaxrs".equals(name)) return 0;
+        if ("spring-actuator".equals(name)) return 1;
+        if ("servlet".equals(name)) return 2;
+        if ("spring-graphql".equals(name)) return 3;
+        if ("spring-websocket".equals(name)) return 4;
+        if ("spring-rsocket".equals(name)) return 5;
+        if ("spring-mvc".equals(name)) return 6; // Fallback — @Controller alone is ambiguous
+        return 7;
+    }
+
+    private List<Map<String, Object>> extractRoutesFromClass(
+            ClassOrInterfaceDeclaration cls, String basePath, String fqn,
+            String filePath, FrameworkHandler h) {
+        List<Map<String, Object>> classRoutes = new ArrayList<>();
+        for (MethodDeclaration m : cls.getMethods()) {
+            for (AnnotationExpr ann : m.getAnnotations()) {
+                String name = AnnotationUtils.getShortAnnotationName(ann);
+                Optional<RouteResult> result = h.handleMethodAnnotation(name, ann, m, basePath, fqn);
+                if (result.isPresent()) {
+                    classRoutes.add(result.get().withFile(filePath).toMap());
+                    break;
+                }
+            }
+        }
+        return classRoutes;
     }
 
     @SuppressWarnings("unchecked")
