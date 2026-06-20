@@ -64,9 +64,10 @@ public class RouteExtractor {
     private static final String JAKARTA_JAXRS_PREFIX = "jakarta.ws.rs.";
 
     /**
-     * 解析单个 Java 文件，提取所有路由端点，返回 JSON 字符串。
+     * 解析单个 Java 文件，提取所有路由端点，返回结构化数据（List<Map>）。
+     * 多线程汇总入口。无控制器注解 → 返回空 List。
      */
-    public static String extract(Path javaFile) throws IOException {
+    public static List<Map<String, Object>> extractFromFile(Path javaFile) throws IOException {
         CompilationUnit cu = StaticJavaParser.parse(Files.readString(javaFile));
         List<Map<String, Object>> routes = new ArrayList<>();
 
@@ -91,7 +92,15 @@ public class RouteExtractor {
             }
         }
 
-        return toJson(routes);
+        return routes;
+    }
+
+    /**
+     * 解析单个 Java 文件，提取所有路由端点，返回 JSON 字符串。
+     * 兼容旧调用入口（--routes file.java）。
+     */
+    public static String extract(Path javaFile) throws IOException {
+        return toJson(extractFromFile(javaFile));
     }
 
     // ==================== 类级基础路径 ====================
