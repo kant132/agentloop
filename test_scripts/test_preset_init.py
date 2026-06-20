@@ -12,7 +12,7 @@ _mod = load_script("audit", "preset-init.py")
 detect_from_pom = _mod.detect_from_pom
 detect_frameworks = _mod.detect_frameworks
 
-SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "..", "脚本", "audit", "preset-init.py")
+SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "..", "scripts", "audit", "preset-init.py")
 
 
 class PresetInitTests(unittest.TestCase):

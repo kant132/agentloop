@@ -9,7 +9,7 @@ from unittest import mock
 def _load_module():
     spec = importlib.util.spec_from_file_location(
         "redis_batch_prefetch",
-        os.path.join(os.path.dirname(__file__), "..", "脚本", "redis", "redis-batch-prefetch.py"),
+        os.path.join(os.path.dirname(__file__), "..", "scripts", "redis", "redis-batch-prefetch.py"),
     )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

@@ -2,7 +2,7 @@
 import importlib.util
 import os
 
-_SCRIPT_DIR = os.path.join(os.path.dirname(__file__), "..", "脚本")
+_SCRIPT_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 
 
 def load_script(subdir, filename):

@@ -13,7 +13,7 @@ from _loader import load_script  # noqa: E402
 _mod = load_script("audit", "force-rescan.py")
 force_rescan = _mod.force_rescan
 
-SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "..", "脚本", "audit", "force-rescan.py")
+SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "..", "scripts", "audit", "force-rescan.py")
 
 
 class ForceRescanTests(unittest.TestCase):

@@ -4,7 +4,7 @@ import sys
 import unittest
 from unittest import mock
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "脚本", "redis"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "redis"))
 
 from memurai_client import Memurai, MemuraiError  # noqa: E402
 

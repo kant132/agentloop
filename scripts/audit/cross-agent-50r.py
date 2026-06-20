@@ -54,7 +54,7 @@ _se = _load_self_evolution
 class PVE(ValueError):
     pass
 
-_REQUIRED = frozenset(["groupId", "projectRoot"])
+_REQUIRED = frozenset(["groupId", "projectRoot", "codegraphDb"])
 _DEFAULTS = dict(maxRounds=50, appPort=8080, loopDir="loop_audit",
                  epJsonl="external_endpoints/端点.jsonl",
                  sessionCookieName="JSESSIONID")
@@ -79,16 +79,35 @@ def _mc():
         return None
 
 def cleanup_memurai(gid: str) -> int:
+    """Delete session keys, preserve knowledge:* and merge errors:log."""
     c = _mc()
     if c is None: return -1
     try:
         keys = c.scan(f"{gid}:*", count=10000)
         if not keys: return 0
+        # Safety: all keys must belong to this groupId
         for k in keys:
             if not k.startswith(f"{gid}:"): return -1
-        n = c.delete(*keys)
-        logging.info("Memurai cleanup: %d keys", n)
-        return n
+
+        # Merge errors:log into knowledge:errors before deletion
+        err_log_key = f"{gid}:errors:log"
+        knowledge_err_key = f"{gid}:knowledge:errors"
+        err_log = c.get_json(err_log_key)
+        if err_log:
+            existing = c.get_json(knowledge_err_key) or []
+            if isinstance(existing, list) and isinstance(err_log, list):
+                merged = existing + err_log
+                c.set_json(knowledge_err_key, merged)
+
+        # Delete everything EXCEPT knowledge:* keys
+        preserve_prefix = f"{gid}:knowledge:"
+        to_delete = [k for k in keys if not k.startswith(preserve_prefix)]
+        if to_delete:
+            n = c.delete(*to_delete)
+            logging.info("Memurai cleanup: %d keys deleted (%d knowledge preserved)",
+                         n, len(keys) - len(to_delete))
+            return n
+        return 0
     except Exception as e:
         logging.error("Memurai cleanup failed: %s", e)
         return -1
@@ -369,6 +388,7 @@ def main() -> int:
         print(f"FATAL: {e}", file=sys.stderr); sys.exit(3)
 
     gid = preset["groupId"]; proj = Path(preset["projectRoot"])
+    db_path = Path(preset["codegraphDb"])
     max_r = a.max_rounds or preset.get("maxRounds", 50)
     ld = proj / preset.get("loopDir", "loop_audit")
     dd, lgd = ld / "diag", ld / "loop-log" / "cross-50r"
