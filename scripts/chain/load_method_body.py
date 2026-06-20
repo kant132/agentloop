@@ -24,20 +24,27 @@ from pathlib import Path
 
 # 路径设置
 _HERE = Path(__file__).resolve().parent
-_REPO_ROOT = _HERE.parent
+_REPO_ROOT = _HERE.parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "scripts" / "redis"))
+sys.path.insert(0, str(_REPO_ROOT / "scripts" / "chain"))
 
 from memurai_client import Memurai
 
 
 def load_single(memurai: Memurai, group_id: str, node_id: str) -> dict | None:
-    """加载单个 node 的方法体。"""
+    """加载单个 node 的方法体。加载时 INCR 计数。"""
     key = f"{group_id}:method:{node_id}"
     raw = memurai.get(key)
     if raw is None:
         return None
     try:
         data = json.loads(raw) if isinstance(raw, str) else raw
+        # INCR 计数（记录方法体被加载的次数）
+        count_key = f"{key}:count"
+        try:
+            memurai._run(["INCR", count_key], check_error=False)
+        except Exception:
+            pass
         return {
             "node_id": node_id,
             "fqn": data.get("fqn", ""),

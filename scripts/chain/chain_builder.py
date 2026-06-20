@@ -629,11 +629,12 @@ def build_chain(
         chain_for_prefetch = [
             {
                 "fqn": n.fqn,
-                "startLine": n.start_line,  # alias for field name mismatch
-                "line": n.start_line,       # fallback alias
+                "startLine": n.start_line,
+                "line": n.start_line,
                 "body": n.body,
                 "file": n.file,
                 "depth": n.depth,
+                "node_id": n.node_id,
             }
             for n in chain_nodes
         ]
@@ -1063,8 +1064,8 @@ def _build_argparser() -> argparse.ArgumentParser:
                    help="尝试连接 Memurai 并写缓存 (失败不阻塞)")
     p.add_argument("--memurai-host", default="localhost")
     p.add_argument("--memurai-port", type=int, default=6379)
-    p.add_argument("--ttl", type=int, default=86400,
-                   help="缓存 TTL 秒数 (默认 86400 = 24h)")
+    p.add_argument("--ttl", type=int, default=864000,
+                   help="缓存 TTL 秒数 (默认 864000 = 10天)")
     p.add_argument("--all-variants", action="store_true",
                    help="调用 build_all_chains_for_endpoint 而非 build_chain")
     p.add_argument("--loop-dir",

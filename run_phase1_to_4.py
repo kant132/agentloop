@@ -60,6 +60,20 @@ def main():
     log.info("limit: %d chains", args.limit)
     log.info("=" * 60)
 
+    # 连接 Memurai
+    sys.path.insert(0, str(REPO_ROOT / "scripts" / "redis"))
+    try:
+        from memurai_client import Memurai
+        memurai = Memurai(timeout=30.0)
+        if memurai.ping():
+            log.info("Memurai: ✅ 连接成功")
+        else:
+            log.warning("Memurai: PING 失败，方法体缓存不可用")
+            memurai = None
+    except Exception as e:
+        log.warning("Memurai 连接失败: %s", e)
+        memurai = None
+
     # ============================================================
     # Phase 1: 暴露面采集
     # ============================================================
@@ -164,6 +178,8 @@ def main():
                 db_path=db_path,
                 max_depth=20,
                 loop_audit_dir=loop_dir,
+                memurai_client=memurai,
+                ttl=864000,
             )
             elapsed = time.time() - t1
             total_nodes = result.get("total_nodes", 0)

@@ -47,8 +47,8 @@ def prefetch_chain(
     chain: List[Dict],
     group_id: str,
     chain_id: str,
-    method_ttl: int = 86400,  # 24h
-    prefetch_ttl: int = 3600,  # 1h
+    method_ttl: int = 864000,  # 10天
+    prefetch_ttl: int = 864000,  # 10天
 ) -> dict:
     """批量预取 chain 中所有方法到 Memurai。
 
@@ -68,6 +68,7 @@ def prefetch_chain(
     for m in chain:
         fqn = m["fqn"]
         start_line = m.get("startLine") or m.get("line") or 0
+        node_id = m.get("node_id", "")
         key = make_method_key(group_id, fqn, start_line)
 
         value = json.dumps({
@@ -79,9 +80,15 @@ def prefetch_chain(
             "class": m.get("class", ""),
             "depth": m.get("depth", 0),
             "sha256": hashlib.sha256(m.get("body", "").encode()).hexdigest(),
+            "node_id": node_id,
         }, ensure_ascii=False)
 
         method_keyvalues[key] = value
+
+        # 同时按 node_id 存一份（load_method_body.py 用这个 key）
+        if node_id:
+            node_key = f"{group_id}:method:{node_id}"
+            method_keyvalues[node_key] = value
         setex_items.append((key, method_ttl, value))
         chain_summary["methods"].append({
             "fqn": fqn,
