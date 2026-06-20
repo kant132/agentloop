@@ -49,6 +49,8 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 **主 agent 只读链元数据**（chain_path, node_path, priority, total_sinks, status），不加载方法体。
 **子 agent 自己加载方法体**，通过 task() 独立上下文，不与主 agent 共享。
 
+**子 agent 只分析方法体，不额外读源文件。** 方法体已含 `// #fqn` 注释标注所有非 groupId 调用，足够判断漏洞。禁止子 agent 用 Read/grep 探索项目源码目录。
+
 主 agent 提供给子 agent的数据：
 - `chain_id` — 链 ID
 - `endpoint_fqn` — 入口方法
@@ -71,6 +73,12 @@ python scripts/chain/load_method_body.py --group-id {groupId} --node-id "method:
 ```
 
 输出 JSON 数组，每个元素含 `fqn`, `node_id`, `body`（含 `// #fqn` 注释）, `depth`。
+
+**子 agent 约束**：
+1. 只用 `load_method_body.py` 加载方法体，不读源文件
+2. 只分析方法体内的 `// #fqn` 注释和数据流
+3. 基于方法体内容判断漏洞，不探索项目目录
+4. 返回结论文本（小，不传方法体回主 agent）
 
 #### 主 agent 调度逻辑
 
