@@ -37,7 +37,24 @@ import sys
 # ============================================================== 入口 fqn → id 解析
 
 def resolve_entry(db_path: str, entry_fqn: str) -> str | None:
-    """qualified_name (如 'pkg::Class::method') → nodes.id"""
+    """qualified_name (如 'pkg::Class::method') → nodes.id
+
+    自动兼容两种格式:
+    - 'pkg.Class#method' (route.json 格式) → 转换为 'pkg::Class::method'
+    - 'pkg::Class::method' (codegraph 原生格式) → 直接使用
+    """
+    # 格式转换: pkg.Class#method → pkg::Class::method
+    if "#" in entry_fqn and "::" not in entry_fqn:
+        parts = entry_fqn.rsplit("#", 1)
+        # parts[0] = "org.owasp.webgoat.container.HammerHead"
+        # 需要变成 "org.owasp.webgoat.container::HammerHead"
+        # 即把最后一个 . 换成 ::
+        dot_pos = parts[0].rfind(".")
+        if dot_pos > 0:
+            entry_fqn = parts[0][:dot_pos] + "::" + parts[0][dot_pos+1:] + "::" + parts[1]
+        else:
+            entry_fqn = parts[0] + "::" + parts[1]
+
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     row = cur.execute(
