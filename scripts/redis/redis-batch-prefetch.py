@@ -89,6 +89,7 @@ def prefetch_chain(
         if node_id:
             node_key = f"{group_id}:method:{node_id}"
             method_keyvalues[node_key] = value
+            setex_items.append((node_key, method_ttl, value))
         setex_items.append((key, method_ttl, value))
         chain_summary["methods"].append({
             "fqn": fqn,

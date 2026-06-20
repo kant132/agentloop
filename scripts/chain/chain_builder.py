@@ -606,7 +606,7 @@ def build_chain(
             for n in chain_nodes:
                 sink_num = len(n.sinks)
                 chain_path_parts.append(f"{n.fqn}(sink num: {sink_num})")
-                node_path_parts.append(f"method:{n.node_id}")
+                node_path_parts.append(n.node_id)
             chain_path_str = " -> ".join(chain_path_parts)
             node_path_str = " -> ".join(node_path_parts)
             db.insert_chain(
@@ -857,7 +857,7 @@ def build_all_chains_for_endpoint(
                 for n in r["chain"]:
                     sink_num = len(n.get("sinks", []))
                     chain_path_parts.append(f"{n['fqn']}(sink num: {sink_num})")
-                    node_path_parts.append(f"method:{n['node_id']}")
+                    node_path_parts.append(n['node_id'])
                 chains_to_insert.append({
                     "chain_id": f"{sig_hash}_{r.get('variant_index', 0)}",
                     "endpoint_fqn": entry_fqn,
