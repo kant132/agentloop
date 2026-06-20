@@ -1,31 +1,53 @@
 # -*- coding: utf-8 -*-
 """auth_code_collector.py — 认证鉴权代码采集器。
 
-单一职责：从 Java 源码识别认证鉴权相关代码（Filter/Interceptor/注解/Security配置/JWT/Shiro）。
+单一职责：从 Java 源码识别认证鉴权注解代码（@PreAuthorize / @PostAuthorize / @Secured /
+@RolesAllowed / SecurityConfig / JWT / Shiro），记录文件路径，缓存完整文件内容到 Memurai。
+
+不做：
+- 不检测 Filter/Interceptor（由 filter_collector 负责）
+- 不解析注解参数细节
+
 降级路径：ast-grep 不可用时用正则扫描 .java 文件。
+
+输出：
+- items: [{fqn, category, matched, file, line, is_custom, filter_order}]
+- Memurai 缓存: {groupId}:auth_code:{relative_file_path} → 完整文件内容
+- stats: {total, by_category, cached}
+
+参考 RFC-0001 §3.2 / AC-1
 """
 from __future__ import annotations
 
-import json, re, shutil, subprocess
+import hashlib
+import json
+import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
 from ..contracts import CollectorResult, ExposureContext
 from ..registry import register_collector
 
-# ── 关键字 → category 映射 ──
+
+# ── 关键字 → category 映射（不含 Filter/Interceptor，由 filter_collector 负责）──
 _KW2CAT: dict[str, str] = {
-    "Filter": "filter", "OncePerRequestFilter": "filter",
-    "GenericFilterBean": "filter",
-    "HandlerInterceptor": "interceptor",
-    "HandlerInterceptorAdapter": "interceptor",
-    "PreAuthorize": "annotation", "PostAuthorize": "annotation",
-    "Secured": "annotation", "RolesAllowed": "annotation",
-    "SecurityFilterChain": "config", "WebSecurityConfigurerAdapter": "config",
+    "PreAuthorize": "annotation",
+    "PostAuthorize": "annotation",
+    "Secured": "annotation",
+    "RolesAllowed": "annotation",
+    "SecurityFilterChain": "config",
+    "WebSecurityConfigurerAdapter": "config",
     "HttpSecurity": "config",
-    "JwtDecoder": "jwt", "JwtEncoder": "jwt",
-    "NimbusJwtDecoder": "jwt", "JwtUtil": "jwt",
-    "AuthorizingRealm": "shiro", "ShiroFilterFactoryBean": "shiro",
+    "EnableWebSecurity": "config",
+    "EnableGlobalMethodSecurity": "config",
+    "JwtDecoder": "jwt",
+    "JwtEncoder": "jwt",
+    "NimbusJwtDecoder": "jwt",
+    "JwtUtil": "jwt",
+    "AuthorizingRealm": "shiro",
+    "ShiroFilterFactoryBean": "shiro",
 }
 
 # ── 框架包前缀 → 非自定义 ──
@@ -34,17 +56,17 @@ _FW_PKGS = (
     "org.apache.shiro.", "io.jsonwebtoken.", "java.",
 )
 
-# ── 正则降级规则 ──
+# ── 正则规则（不含 Filter/Interceptor）──
 _RE_RULES: list[tuple[str, str]] = [
-    (r"implements\s+\w*Filter\b", "filter"),
-    (r"extends\s+OncePerRequestFilter\b", "filter"),
-    (r"implements\s+HandlerInterceptor\b", "interceptor"),
     (r"@PreAuthorize\b", "annotation"),
     (r"@PostAuthorize\b", "annotation"),
     (r"@Secured\b", "annotation"),
     (r"@RolesAllowed\b", "annotation"),
     (r"SecurityFilterChain\b", "config"),
     (r"WebSecurityConfigurerAdapter\b", "config"),
+    (r"HttpSecurity\b", "config"),
+    (r"@EnableWebSecurity\b", "config"),
+    (r"@EnableGlobalMethodSecurity\b", "config"),
     (r"JwtDecoder\b|JwtEncoder\b|NimbusJwtDecoder\b", "jwt"),
     (r"AuthorizingRealm\b|ShiroFilterFactoryBean\b", "shiro"),
 ]
@@ -66,7 +88,7 @@ _FQN_RE = re.compile(
 
 @register_collector("auth_code")
 class AuthCodeCollector:
-    """认证鉴权代码采集器：ast-grep 优先，正则降级。"""
+    """认证鉴权代码采集器：ast-grep 优先，正则降级，缓存文件内容。"""
     name = "auth_code_collector"
     asset_type = "auth_code"
 
@@ -75,16 +97,22 @@ class AuthCodeCollector:
         return True
 
     def collect(self, ctx: ExposureContext) -> CollectorResult:
+        """主采集入口：扫描认证鉴权代码，记录路径，缓存文件内容。"""
         use_ast = shutil.which("ast-grep") is not None
         items = self._scan_ast(ctx) if use_ast else self._scan_re(ctx)
+
+        # 缓存文件内容到 Memurai（去重：同一文件多个注解只缓存一次）
+        cached_count = self._cache_files(ctx, items)
+
         by_cat: dict[str, int] = {}
         for i in items:
             by_cat[i["category"]] = by_cat.get(i["category"], 0) + 1
+
         return CollectorResult(
             asset_type=self.asset_type,
             source="ast-grep" if use_ast else "regex",
             items=items,
-            stats={"total": len(items), "by_category": by_cat},
+            stats={"total": len(items), "by_category": by_cat, "cached": cached_count},
             degraded=not use_ast,
         )
 
@@ -154,7 +182,12 @@ class AuthCodeCollector:
         if not root.exists():
             return items
         for jf in root.rglob("*.java"):
-            txt = jf.read_text(encoding="utf-8", errors="replace")
+            if self._should_skip(jf):
+                continue
+            try:
+                txt = jf.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
             fqn = self._fqn(str(jf), None)
             for rp, cat in _RE_RULES:
                 for m in re.finditer(rp, txt):
@@ -167,6 +200,70 @@ class AuthCodeCollector:
                         "filter_order": self._extract_order(str(jf), ln),
                     })
         return items
+
+    # ----------------------------------------------------------
+    # Memurai 缓存（去重：同一文件只缓存一次）
+    # ----------------------------------------------------------
+    def _cache_files(
+        self, ctx: ExposureContext, items: list[dict[str, Any]]
+    ) -> int:
+        """缓存认证鉴权文件内容到 Memurai（同一文件多个注解只缓存一次）。"""
+        if not items:
+            return 0
+
+        # 去重：同一文件路径只缓存一次
+        seen_files: set[str] = set()
+        unique_items: list[dict[str, Any]] = []
+        for item in items:
+            f = item.get("file", "")
+            if f not in seen_files:
+                seen_files.add(f)
+                unique_items.append(item)
+
+        try:
+            from scripts.redis.memurai_client import Memurai
+            memurai = Memurai()
+        except (ImportError, Exception):
+            return 0
+
+        cached = 0
+        root = ctx.project_root
+        group_id = ctx.group_id
+
+        for item in unique_items:
+            file_path_str = item.get("file", "")
+            file_path = Path(file_path_str) if file_path_str else None
+            if not file_path or not file_path.exists():
+                # 尝试从 project_root 构建路径
+                if file_path_str:
+                    alt_path = root / file_path_str
+                    if alt_path.exists():
+                        file_path = alt_path
+                    else:
+                        continue
+                else:
+                    continue
+
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+
+            # 使用相对路径作为 key（如果 file 是绝对路径则转相对）
+            try:
+                rel_key = str(file_path.relative_to(root))
+            except ValueError:
+                rel_key = file_path_str
+
+            key = f"{group_id}:auth_code:{rel_key}"
+
+            try:
+                memurai.set(key, content)
+                cached += 1
+            except Exception:
+                continue
+
+        return cached
 
     # ── 工具方法 ──
     @staticmethod
@@ -201,3 +298,10 @@ class AuthCodeCollector:
             if m:
                 return int(m.group(1))
         return None
+
+    @staticmethod
+    def _should_skip(path: Path) -> bool:
+        """跳过无关目录中的文件。"""
+        parts = path.parts
+        skip_dirs = {"node_modules", ".git", "target", "build", "__pycache__", "generated"}
+        return any(p in skip_dirs for p in parts)

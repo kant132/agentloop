@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """test_auth_code_collector.py — auth_code_collector 单元测试。
 
-8 个测试覆盖：协议、元数据、ast-grep/regex 双路径、各类别检测。
+覆盖：协议、元数据、正则降级路径、注解检测、JWT/Shiro 检测、is_custom 分类、Memurai 缓存。
+
+不做：不再测试 Filter/Interceptor 检测（由 filter_collector 负责）。
 """
 from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -21,20 +23,9 @@ from scripts.exposure.collectors.auth_code_collector import AuthCodeCollector
 
 @pytest.fixture
 def tmp_project(tmp_path: Path) -> Path:
-    """最小 Java 测试项目：包含 Filter/注解/JWT。"""
+    """最小 Java 测试项目：包含注解/JWT/Shiro。不含 Filter（由 filter_collector 负责）。"""
     src = tmp_path / "src" / "main" / "java" / "com" / "example"
     src.mkdir(parents=True)
-    # Filter 实现
-    (src / "AuthFilter.java").write_text(
-        "package com.example;\n"
-        "import javax.servlet.Filter;\n"
-        "import org.springframework.core.annotation.Order;\n"
-        "@Order(1)\n"
-        "public class AuthFilter implements Filter {\n"
-        "  public void doFilter(...) {}\n"
-        "}\n",
-        encoding="utf-8",
-    )
     # @PreAuthorize 注解
     (src / "AdminController.java").write_text(
         "package com.example;\n"
@@ -53,7 +44,16 @@ def tmp_project(tmp_path: Path) -> Path:
         "public class CustomJwtDecoder implements JwtDecoder {}\n",
         encoding="utf-8",
     )
-    # 框架类（应标记 is_custom=False）— FQN 由文件路径推导，需放对目录
+    # Security 配置
+    (src / "SecurityConfig.java").write_text(
+        "package com.example;\n"
+        "@EnableWebSecurity\n"
+        "public class SecurityConfig {\n"
+        "  void configure(HttpSecurity http) {}\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    # 框架类（应标记 is_custom=False）
     shiro_src = tmp_path / "src" / "main" / "java" / "org" / "apache" / "shiro" / "realm"
     shiro_src.mkdir(parents=True)
     (shiro_src / "ShiroRealm.java").write_text(
@@ -111,14 +111,6 @@ class TestAvailability:
 
 
 class TestDetection:
-    def test_detect_filter_implementation(self, ctx):
-        """能检测 implements Filter。"""
-        with patch("shutil.which", return_value=None):
-            result = AuthCodeCollector().collect(ctx)
-        filters = [i for i in result.items if i["category"] == "filter"]
-        assert len(filters) >= 1
-        assert any("AuthFilter" in i["fqn"] for i in filters)
-
     def test_detect_pre_authorize_annotation(self, ctx):
         """能检测 @PreAuthorize 注解。"""
         with patch("shutil.which", return_value=None):
@@ -135,20 +127,30 @@ class TestDetection:
         assert len(jwts) >= 1
         assert any("JwtDecoder" in i["matched"] for i in jwts)
 
+    def test_detect_security_config(self, ctx):
+        """能检测 @EnableWebSecurity / SecurityFilterChain 配置。"""
+        with patch("shutil.which", return_value=None):
+            result = AuthCodeCollector().collect(ctx)
+        configs = [i for i in result.items if i["category"] == "config"]
+        assert len(configs) >= 1
+
+    def test_no_filter_detection(self, ctx):
+        """认证鉴权采集器不再检测 Filter（由 filter_collector 负责）。"""
+        src = ctx.project_root / "src" / "main" / "java" / "com" / "example"
+        (src / "MyFilter.java").write_text(
+            "package com.example;\npublic class MyFilter implements Filter {}\n",
+            encoding="utf-8",
+        )
+        with patch("shutil.which", return_value=None):
+            result = AuthCodeCollector().collect(ctx)
+        filters = [i for i in result.items if i["category"] == "filter"]
+        assert len(filters) == 0
+
 
 # ── 字段质量 ──
 
 
 class TestFieldQuality:
-    def test_detect_filter_order(self, ctx):
-        """能提取 @Order 值。"""
-        with patch("shutil.which", return_value=None):
-            result = AuthCodeCollector().collect(ctx)
-        filters = [i for i in result.items if i["category"] == "filter"]
-        ordered = [i for i in filters if i["filter_order"] is not None]
-        assert len(ordered) >= 1
-        assert ordered[0]["filter_order"] == 1
-
     def test_is_custom_classification(self, ctx):
         """com.example 包下为自定义，org.apache.shiro 包下非自定义。"""
         with patch("shutil.which", return_value=None):
@@ -159,3 +161,33 @@ class TestFieldQuality:
         assert any("com.example" in i["fqn"] for i in customs)
         assert len(frameworks) >= 1
         assert any("org.apache.shiro" in i["fqn"] for i in frameworks)
+
+
+# ── Memurai 缓存 ──
+
+
+class TestCaching:
+    def test_cached_stat_present(self, ctx):
+        """stats 应包含 cached 字段。"""
+        with patch("shutil.which", return_value=None):
+            result = AuthCodeCollector().collect(ctx)
+        assert "cached" in result.stats
+
+    def test_cache_graceful_failure(self, ctx):
+        """Memurai 不可用时 cached 应为 0。"""
+        with patch("shutil.which", return_value=None):
+            with patch("scripts.redis.memurai_client.Memurai", side_effect=ImportError):
+                result = AuthCodeCollector().collect(ctx)
+        assert result.stats["cached"] == 0
+
+    def test_dedup_caching(self, ctx):
+        """同一文件多个注解只缓存一次。"""
+        with patch("shutil.which", return_value=None):
+            with patch("scripts.redis.memurai_client.Memurai") as MockMemurai:
+                mock_instance = MagicMock()
+                MockMemurai.return_value = mock_instance
+                mock_instance.set = MagicMock()
+                result = AuthCodeCollector().collect(ctx)
+        # AdminController.java 可能有多个 @PreAuthorize 匹配，
+        # 但 set 调用次数应 <= 文件总数（去重）
+        assert result.stats["cached"] <= len({i["file"] for i in result.items})

@@ -1,12 +1,29 @@
 # -*- coding: utf-8 -*-
-"""db_schema_collector.py — 数据库结构推断采集器。
+"""db_schema_collector.py — 数据库结构文件采集器。
 
-从代码（JPA 实体 / MyBatis mapper / Jooq 生成类）推断数据库结构。
-不调 ast-grep、不连接真实数据库。
+单一职责：扫描 Java 项目中的数据库结构相关文件（JPA 实体 / MyBatis mapper / Jooq 生成类），
+记录文件路径，缓存完整文件内容到 Memurai 供后续 AI 分析。
+
+不做：
+- 不解析 JPA 实体提取列名
+- 不解析 MyBatis mapper 提取 result column
+- 不解析 Jooq 生成类提取表名
+
+采集来源：
+1. @Entity 注解的 Java 文件（JPA 实体）
+2. *Mapper.xml 文件（MyBatis mapper）
+3. *Table.java / Tables.java 含 org.jooq 的文件（Jooq 生成类）
+
+输出：
+- items: [{file, type, size_bytes, sha256}]
+- Memurai 缓存: {groupId}:db_schema:{relative_file_path} → 完整文件内容
+- stats: {total_files, by_type, cached}
+
+参考 RFC-0001 §3.2 / AC-1
 """
 from __future__ import annotations
 
-import re
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -14,104 +31,88 @@ from ..contracts import CollectorResult, ExposureContext
 from ..registry import register_collector
 
 
-_SENSITIVE_FIELD = re.compile(
-    r"(?:password|passwd|pwd|secret|token|api[-_]?key|"
-    r"private[-_]?key|priv[-_]?key|salt|credential)",
-    re.IGNORECASE,
-)
-_FIELD_AFTER_ANNOT = re.compile(
-    r"@(?:Column|Id)(?:\([^)]*\))?\s*(?:[\w<>,\s.]+?)\s+(\w+)\s*[;=,)]"
-)
-_TABLE_NAME = re.compile(r'@Table\s*\(\s*(?:name\s*=\s*)?"([^"]+)"')
-_ENTITY_CLASS = re.compile(r'(?:public\s+)?class\s+(\w+)\b')
-_PACKAGE = re.compile(r"^\s*package\s+([\w.]+)\s*;", re.MULTILINE)
-_MAPPER_NAMESPACE = re.compile(r'namespace\s*=\s*"([^"]+)"')
-_MAPPER_RESULT_COL = re.compile(
-    r'<(?:result|id)\s+[^>]*column\s*=\s*"([^"]+)"', re.IGNORECASE,
-)
-
-
 @register_collector("db_schema")
 class DbSchemaCollector:
-    """数据库结构采集器：JPA + MyBatis + Jooq。"""
+    """数据库结构文件采集器：扫描文件 → 记录路径 → 缓存文件内容。
+
+    依据 Collector 协议（contracts.py），实现 name/asset_type/collect/is_available。
+    """
     name = "db_schema_collector"
     asset_type = "db_schema"
 
     def is_available(self, ctx: ExposureContext) -> bool:
+        """无外部依赖，始终可用。"""
         return True
 
     def collect(self, ctx: ExposureContext) -> CollectorResult:
+        """主采集入口：扫描数据库结构相关文件，记录路径，缓存文件内容。"""
         root = ctx.project_root
-        items: list[dict[str, Any]] = []
-        if root.exists():
-            items.extend(self._scan_jpa_entities(root))
-            items.extend(self._scan_mybatis(root))
-            items.extend(self._scan_jooq(root))
+        if not root.exists():
+            return CollectorResult(
+                asset_type=self.asset_type,
+                source="file scan (JPA @Entity / MyBatis mapper.xml / Jooq generated)",
+                items=[],
+                stats={"total_files": 0, "by_type": {}, "cached": 0},
+            )
+
+        # 1. 扫描数据库结构相关文件
+        items = self._scan_files(root)
+
+        # 2. 缓存文件内容到 Memurai
+        cached_count = self._cache_files(ctx, items)
+
+        # 3. 统计
+        by_type: dict[str, int] = {}
+        for it in items:
+            t = it.get("type", "unknown")
+            by_type[t] = by_type.get(t, 0) + 1
+
         return CollectorResult(
             asset_type=self.asset_type,
             source="file scan (JPA @Entity / MyBatis mapper.xml / Jooq generated)",
             items=items,
             stats={
-                "total": len(items),
-                "by_source": self._count_by(items, "source"),
-                "sensitive_field_count": sum(
-                    1 for i in items if i.get("has_sensitive_field")
-                ),
+                "total_files": len(items),
+                "by_type": by_type,
+                "cached": cached_count,
             },
-            degraded=False,
         )
 
-    @staticmethod
-    def _scan_jpa_entities(root: Path) -> list[dict[str, Any]]:
-        out: list[dict[str, Any]] = []
+    # ----------------------------------------------------------
+    # 文件扫描
+    # ----------------------------------------------------------
+    def _scan_files(self, root: Path) -> list[dict[str, Any]]:
+        """扫描 JPA 实体、MyBatis mapper、Jooq 生成类文件，记录路径。"""
+        items: list[dict[str, Any]] = []
+
+        # JPA 实体：含 @Entity 注解的 .java 文件
         for f in root.rglob("*.java"):
+            if self._should_skip(f):
+                continue
             try:
                 text = f.read_text(encoding="utf-8", errors="ignore")
             except OSError:
                 continue
             if "@Entity" not in text:
                 continue
-            cols = DbSchemaCollector._extract_fields(text)
-            table_match = _TABLE_NAME.search(text)
-            out.append({
-                "source": "jpa_entity",
-                "entity_fqn": DbSchemaCollector._derive_fqn(f, text),
-                "table_name": table_match.group(1) if table_match else "",
-                "columns": cols,
-                "has_sensitive_field": any(c.get("sensitive") for c in cols),
-                "file": str(f),
-            })
-        return out
+            item = self._make_item(f, root, "jpa_entity")
+            if item:
+                items.append(item)
 
-    @staticmethod
-    def _scan_mybatis(root: Path) -> list[dict[str, Any]]:
-        out: list[dict[str, Any]] = []
+        # MyBatis mapper：*Mapper.xml 文件
         for f in root.rglob("*.xml"):
+            if self._should_skip(f):
+                continue
             if not f.name.lower().endswith("mapper.xml"):
                 continue
-            try:
-                text = f.read_text(encoding="utf-8", errors="ignore")
-            except OSError:
-                continue
-            ns_match = _MAPPER_NAMESPACE.search(text)
-            cols = [
-                {"name": c, "sensitive": bool(_SENSITIVE_FIELD.search(c))}
-                for c in _MAPPER_RESULT_COL.findall(text)
-            ]
-            out.append({
-                "source": "mybatis_mapper",
-                "entity_fqn": ns_match.group(1) if ns_match else f.stem,
-                "table_name": f.stem.removesuffix("Mapper"),
-                "columns": cols,
-                "has_sensitive_field": any(c["sensitive"] for c in cols),
-                "file": str(f),
-            })
-        return out
+            item = self._make_item(f, root, "mybatis_mapper")
+            if item:
+                items.append(item)
 
-    @staticmethod
-    def _scan_jooq(root: Path) -> list[dict[str, Any]]:
-        out: list[dict[str, Any]] = []
+        # Jooq 生成类：*Table.java / Tables.java 含 org.jooq 的文件
         for f in root.rglob("*.java"):
+            if self._should_skip(f):
+                continue
             if not (f.name.endswith("Table.java") or f.name == "Tables.java"):
                 continue
             try:
@@ -120,44 +121,93 @@ class DbSchemaCollector:
                 continue
             if "org.jooq" not in text:
                 continue
-            cls_match = _ENTITY_CLASS.search(text)
-            if not cls_match:
+            item = self._make_item(f, root, "jooq")
+            if item:
+                items.append(item)
+
+        return items
+
+    def _make_item(self, f: Path, root: Path, type_tag: str) -> dict[str, Any] | None:
+        """构造单个 item：记录相对路径、类型、大小、sha256。"""
+        try:
+            relative = f.relative_to(root)
+        except ValueError:
+            return None
+
+        sha256 = self._compute_sha256(f)
+        try:
+            size_bytes = f.stat().st_size
+        except OSError:
+            size_bytes = 0
+
+        return {
+            "file": str(relative),
+            "type": type_tag,
+            "size_bytes": size_bytes,
+            "sha256": sha256,
+        }
+
+    # ----------------------------------------------------------
+    # Memurai 缓存
+    # ----------------------------------------------------------
+    def _cache_files(
+        self, ctx: ExposureContext, items: list[dict[str, Any]]
+    ) -> int:
+        """缓存数据库结构文件内容到 Memurai。"""
+        if not items:
+            return 0
+
+        try:
+            from scripts.redis.memurai_client import Memurai
+            memurai = Memurai()
+        except (ImportError, Exception):
+            return 0
+
+        cached = 0
+        root = ctx.project_root
+        group_id = ctx.group_id
+
+        for item in items:
+            file_path = root / item["file"]
+            if not file_path.exists():
                 continue
-            out.append({
-                "source": "jooq",
-                "entity_fqn": DbSchemaCollector._derive_fqn(f, text),
-                "table_name": cls_match.group(1).removesuffix("Table"),
-                "columns": [],
-                "has_sensitive_field": False,
-                "file": str(f),
-            })
-        return out
 
-    @staticmethod
-    def _extract_fields(java_text: str) -> list[dict[str, Any]]:
-        seen: set[str] = set()
-        cols: list[dict[str, Any]] = []
-        for m in _FIELD_AFTER_ANNOT.finditer(java_text):
-            name = m.group(1)
-            if name in seen or name in {"get", "set", "is", "return"}:
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
                 continue
-            seen.add(name)
-            cols.append({
-                "name": name,
-                "sensitive": bool(_SENSITIVE_FIELD.search(name)),
-            })
-        return cols
 
-    @staticmethod
-    def _derive_fqn(f: Path, java_text: str) -> str:
-        pkg_match = _PACKAGE.search(java_text)
-        pkg = pkg_match.group(1) if pkg_match else ""
-        return f"{pkg}.{f.stem}" if pkg else f.stem
+            key = f"{group_id}:db_schema:{item['file']}"
 
+            try:
+                memurai.set(key, content)
+                cached += 1
+            except Exception:
+                continue
+
+        return cached
+
+    # ----------------------------------------------------------
+    # sha256 计算
+    # ----------------------------------------------------------
     @staticmethod
-    def _count_by(items: list[dict[str, Any]], key: str) -> dict[str, int]:
-        out: dict[str, int] = {}
-        for it in items:
-            v = str(it.get(key, ""))
-            out[v] = out.get(v, 0) + 1
-        return out
+    def _compute_sha256(fp: Path) -> str:
+        """计算文件 sha256 哈希值（hex digest）。"""
+        h = hashlib.sha256()
+        try:
+            with open(fp, "rb") as f:
+                for chunk in iter(lambda: f.read(8192), b""):
+                    h.update(chunk)
+        except OSError:
+            return ""
+        return h.hexdigest()
+
+    # ----------------------------------------------------------
+    # 辅助
+    # ----------------------------------------------------------
+    @staticmethod
+    def _should_skip(path: Path) -> bool:
+        """跳过测试文件和生成代码。"""
+        parts = path.parts
+        skip_dirs = {"test", "tests", "target", "build", "generated", "node_modules", ".git"}
+        return any(part in skip_dirs for part in parts)

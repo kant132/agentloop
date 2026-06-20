@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """config_collector.py — 配置文件采集器。
 
-单一职责：扫描 Java 项目配置文件，记录文件路径和元信息到 JSON。
-不复制文件，AI 分析时直接读原文件。
+单一职责：扫描 Java 项目配置文件，记录文件路径和元信息到 JSON，
+缓存完整文件内容到 Memurai 供后续 AI 分析。
 
 采集来源：
 1. application.yml / application.yaml / application-*.yml / application-*.yaml
@@ -11,16 +11,15 @@
 4. *.xml（spring 配置、web.xml）
 
 输出：
-- {exposure_dir}/config.json：配置文件清单（路径、类型、大小、sha256、敏感标记）
+- {exposure_dir}/config.json: 配置文件清单（路径、类型、大小、sha256、敏感标记）
+- Memurai 缓存: {groupId}:config:{relative_file_path} → 完整文件内容
 
 参考 RFC-0001 §3.2 / AC-1
 """
 from __future__ import annotations
 
 import hashlib
-import json
 import re
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -60,9 +59,8 @@ _SECRET_PATTERNS = re.compile(
 
 @register_collector("config")
 class ConfigCollector:
-    """配置文件采集器：扫描配置文件，记录路径和元信息。
+    """配置文件采集器：扫描配置文件，记录路径和元信息，缓存文件内容。
 
-    不复制文件，只在 JSON 中记录原始路径。AI 分析时直接读原文件。
     依据 Collector 协议（contracts.py），实现 name/asset_type/collect/is_available。
     """
     name = "config_collector"
@@ -73,12 +71,12 @@ class ConfigCollector:
         return True
 
     def collect(self, ctx: ExposureContext) -> CollectorResult:
-        """主采集入口：扫描项目根下所有配置文件，记录路径和元信息。"""
+        """主采集入口：扫描项目根下所有配置文件，记录路径和元信息，缓存文件内容。"""
         root = ctx.project_root
         if not root.exists():
             return CollectorResult(
                 asset_type=self.asset_type, source="config file scan",
-                items=[], stats={"total_files": 0, "by_type": {}, "secrets_detected": 0},
+                items=[], stats={"total_files": 0, "by_type": {}, "secrets_detected": 0, "cached": 0},
             )
 
         # 收集所有配置文件路径
@@ -92,6 +90,9 @@ class ConfigCollector:
             item = self._process_file(fp, root)
             if item is not None:
                 items.append(item)
+
+        # 缓存文件内容到 Memurai
+        cached_count = self._cache_files(ctx, items)
 
         # 统计
         secret_count = sum(1 for it in items if it.get("contains_secret"))
@@ -108,6 +109,7 @@ class ConfigCollector:
                 "total_files": len(items),
                 "by_type": by_type,
                 "secrets_detected": secret_count,
+                "cached": cached_count,
             },
         )
 
@@ -177,6 +179,46 @@ class ConfigCollector:
             "sha256": sha256,
             "contains_secret": contains_secret,
         }
+
+    # ----------------------------------------------------------
+    # Memurai 缓存
+    # ----------------------------------------------------------
+    def _cache_files(
+        self, ctx: ExposureContext, items: list[dict[str, Any]]
+    ) -> int:
+        """缓存配置文件内容到 Memurai。"""
+        if not items:
+            return 0
+
+        try:
+            from scripts.redis.memurai_client import Memurai
+            memurai = Memurai()
+        except (ImportError, Exception):
+            return 0
+
+        cached = 0
+        root = ctx.project_root
+        group_id = ctx.group_id
+
+        for item in items:
+            file_path = root / item["file"]
+            if not file_path.exists():
+                continue
+
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+
+            key = f"{group_id}:config:{item['file']}"
+
+            try:
+                memurai.set(key, content)
+                cached += 1
+            except Exception:
+                continue
+
+        return cached
 
     # ----------------------------------------------------------
     # 敏感检测（文件级）

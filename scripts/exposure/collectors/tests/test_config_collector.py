@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """test_config_collector.py — config_collector 的单元测试。
 
-测试 ConfigCollector 的行为契约（路径记录模式）：
+测试 ConfigCollector 的行为契约（路径记录 + Memurai 缓存）：
 1. implements_collector_protocol
 2. has_correct_metadata
 3. is_available（始终 True）
@@ -13,12 +13,14 @@
 9. stats_by_type_correct
 10. collect_no_project_dir
 11. file_type_mapping
+12. cached_stat_present
+13. cache_graceful_failure
 """
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import sys
@@ -219,6 +221,17 @@ class TestStatsCorrectness:
         result = ConfigCollector().collect(bad_ctx)
         assert result.stats["total_files"] == 0
         assert result.items == []
+
+    def test_cached_stat_present(self, ctx):
+        """stats 应包含 cached 字段。"""
+        result = ConfigCollector().collect(ctx)
+        assert "cached" in result.stats
+
+    def test_cache_graceful_failure(self, ctx):
+        """Memurai 不可用时 cached 应为 0。"""
+        with patch("scripts.redis.memurai_client.Memurai", side_effect=ImportError):
+            result = ConfigCollector().collect(ctx)
+        assert result.stats["cached"] == 0
 
 
 # ============================================================
