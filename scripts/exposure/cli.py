@@ -91,16 +91,47 @@ def cmd_collect(args: argparse.Namespace) -> int:
                 "asset_type": asset_type,
                 "status": "ok",
                 "count": total,
+                "cached": result.stats.get("cached", result.stats.get("cached_to_memurai", 0)),
                 "degraded": result.degraded,
                 "errors": len(result.errors),
             }
         )
 
     summary_file = out_dir / "_summary.json"
+    
+    # 构建综合统计（按资源类型汇总）
+    overview = {}
+    total_assets = 0
+    total_cached = 0
+    for entry in summary:
+        if entry.get("status") != "ok":
+            continue
+        at = entry["asset_type"]
+        count = entry["count"]
+        total_assets += count
+        cached = entry.get("cached", 0)
+        total_cached += cached
+        overview[at] = {
+            "count": count,
+            "cached": cached,
+            "degraded": entry.get("degraded", False),
+        }
+    
+    full_summary = {
+        "overview": {
+            "total_assets": total_assets,
+            "total_cached": total_cached,
+            "by_type": overview,
+        },
+        "collectors": summary,
+    }
     summary_file.write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+        json.dumps(full_summary, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     print(f"\n[done] 汇总 → {summary_file}")
+    print(f"       总资产: {total_assets} | 缓存: {total_cached}")
+    for at, info in sorted(overview.items()):
+        print(f"       {at}: {info['count']} 条 (缓存 {info['cached']})")
     return 0
 
 
