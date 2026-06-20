@@ -1,88 +1,88 @@
 ---
 name: java-whitebox-loop
-description: "Java 白盒审计顶层入口。主 agent 作为调度中心，脚本产数据 + AI 直接消费。触发词:`白盒审计` / `启动审计` / `安全审计编排`。"
+description: "Java 白盒审计顶层入口。主 agent 作为调度中心，按链特征分发专家。触发词:`白盒审计` / `启动审计` / `安全审计编排`。"
 ---
 
 # Java 白盒审计 — 入口契约
 
-> 两层架构：主 agent (Boss) → 专家 agent。不启动独立 opencode 子进程。
-
-## 调用 & 触发
-
-- **脚本执行 Phase 0-2**: `python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --limit 100`
-- **主 agent 执行 Phase 3-4**: 加载本 skill 后，从 chains.db 取 batch，分析+验证
-
-## Phase 0 — Pre-flight: 清空上轮缓存 (MANDATORY)
-
-```powershell
-$keys = memurai-cli --raw KEYS "{group_id}:*" | Where-Object { $_ -notmatch "^{group_id}:knowledge:" }
-if ($keys.Count -gt 0) {
-    $keys | ForEach-Object { memurai-cli DEL $_ }
-    Write-Host "[Phase 0] Cleared $($keys.Count) cache keys for {group_id}"
-}
-```
+> 两层架构：主 agent (Boss) → 专家 agent (通过 task() 委派，subagent 加载对应 skill)
 
 ## 工作流
 
 ### Phase 0-2: 脚本执行（确定性工作）
-
-主 agent 调用脚本，产 chains.db + Memurai 缓存：
 
 ```powershell
 python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --limit 100
 ```
 
 产出：
-- `exposure/*.json` — 9 类资产（route/config/filter/db_schema/waf/auth_code/sensitive_info/codegraph/env_filter）
-- `chains.db` — 调用链 SQLite（chain_path + node_path + priority + status）
+- `exposure/*.json` — 9 类资产
+- `chains.db` — 调用链 SQLite（chain_path + node_path + priority + status + total_sinks）
 - Memurai: `{groupId}:method:{fqn}#{startline}` — 方法体缓存（含 `// #fqn` 注释）
-- Memurai: `{groupId}:config:{file}` / `{groupId}:filter:{file}` / `{groupId}:waf:{file}` — 文件缓存
+- Memurai: `{groupId}:filter:{file}` / `{groupId}:config:{file}` / `{groupId}:waf:{file}` — 文件缓存
 
-### Phase 3: AI 分析（主 agent 直接消费）
+### Phase 3: 主 agent 分发审计
 
-主 agent 从 chains.db 批量取链，按链特征分发给专家 agent：
+主 agent 从 chains.db 批量取链，按以下规则分发：
+
+#### 分发规则
+
+| 专家 skill | 触发条件 | 审计范围 |
+|-----------|---------|---------|
+| `injection-audit` | chain 有 sink（total_sinks > 0），sink 不涉及文件路径 | **所有**有 sink 的链 |
+| `file-audit` | chain 的 sink 涉及文件路径（path_traversal/file_upload） | 所有涉及文件路径的链 |
+| `auth-chain-audit` | 每个 endpoint 调 1 次 | **前 5 层**（depth < 5），**1 条链** |
+| `business-logic-audit` | 每个 endpoint 调 1 次 | **前 5 层**（depth < 5），**1 条链** |
+
+#### 判断逻辑
+
+主 agent 判断每条链：
+1. chain 的 `total_sinks > 0` → 有 sink
+2. chain 的 sink 涉及文件路径 → subagent 加载 `file-audit` skill
+3. chain 的 sink 不涉及文件路径 → subagent 加载 `injection-audit` skill
+4. 每个 endpoint 只调 1 次 `auth-chain-audit`（取优先级最高的链，前 5 层）
+5. 每个 endpoint 只调 1 次 `business-logic-audit`（取优先级最高的链，前 5 层）
+6. chain 无 sink → 不调注入类 agent，只走认证鉴权 + 业务逻辑
+
+#### 方法体加载
+
+主 agent 提供工具给 subagent 按需加载方法体：
 
 ```python
+# 主 agent 从 chains.db 取链
 from chain_db import ChainDB
 db = ChainDB("{loop_audit_dir}/chains.db")
-batch = db.batch_by_priority(limit=100, status="pending")
 
-for chain in batch:
-    # 从 node_path 解析 node_id，从 Memurai 加载方法体
-    node_ids = chain["node_path"].split(" -> ")
-    # 每个 node_id 对应 Memurai key: {groupId}:method:{node_id}
-    
-    # 按链特征分发专家：
-    # - sink_categories 含 injection.sql → injection-audit
-    # - sink_categories 含 path_traversal → file-audit
-    # - filter 链 → auth-chain-audit
-    # - 无明显 sink → business-logic-audit
-    
-    # 专家返回结论后写回 chains.db
-    db.update_status(chain["chain_id"], "analyzed")  # 或 "vuln" / "safe"
+# 取所有有 sink 的链（注入类 + 文件类）
+all_chains = db.batch_by_priority(limit=100, status="pending")
+sink_chains = [c for c in all_chains if c["total_sinks"] > 0]
+
+# 按 endpoint 分组，每个 endpoint 取 1 条链（认证鉴权 + 业务逻辑）
+endpoints_seen = set()
+auth_chains = []
+biz_chains = []
+for c in all_chains:
+    ep = c["endpoint_fqn"]
+    if ep not in endpoints_seen:
+        endpoints_seen.add(ep)
+        auth_chains.append(c)  # 取前 5 层
+        biz_chains.append(c)   # 取前 5 层
 ```
 
-### Phase 4: PoC 验证（主 agent 直接调度）
-
-主 agent 取已分析链，生成 PoC，验证：
-
+Subagent 加载方法体：
 ```python
-vuln_chains = db.batch_by_priority(limit=100, status="vuln")
-for chain in vuln_chains:
-    # 生成 PoC payload
-    # 验证（curl / arthas / SSH）
-    # 写回最终状态
-    db.update_status(chain["chain_id"], "safe")  # 或保持 "vuln"
+# 从 node_path 解析 node_id
+node_ids = chain["node_path"].split(" -> ")
+# 从 Memurai 加载方法体
+for nid in node_ids[:5]:  # 前 5 层
+    body = memurai.get(f"{groupId}:method:{nid}")
 ```
 
-### 收敛判定
+### Phase 4: PoC 验证
 
-```python
-stats = db.stats()
-# 4-AND: avg_score≥85, stddev<3, reconcile≥10, coverage≥0.95
-```
+取 `status=vuln` 的链 → 生成 PoC → 验证 → 写回 chains.db
 
-## 必读 Rules (≤5 个文件，启动时一次读完)
+## 必读 Rules
 
 1. **`rules/entry-contract.md`** — 调用方式、preset 参数、产出清单
 2. **`rules/phase-gates.md`** — 4阶段入口/出口/失败回退

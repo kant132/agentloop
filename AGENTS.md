@@ -141,32 +141,41 @@ Audit terminates when ALL are true simultaneously:
 - **Do NOT create new project knowledge in shared `types/`** without dedup check (similarity > 0.7 → reuse).
 - **Do NOT modify tool flow/scripts except via a dedicated tool sub-agent** — only the Boss agent authorizes modifications, and they must not overfit to one project.
 
-## Agent Architecture (Two-Layer)
+## Agent Architecture (Two-Layer, Skill-Based)
 
 ```
-主 agent (Boss) — 调度中心
+主 agent (Boss) — 调度中心，加载 java-whitebox-loop skill
   │
-  ├── 脚本工具: Phase 0-2（确定性工作）
+  ├── 脚本工具: Phase 0-2（确定性工作，不需要 AI）
   │     ├── Phase 0: check_core_tools.py + Memurai cleanup
   │     ├── Phase 1: exposure/cli.py collect（9 collectors → exposure/*.json）
   │     └── Phase 2: chain_builder.py → chains.db + Memurai 方法体缓存
   │
-  ├── 专家 agent: Phase 3（AI 分析）
-  │     主 agent 从 chains.db batch_by_priority(limit=100) 取链
-  │     从 Memurai 加载方法体（含 #fqn 注释）
-  │     按链特征分发给专家：
-  │     ├── injection-audit      → SQL/CMD/XXE/SpEL/LDAP/反序列化
-  │     ├── auth-chain-audit     → Filter/Interceptor/JWT/OAuth/Session
-  │     ├── business-logic-audit → 竞态/流程绕过/IDOR/mass assignment
-  │     ├── file-audit           → 上传/下载/路径遍历/ZipSlip
-  │     └── login-audit          → 暴力破解/凭证/MFA/Session Fixation
+  ├── 专家 agent: Phase 3（通过 task() 委派，subagent 加载对应 skill）
+  │     主 agent 从 chains.db 取链，按链特征分发：
+  │
+  │     ┌─────────────────────────────────────────────────────────┐
+  │     │ chain 有 sink?                                          │
+  │     │   ├── 涉及文件路径 → file-audit skill (所有有 sink 链)  │
+  │     │   └── 不涉及文件路径 → injection-audit skill (所有有 sink 链) │
+  │     │ chain 无 sink → 不调注入/文件类                          │
+  │     │                                                         │
+  │     │ 每个 endpoint:                                          │
+  │     │   ├── auth-chain-audit (前 5 层, 1 条链)                │
+  │     │   └── business-logic-audit (前 5 层, 1 条链)            │
+  │     └─────────────────────────────────────────────────────────┘
   │
   └── 验证 agent: Phase 4（PoC）
-        主 agent 收集专家结论 → 生成 PoC → 验证 → 写回 chains.db status
+        取 status=vuln 的链 → 生成 PoC → 验证 → 写回 chains.db status
 ```
 
 **关键设计**：
+- **skill 机制**，不是 prompt 机制 — 主 agent 根据需要加载 skill，subagent 加载对应专家 skill
 - 不启动独立 opencode 子进程 — 主 agent 直接消费 chains.db + Memurai 数据
 - 主 agent 保持完整上下文 — 知道 Phase 1 发现了什么，Phase 2 构建了什么
-- 专家 agent 通过 task() 委派 — 主 agent 整理好数据后发放给专家
+- 专家 agent 通过 task() 委派 — 主 agent 整理好数据后发放
 - 专家返回结论后主 agent 写回 chains.db — status: pending → analyzed → vuln/safe
+- **注入类**：审计所有有 sink 的链
+- **文件类**：涉及文件路径的链，subagent 加载 file-audit skill
+- **认证鉴权 + 业务逻辑**：每个 endpoint 只调 1 次，只审计前 5 层，只审计 1 条链
+- **无 sink 的链**：不调注入类 agent，只走认证鉴权 + 业务逻辑
