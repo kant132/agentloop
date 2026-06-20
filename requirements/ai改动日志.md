@@ -762,4 +762,70 @@ groupId=org.owasp.webgoat projectRoot=D:\code\WebGoat-2025.3 loopDir=D:\agentloo
 
 ---
 
+### 2026-06-20 config_collector 重构 + filter_collector 新增 + hotspot_ranker 删除
+
+**需求维度**: Phase 1 暴露面采集优化（AR-03）
+
+**目的**:
+1. config_collector 不再复制文件，只记录文件路径（AI 直接读原文件即可）
+2. 新增 filter_collector 扫描 Filter/Interceptor 类并缓存到 Memurai
+3. 删除 hotspot_ranker（不在原子需求中，AR-09 priority_calculator 已覆盖端点排序）
+
+**行为**:
+
+**config_collector 重构**:
+- 删除文件复制逻辑（`shutil.copy2`）
+- 删除 `config/` 目录创建和 `config-manifest.json` 生成
+- `_process_file()` 简化为只记录路径和元信息（file, file_type, size_bytes, sha256, contains_secret）
+- 输出字段从 `original_path`/`copied_path`/`relative_path` 简化为 `file`（相对路径）
+- 更新 15 个测试用例匹配新行为
+
+**filter_collector 新增**:
+- 新建 `scripts/exposure/collectors/filter_collector.py`（330 行）
+- 使用 ast-grep 扫描 Java Filter/Interceptor 类：
+  - `javax.servlet.Filter` / `jakarta.servlet.Filter` 实现类
+  - `OncePerRequestFilter` / `GenericFilterBean` 子类
+  - `HandlerInterceptor` / `HandlerInterceptorAdapter` 实现类
+  - `@WebFilter` 注解类
+- 排除框架代码（`javax.*`, `jakarta.*`, `org.springframework.*`, `org.apache.shiro.*`）
+- 记录文件路径到 `filters.json`
+- 缓存完整文件内容到 Memurai：`{groupId}:filter:{file_path}` → 文件内容
+- 新增 11 个测试用例（全部通过）
+
+**hotspot_ranker 删除**:
+- 删除 `scripts/exposure/hotspot_ranker.py`（53 行）
+- 删除 `scripts/exposure/tests/test_hotspot_ranker.py`
+- 从 `cli.py` 移除 `rank` 子命令
+- 从 `contracts.py` 移除 `Ranker` 协议
+- 更新 `__init__.py` 模块列表
+
+**验证结果**:
+- `pytest scripts/exposure/collectors/tests/` → 131 passed, 1 skipped
+- config_collector: 15 tests passed
+- filter_collector: 11 tests passed
+- 其他 collector 测试无回归
+
+**影响范围**:
+- `scripts/exposure/collectors/config_collector.py` — 重构为只记录路径
+- `scripts/exposure/collectors/filter_collector.py` — 新增（330 行）
+- `scripts/exposure/collectors/tests/test_config_collector.py` — 更新测试（15 个）
+- `scripts/exposure/collectors/tests/test_filter_collector.py` — 新增测试（11 个）
+- `scripts/exposure/collectors/tests/test_route_collector.py` — 更新 HTTP method 白名单（新增 QUERY/MUTATION/SUBSCRIPTION/RSOCKET/WS_SUB）
+- `scripts/exposure/hotspot_ranker.py` — 删除
+- `scripts/exposure/tests/test_hotspot_ranker.py` — 删除
+- `scripts/exposure/cli.py` — 移除 `rank` 子命令
+- `scripts/exposure/contracts.py` — 移除 `Ranker` 协议
+- `scripts/exposure/__init__.py` — 更新模块列表
+- `design-docs/原子需求-v2.md` — AR-03 从 "8 类资产" 更新为 "9 类资产"
+
+**原子需求状态更新**:
+- AR-03（9 类资产采集）: ✅（新增 filter collector）
+
+**Git 提交**:
+- `9099606` refactor(config_collector): record file paths only, no file copying
+- `5649977` refactor(exposure): remove hotspot_ranker (not in requirements)
+- `1670423` feat(exposure): add filter_collector for Filter/Interceptor scanning
+
+---
+
 (End of file - total 706 lines)
