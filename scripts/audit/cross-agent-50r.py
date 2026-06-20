@@ -489,7 +489,7 @@ def main() -> int:
                     sink_count = 0
                     preset_count = 0
                     if se_client and meta["fqn"]:
-                        chain_key = f"{gid}:audit:chain:{hashlib.sha256(meta['fqn'].encode())[:16].decode()}"
+                        chain_key = f"{gid}:audit:chain:{hashlib.sha256(meta['fqn'].encode()).hexdigest()[:16]}"
                         chain_data = se_client.get_json(chain_key)
                         if chain_data and "chain" in chain_data:
                             chain_nodes = chain_data["chain"]

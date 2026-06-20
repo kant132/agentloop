@@ -126,20 +126,18 @@ def test_ar09_base_priority_without_prior_chains():
     from priority_calculator import calculate_priority, _base
     
     # Test base priority calculation
-    # GET with no external params = 0
-    endpoint_get = {"http_method": "GET", "has_external_params": False}
-    assert _base(endpoint_get) == 0, "GET without params should have base=0"
+    # GET with external params = 0
+    endpoint_get = {"http_method": "GET", "has_external_params": True}
+    assert _base(endpoint_get) == 0, "GET with params should have base=0"
     
     # POST = 10
     endpoint_post = {"http_method": "POST", "has_external_params": True}
     assert _base(endpoint_post) == 10, "POST should have base=10"
     
-    # No external params = -100
+    # No external params = -100 (penalty)
     endpoint_no_params = {"http_method": "GET", "has_external_params": False}
-    # Note: _base returns -100 only when has_external_params is False AND method is not POST/PUT/DELETE/PATCH
-    # Let's verify the actual behavior
-    base_val = _base(endpoint_no_params)
-    assert base_val in [0, -100], f"GET without params should have base=0 or -100, got {base_val}"
+    assert _base(endpoint_no_params) == -100, \
+        f"GET without params should have base=-100, got {_base(endpoint_no_params)}"
     
     # Test full priority with no prior chains (sink_count=0, preset_count=0)
     priority = calculate_priority(endpoint_post, 0, 0)
