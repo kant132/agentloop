@@ -75,12 +75,66 @@ class JavaparserScanner:
         java_files: list[Path],
         source_root: Path | None = None,
     ) -> list[dict[str, Any]]:
-        """对多个 Java 文件批量解析（逐文件调用，单文件失败不影响整体）。"""
-        all_routes: list[dict[str, Any]] = []
-        for java_file in java_files:
-            routes = JavaparserScanner.scan(java_file, source_root)
-            all_routes.extend(routes)
-        return all_routes
+        """批量解析所有文件（用 --config 方式，一次 subprocess）。
+
+        JAR 内部多线程处理，比逐文件调快很多。
+        """
+        if not _JAR_PATH.exists() or not java_files:
+            return []
+
+        # 生成临时 properties 配置文件
+        import tempfile
+
+        config_lines = ["mode=routes", "workers=4"]
+        if source_root:
+            config_lines.append(
+                f"sourceRoot={source_root.as_posix() if hasattr(source_root, 'as_posix') else str(source_root).replace(chr(92), '/')}"
+            )
+        for i, f in enumerate(java_files, 1):
+            config_lines.append(
+                f"file.{i}={f.as_posix() if hasattr(f, 'as_posix') else str(f).replace(chr(92), '/')}"
+            )
+
+        config_content = "\n".join(config_lines) + "\n"
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".properties", delete=False, encoding="utf-8"
+        ) as tf:
+            tf.write(config_content)
+            config_file = tf.name
+
+        try:
+            proc = subprocess.run(
+                ["java", "-jar", str(_JAR_PATH), "--config", config_file],
+                capture_output=True,
+                text=True,
+                check=False,
+                encoding="utf-8",
+                errors="replace",
+                timeout=600,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            return []
+        finally:
+            try:
+                Path(config_file).unlink()
+            except OSError:
+                pass
+
+        if proc.returncode != 0:
+            return []
+
+        try:
+            data = json.loads(proc.stdout) if proc.stdout.strip() else []
+        except json.JSONDecodeError:
+            return []
+
+        return data if isinstance(data, list) else []
+
+    @staticmethod
+    def is_available() -> bool:
+        """JAR 是否存在。"""
+        return _JAR_PATH.exists()
 
     @staticmethod
     def jar_path() -> Path:
