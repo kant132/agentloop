@@ -5,352 +5,111 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.ArrayInitializerExpr;
-import com.github.javaparser.ast.expr.Expression;
-import com.github.javaparser.ast.expr.FieldAccessExpr;
-import com.github.javaparser.ast.expr.MemberValuePair;
-import com.github.javaparser.ast.expr.NameExpr;
-import com.github.javaparser.ast.expr.NormalAnnotationExpr;
-import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
+import com.javaparsextract.framework.*;
+import com.javaparsextract.spi.AnnotationUtils;
+import com.javaparsextract.spi.FrameworkHandler;
+import com.javaparsextract.spi.JsonUtils;
+import com.javaparsextract.spi.RouteResult;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 
 /**
- * 路由注解解析器。
+ * 路由注解解析器 — 编排层。
  *
- * 精确解析 Spring/JAX-RS 路由注解：
- * - 类级 @RequestMapping/@Path → 基础路径
- * - 方法级 @GetMapping/@PostMapping/.../方法级 @RequestMapping → 方法路径 + HTTP 方法
- * - 路径拼接：类路径 + 方法路径
- * - 多 method 展开
- *
- * 输出 JSON 数组，每条记录描述一个路由端点。
+ * 加载 FrameworkHandler 列表，遍历文件中的类和方法，
+ * 委托匹配的 handler 提取路由。公共 API 不变。
  */
 public class RouteExtractor {
 
-    /** 注解短名 → 默认 HTTP 方法（Spring 组合注解）。 */
-    private static final Map<String, String> ANNOTATION_METHOD_MAP = Map.of(
-            "GetMapping", "GET",
-            "PostMapping", "POST",
-            "PutMapping", "PUT",
-            "DeleteMapping", "DELETE",
-            "PatchMapping", "PATCH"
-    );
+    private final List<FrameworkHandler> handlers;
+    private final ServletFramework servletFramework;
+    private final SpringWebSocketFramework wsFramework;
+    private final SpringRSocketFramework rsocketFramework;
 
-    /** @RequestMapping 无 method 参数时的全展开。 */
-    private static final List<String> ALL_METHODS = List.of(
-            "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"
-    );
+    public RouteExtractor() {
+        this.servletFramework = new ServletFramework();
+        this.wsFramework = new SpringWebSocketFramework();
+        this.rsocketFramework = new SpringRSocketFramework();
+        this.handlers = List.of(
+                new SpringMvcFramework(), new JaxRsFramework(),
+                new SpringGraphQLFramework(), new SpringActuatorFramework(),
+                servletFramework, wsFramework, rsocketFramework);
+    }
 
-    /** JAX-RS 方法注解。 */
-    private static final Set<String> JAXRS_METHOD_ANNOTATIONS = Set.of(
-            "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"
-    );
+    public RouteExtractor(List<FrameworkHandler> handlers) {
+        this.handlers = handlers;
+        this.servletFramework = findHandler(ServletFramework.class);
+        this.wsFramework = findHandler(SpringWebSocketFramework.class);
+        this.rsocketFramework = findHandler(SpringRSocketFramework.class);
+    }
 
-    /** 类级控制器标记注解。 */
-    private static final Set<String> CONTROLLER_MARKERS = Set.of(
-            "RestController", "Controller", "ControllerAdvice", "RestControllerAdvice"
-    );
-
-    private static final String SPRING_PREFIX = "org.springframework.web.bind.annotation.";
-    private static final String JAXRS_PREFIX = "javax.ws.rs.";
-    private static final String JAKARTA_JAXRS_PREFIX = "jakarta.ws.rs.";
-
-    /**
-     * 解析单个 Java 文件，提取所有路由端点，返回结构化数据（List<Map>）。
-     * 多线程汇总入口。无控制器注解 → 返回空 List。
-     */
+    /** 向后兼容：解析 Java 文件返回 List<Map>。 */
     public static List<Map<String, Object>> extractFromFile(Path javaFile) throws IOException {
+        return new RouteExtractor().doExtractFromFile(javaFile);
+    }
+
+    /** 向后兼容：解析 Java 文件返回 JSON 字符串。 */
+    public static String extract(Path javaFile) throws IOException {
+        return JsonUtils.toJson(extractFromFile(javaFile));
+    }
+
+    public List<Map<String, Object>> doExtractFromFile(Path javaFile) throws IOException {
         CompilationUnit cu = StaticJavaParser.parse(Files.readString(javaFile));
         List<Map<String, Object>> routes = new ArrayList<>();
-
-        String packageName = cu.getPackageDeclaration()
-                .map(p -> p.getNameAsString()).orElse("");
+        String pkg = cu.getPackageDeclaration().map(p -> p.getNameAsString()).orElse("");
+        String filePath = javaFile.toString().replace('\\', '/');
 
         for (ClassOrInterfaceDeclaration cls : cu.findAll(ClassOrInterfaceDeclaration.class)) {
             if (cls.isInterface()) continue;
+            String fqn = pkg.isEmpty() ? cls.getNameAsString() : pkg + "." + cls.getNameAsString();
 
-            String className = cls.getNameAsString();
-            String classFqn = packageName.isEmpty() ? className : packageName + "." + className;
-
-            String classBasePath = extractClassBasePath(cls);
-            if (classBasePath == null) continue; // 不是控制器
-
-            for (MethodDeclaration method : cls.getMethods()) {
-                Map<String, Object> route = extractMethodRoute(
-                        method, classFqn, classBasePath, javaFile);
-                if (route != null) {
-                    routes.add(route);
-                }
+            if (servletFramework != null && servletFramework.isController(cls)) {
+                servletFramework.extractClassLevelRoutes(cls, fqn, filePath)
+                        .forEach(r -> routes.add(r.withFile(filePath).toMap()));
+                continue;
             }
-        }
 
-        return routes;
-    }
+            FrameworkHandler h = findMatchingHandler(cls, cu);
+            String basePath = h != null ? h.extractClassBasePath(cls) : null;
+            if (basePath == null) continue;
 
-    /**
-     * 解析单个 Java 文件，提取所有路由端点，返回 JSON 字符串。
-     * 兼容旧调用入口（--routes file.java）。
-     */
-    public static String extract(Path javaFile) throws IOException {
-        return toJson(extractFromFile(javaFile));
-    }
-
-    // ==================== 类级基础路径 ====================
-
-    /**
-     * 解析类级基础路径。
-     *
-     * @return 路径字符串（可能为空 ""）；若类不是控制器则返回 null。
-     */
-    private static String extractClassBasePath(ClassOrInterfaceDeclaration cls) {
-        boolean isController = false;
-        String requestMappingPath = null;
-        String jaxrsPath = null;
-
-        for (AnnotationExpr ann : cls.getAnnotations()) {
-            String name = getShortAnnotationName(ann);
-            if (CONTROLLER_MARKERS.contains(name)) {
-                isController = true;
-            } else if ("RequestMapping".equals(name)) {
-                requestMappingPath = extractPathFromAnnotation(ann);
-            } else if ("Path".equals(name)) {
-                jaxrsPath = extractPathFromAnnotation(ann);
-            }
-        }
-
-        if (jaxrsPath != null) return jaxrsPath;     // JAX-RS @Path 优先
-        if (isController) {
-            return requestMappingPath != null ? requestMappingPath : "";
-        }
-        return null;
-    }
-
-    // ==================== 方法级路由 ====================
-
-    /**
-     * 解析方法级路由。一个方法只取第一个识别到的路由注解。
-     */
-    private static Map<String, Object> extractMethodRoute(
-            MethodDeclaration method, String classFqn,
-            String classBasePath, Path file) {
-
-        for (AnnotationExpr ann : method.getAnnotations()) {
-            String name = getShortAnnotationName(ann);
-            List<String> httpMethods = resolveHttpMethods(name, ann);
-            if (httpMethods == null || httpMethods.isEmpty()) continue;
-
-            String path = extractPathFromAnnotation(ann);
-            String fullUrl = joinPath(classBasePath, path);
-            String methodFqn = classFqn + "#" + method.getNameAsString();
-            int startLine = method.getBegin().map(p -> p.line).orElse(0);
-
-            Map<String, Object> route = new LinkedHashMap<>();
-            route.put("class_fqn", classFqn);
-            route.put("class_base_path", classBasePath);
-            route.put("method_fqn", methodFqn);
-            route.put("method_name", method.getNameAsString());
-            route.put("full_url", fullUrl);
-            route.put("http_methods", httpMethods);
-            route.put("annotation", name);
-            route.put("file", file.toString().replace('\\', '/'));
-            route.put("start_line", startLine);
-            return route;
-        }
-        return null;
-    }
-
-    // ==================== 注解参数提取 ====================
-
-    /**
-     * 从注解提取 path/value 参数。
-     * - SingleMemberAnnotationExpr: `@GetMapping("/users")` → "/users"
-     * - NormalAnnotationExpr: 找 value 或 path 键
-     * - MarkerAnnotationExpr: `@GetMapping` → ""
-     */
-    private static String extractPathFromAnnotation(AnnotationExpr ann) {
-        if (ann instanceof SingleMemberAnnotationExpr sma) {
-            return stripQuotes(sma.getMemberValue().toString());
-        }
-        if (ann instanceof NormalAnnotationExpr na) {
-            for (MemberValuePair pair : na.getPairs()) {
-                String key = pair.getNameAsString();
-                if ("value".equals(key) || "path".equals(key)) {
-                    return stripQuotes(pair.getValue().toString());
-                }
-            }
-        }
-        return "";
-    }
-
-    /**
-     * 解析 HTTP 方法列表。
-     *
-     * @return 方法列表；若注解不是路由注解则返回 null。
-     */
-    private static List<String> resolveHttpMethods(String annotationName, AnnotationExpr ann) {
-        // Spring 组合注解：GetMapping→GET
-        if (ANNOTATION_METHOD_MAP.containsKey(annotationName)) {
-            return List.of(ANNOTATION_METHOD_MAP.get(annotationName));
-        }
-
-        // JAX-RS 方法注解：@GET / @POST / ...
-        if (JAXRS_METHOD_ANNOTATIONS.contains(annotationName)) {
-            return List.of(annotationName);
-        }
-
-        // @RequestMapping：解析 method 参数
-        if ("RequestMapping".equals(annotationName)) {
-            if (ann instanceof NormalAnnotationExpr na) {
-                for (MemberValuePair pair : na.getPairs()) {
-                    if ("method".equals(pair.getNameAsString())) {
-                        List<String> parsed = parseMethodParam(pair.getValue());
-                        if (!parsed.isEmpty()) return parsed;
+            for (MethodDeclaration m : cls.getMethods()) {
+                for (AnnotationExpr ann : m.getAnnotations()) {
+                    String name = AnnotationUtils.getShortAnnotationName(ann);
+                    Optional<RouteResult> result = h.handleMethodAnnotation(name, ann, m, basePath, fqn);
+                    if (result.isPresent()) {
+                        routes.add(result.get().withFile(filePath).toMap());
+                        break;
                     }
                 }
             }
-            // 无 method 参数（或解析失败）→ 全展开
-            return new ArrayList<>(ALL_METHODS);
         }
+        return routes;
+    }
 
-        // WebSocket
-        if ("MessageMapping".equals(annotationName)) {
-            return List.of("WS");
+    private FrameworkHandler findMatchingHandler(ClassOrInterfaceDeclaration cls, CompilationUnit cu) {
+        for (FrameworkHandler h : handlers) {
+            if (h.isController(cls)) {
+                if (h == wsFramework && rsocketFramework != null
+                        && SpringRSocketFramework.hasRSocketImports(cu)) return rsocketFramework;
+                if (h == rsocketFramework && wsFramework != null
+                        && !SpringRSocketFramework.hasRSocketImports(cu)
+                        && SpringWebSocketFramework.hasWebSocketImports(cu)) return wsFramework;
+                return h;
+            }
         }
-
-        // 异常处理端点
-        if ("ExceptionHandler".equals(annotationName)) {
-            return List.of("ANY");
-        }
-
         return null;
     }
 
-    /**
-     * 解析 method= 参数值。
-     * 支持形式：
-     * - RequestMethod.GET（FieldAccessExpr）
-     * - GET（NameExpr）
-     * - {RequestMethod.GET, RequestMethod.POST}（ArrayInitializerExpr）
-     */
-    private static List<String> parseMethodParam(Expression value) {
-        List<String> methods = new ArrayList<>();
-        if (value instanceof FieldAccessExpr fae) {
-            methods.add(normalizeMethod(fae.getNameAsString()));
-        } else if (value instanceof NameExpr ne) {
-            methods.add(normalizeMethod(ne.getNameAsString()));
-        } else if (value instanceof ArrayInitializerExpr arr) {
-            for (Expression elem : arr.getValues()) {
-                if (elem instanceof FieldAccessExpr fae2) {
-                    methods.add(normalizeMethod(fae2.getNameAsString()));
-                } else if (elem instanceof NameExpr ne2) {
-                    methods.add(normalizeMethod(ne2.getNameAsString()));
-                }
-            }
-        }
-        return methods;
-    }
-
-    private static String normalizeMethod(String raw) {
-        return raw.toUpperCase();
-    }
-
-    /**
-     * 获取注解短名（去掉 Spring/JAX-RS 包前缀）。
-     */
-    private static String getShortAnnotationName(AnnotationExpr ann) {
-        String name = ann.getNameAsString();
-        if (name.startsWith(SPRING_PREFIX)) {
-            return name.substring(SPRING_PREFIX.length());
-        }
-        if (name.startsWith(JAXRS_PREFIX)) {
-            return name.substring(JAXRS_PREFIX.length());
-        }
-        if (name.startsWith(JAKARTA_JAXRS_PREFIX)) {
-            return name.substring(JAKARTA_JAXRS_PREFIX.length());
-        }
-        return name;
-    }
-
-    // ==================== 路径拼接 ====================
-
-    /**
-     * 路径拼接：normalize(base) + "/" + normalize(method)。
-     * 空路径 → 根路径 "/"。
-     */
-    private static String joinPath(String base, String method) {
-        String b = stripSlash(base);
-        String m = stripSlash(method);
-        if (b.isEmpty() && m.isEmpty()) return "/";
-        if (b.isEmpty()) return "/" + m;
-        if (m.isEmpty()) return "/" + b;
-        return "/" + b + "/" + m;
-    }
-
-    private static String stripSlash(String s) {
-        if (s == null || s.isEmpty()) return "";
-        return s.replaceAll("^/+|/+$", "");
-    }
-
-    private static String stripQuotes(String s) {
-        if (s == null) return "";
-        s = s.trim();
-        if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 2) {
-            return s.substring(1, s.length() - 1);
-        }
-        return s;
-    }
-
-    // ==================== 极简 JSON 序列化 ====================
-
-    private static String toJson(List<Map<String, Object>> routes) {
-        if (routes.isEmpty()) return "[]";
-        StringBuilder sb = new StringBuilder("[\n");
-        for (int i = 0; i < routes.size(); i++) {
-            sb.append("  ").append(toJsonObj(routes.get(i)));
-            if (i < routes.size() - 1) sb.append(",");
-            sb.append("\n");
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-
-    private static String toJsonObj(Map<String, Object> obj) {
-        StringBuilder sb = new StringBuilder("{");
-        int i = 0;
-        for (Map.Entry<String, Object> entry : obj.entrySet()) {
-            if (i++ > 0) sb.append(", ");
-            sb.append("\"").append(escapeJson(entry.getKey())).append("\": ");
-            Object v = entry.getValue();
-            if (v instanceof Number) {
-                sb.append(v);
-            } else if (v instanceof List<?> list) {
-                sb.append("[");
-                for (int j = 0; j < list.size(); j++) {
-                    if (j > 0) sb.append(", ");
-                    sb.append("\"").append(escapeJson(String.valueOf(list.get(j)))).append("\"");
-                }
-                sb.append("]");
-            } else {
-                sb.append("\"").append(escapeJson(String.valueOf(v))).append("\"");
-            }
-        }
-        sb.append("}");
-        return sb.toString();
-    }
-
-    private static String escapeJson(String s) {
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+    @SuppressWarnings("unchecked")
+    private <T extends FrameworkHandler> T findHandler(Class<T> clazz) {
+        for (FrameworkHandler h : handlers) if (clazz.isInstance(h)) return (T) h;
+        return null;
     }
 }

@@ -31,4 +31,10 @@ public record RouteResult(
         map.put("start_line", startLine);
         return map;
     }
+
+    /** 设置文件路径（用于编排层注入文件路径）。 */
+    public RouteResult withFile(String filePath) {
+        return new RouteResult(classFqn, classBasePath, methodFqn, methodName,
+                fullUrl, httpMethods, annotation, filePath, startLine);
+    }
 }
