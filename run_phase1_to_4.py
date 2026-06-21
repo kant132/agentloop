@@ -76,6 +76,124 @@ def main():
         memurai = None
 
     # ============================================================
+    # Phase 0: 项目类型检测 + JADX 反编译 + jar-analyzer 构建
+    # ============================================================
+    log.info("")
+    log.info(">>> Phase 0: 项目类型检测 + jar-analyzer 构建")
+    t0 = time.time()
+
+    import shutil as _shutil
+    import subprocess as _sp
+
+    # 读取 preset 新字段
+    jar_analyzer_db = preset.get("jarAnalyzerDb", str(loop_dir / "jar-analyzer.db"))
+    target_jar_path = preset.get("targetJarPath", "")
+
+    # 检测项目类型
+    src_main_java = proj / "src" / "main" / "java"
+    sources_dir = proj / "sources"
+    if src_main_java.exists():
+        project_type = "source"
+        log.info("  项目类型: source (src/main/java 存在)")
+    elif sources_dir.exists():
+        project_type = "decompiled"
+        log.info("  项目类型: decompiled (sources/ 已存在，跳过 JADX)")
+    else:
+        project_type = "jar-only"
+        log.info("  项目类型: jar-only (无源码，需要 JADX 反编译)")
+
+    # JAR-only 项目：JADX 反编译 + codegraph 索引
+    if project_type == "jar-only":
+        jadx_bin = _shutil.which("jadx")
+        if not jadx_bin:
+            log.warning("  jadx 未安装，跳过反编译（codegraph-only 模式）")
+        else:
+            # 确定 target JAR 路径
+            if target_jar_path:
+                target_jar = Path(target_jar_path)
+            else:
+                # 自动检测 target/*.jar 或 build/libs/*.jar
+                target_jar = None
+                for pattern in ("target/*.jar", "build/libs/*.jar"):
+                    candidates = list(proj.glob(pattern))
+                    if candidates:
+                        target_jar = candidates[0]
+                        break
+            if not target_jar or not target_jar.exists():
+                log.warning("  未找到 target JAR，跳过 JADX 反编译")
+            else:
+                log.info("  JADX 反编译: %s → %s", target_jar, sources_dir)
+                try:
+                    _jadx_result = _sp.run(
+                        [jadx_bin, "-d", str(sources_dir), str(target_jar)],
+                        capture_output=True, text=True, timeout=300,
+                    )
+                    if _jadx_result.returncode != 0:
+                        log.warning("  JADX 反编译失败 (exit %d): %s",
+                                    _jadx_result.returncode,
+                                    (_jadx_result.stderr or "")[:200])
+                    else:
+                        log.info("  JADX 反编译完成")
+                        # codegraph init + index 反编译后的源码
+                        _cg_init = _sp.run(
+                            ["codegraph", "init", str(sources_dir)],
+                            capture_output=True, text=True, timeout=300,
+                        )
+                        if _cg_init.returncode != 0:
+                            log.warning("  codegraph init 失败: %s",
+                                        (_cg_init.stderr or "")[:200])
+                        _cg_index = _sp.run(
+                            ["codegraph", "index"],
+                            capture_output=True, text=True, timeout=300,
+                            cwd=str(sources_dir),
+                        )
+                        if _cg_index.returncode != 0:
+                            log.warning("  codegraph index 失败: %s",
+                                        (_cg_index.stderr or "")[:200])
+                except _sp.TimeoutExpired:
+                    log.warning("  JADX 反编译超时（300s），跳过")
+                except Exception as e:
+                    log.warning("  JADX 反编译异常: %s", e)
+
+    # 所有项目：jar-analyzer 构建（可选，失败不阻断）
+    jar_analyzer_jar = REPO_ROOT / "tools" / "javaparser" / "jar-analyzer-5.22.jar"
+    if target_jar_path and jar_analyzer_jar.exists():
+        target_jar = Path(target_jar_path)
+        if target_jar.exists():
+            log.info("  jar-analyzer 构建: %s", target_jar)
+            try:
+                _ja_result = _sp.run(
+                    ["java", "-jar", str(jar_analyzer_jar), "build", "-j", str(target_jar)],
+                    capture_output=True, text=True, timeout=300,
+                )
+                if _ja_result.returncode != 0:
+                    log.warning("  jar-analyzer 构建失败 (exit %d): %s",
+                                _ja_result.returncode,
+                                (_ja_result.stderr or "")[:200])
+                else:
+                    # jar-analyzer.db 默认输出到 CWD，复制到 loopDir
+                    cwd_db = Path("jar-analyzer.db")
+                    target_db = Path(jar_analyzer_db)
+                    if cwd_db.exists() and cwd_db.resolve() != target_db.resolve():
+                        target_db.parent.mkdir(parents=True, exist_ok=True)
+                        _shutil.copy2(str(cwd_db), str(target_db))
+                        log.info("  jar-analyzer.db → %s", target_db)
+                    else:
+                        log.info("  jar-analyzer 构建完成")
+            except _sp.TimeoutExpired:
+                log.warning("  jar-analyzer 构建超时（300s），跳过")
+            except Exception as e:
+                log.warning("  jar-analyzer 构建异常: %s", e)
+        else:
+            log.warning("  targetJarPath 指向的 JAR 不存在: %s", target_jar)
+    elif not target_jar_path:
+        log.info("  preset 未配置 targetJarPath，跳过 jar-analyzer")
+    elif not jar_analyzer_jar.exists():
+        log.warning("  jar-analyzer JAR 不存在: %s", jar_analyzer_jar)
+
+    log.info("  Phase 0 完成: %.1fs", time.time() - t0)
+
+    # ============================================================
     # Phase 1: 暴露面采集
     # ============================================================
     log.info("")
@@ -127,6 +245,14 @@ def main():
     )
     log.info("  Phase 1 完成: %.1fs", time.time() - t0)
     log.info("  资产统计: %s", json.dumps(phase1_summary, ensure_ascii=False))
+
+    # Phase 1 资产摘要（人类验证用）
+    log.info("  === Phase 1 资产摘要 ===")
+    log.info("  路由数: %d", phase1_summary.get("route", 0))
+    log.info("  Filter数: %d", phase1_summary.get("filter", 0))
+    log.info("  配置文件数: %d", phase1_summary.get("config", 0))
+    log.info("  WAF规则数: %d", phase1_summary.get("waf", 0))
+    log.info("  敏感信息数: %d", phase1_summary.get("sensitive_info", 0))
 
     # ============================================================
     # Phase 2: 调用链构建 + SQLite 存储
@@ -210,6 +336,24 @@ def main():
         log.info("      chain_path: %s", chain["chain_path"][:120] + "..." if len(chain["chain_path"]) > 120 else chain["chain_path"])
         log.info("      node_path:  %s", chain["node_path"][:120] + "..." if len(chain["node_path"]) > 120 else chain["node_path"])
 
+    # Phase 2 调用链摘要（人类验证用）
+    chain_stats = db.stats()
+    top3_longest = db.top_by_node_count(limit=3)
+    top3_priority = db.batch_by_priority(limit=3)
+    last3 = db.bottom_by_priority(limit=3)
+    log.info("  === Phase 2 调用链摘要 ===")
+    log.info("  总链数: %d", chain_stats["total_chains"])
+    log.info("  端点数: %d", chain_stats["total_endpoints"])
+    log.info("  Top 3 最长链:")
+    for i, chain in enumerate(top3_longest):
+        log.info("    [%d] %s (nodes=%d, sinks=%d)", i + 1, chain["endpoint_fqn"][:50], chain.get("node_count", 1), chain["total_sinks"])
+    log.info("  Top 3 最高优先级:")
+    for i, chain in enumerate(top3_priority):
+        log.info("    [%d] %s (priority=%d, sinks=%d)", i + 1, chain["endpoint_fqn"][:50], chain["priority"], chain["total_sinks"])
+    log.info("  Last 3 最低优先级:")
+    for i, chain in enumerate(last3):
+        log.info("    [%d] %s (priority=%d, sinks=%d)", i + 1, chain["endpoint_fqn"][:50], chain["priority"], chain["total_sinks"])
+
     # ============================================================
     # Phase 2.5: 链边验证（codegraph 误匹配检测）
     # ============================================================
@@ -234,6 +378,13 @@ def main():
     chain_stats = db.stats()
     pending_count = len(db.top_sink_chains())
     log.info("  验证后 pending 链: %d", pending_count)
+
+    # Phase 2.5 边验证摘要（人类验证用）
+    _mismatch = db.mismatch_stats()
+    log.info("  === Phase 2.5 边验证摘要 ===")
+    log.info("  高置信链: %d", _mismatch["high_confidence"])
+    log.info("  低置信链: %d", _mismatch["low_confidence"])
+    log.info("  平均 mismatch_score: %.3f", _mismatch["avg_mismatch_score"])
 
     # ============================================================
     # Phase 3: AI 分析（主 agent 执行, task() 委派）

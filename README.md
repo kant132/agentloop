@@ -128,3 +128,7 @@ loop_audit/
 
 新增需求：
 [java-forward-vuln-discovery](skills/java-forward-vuln-discovery) ，把这个转换为python脚本。
+
+
+# 新增
+npx claudepluginhub jar-analyzer/jar-analyzer-claude --plugin jar-analyzer-plugin

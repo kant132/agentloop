@@ -103,6 +103,15 @@ _sr = _load_module_from_file(
     _HERE / "sink_registry.py",
 )
 
+# scripts/chain/jar_analyzer_cte.py — jar-analyzer.db CTE 支持 (可选; 文件不存在时跳过)
+try:
+    _jac = _load_module_from_file(
+        "_chain_builder_jar_analyzer_cte",
+        _HERE / "jar_analyzer_cte.py",
+    )
+except (ImportError, OSError):
+    _jac = None
+
 # scripts/redis/redis-batch-prefetch.py — 跨兄弟目录导入 (连字符文件名)
 _rbp = _load_module_from_file(
     "_chain_builder_redis_batch_prefetch",
@@ -209,6 +218,62 @@ def _fetch_outgoing_edges(
     return out
 
 
+def _resolve_codegraph_meta_for_jar_nodes(
+    conn: sqlite3.Connection,
+    jar_rows: List[Dict[str, Any]],
+) -> Dict[str, Optional[Dict[str, Any]]]:
+    """Cross-reference jar-analyzer chain nodes with codegraph for file metadata.
+
+    Converts jar-analyzer qualified_name ('pkg.Cls::method') to codegraph format
+    ('pkg.Cls#method') and batch-queries codegraph nodes table.  Returns dict
+    keyed by jar-analyzer method_id:
+
+    - matching codegraph node found → dict with codegraph_node_id, file_path,
+      start_line, end_line, qualified_name, signature
+    - not found → None
+    """
+    if not jar_rows:
+        return {}
+
+    # Convert qualified_names: jar-analyzer '::' → codegraph '#'
+    codegraph_fqns: List[str] = []
+    mid_to_cg_fqn: Dict[str, str] = {}
+    for r in jar_rows:
+        qname = r.get("qualified_name", "")
+        cg_fqn = qname.replace("::", "#") if "::" in qname else qname
+        codegraph_fqns.append(cg_fqn)
+        mid_to_cg_fqn[r["id"]] = cg_fqn
+
+    # Deduplicate for batch query
+    unique_fqns = list(set(codegraph_fqns))
+    if not unique_fqns:
+        return {mid: None for mid in mid_to_cg_fqn}
+
+    placeholders = ",".join("?" * len(unique_fqns))
+    cur = conn.execute(
+        f"SELECT id, qualified_name, file_path, start_line, end_line, signature "
+        f"FROM nodes WHERE qualified_name IN ({placeholders})",
+        tuple(unique_fqns),
+    )
+    cg_fqn_to_meta: Dict[str, Dict[str, Any]] = {row["qualified_name"]: dict(row) for row in cur.fetchall()}
+
+    result: Dict[str, Optional[Dict[str, Any]]] = {}
+    for mid, cg_fqn in mid_to_cg_fqn.items():
+        cg_meta = cg_fqn_to_meta.get(cg_fqn)
+        if cg_meta:
+            result[mid] = {
+                "codegraph_node_id": cg_meta["id"],
+                "file_path": cg_meta.get("file_path"),
+                "start_line": cg_meta.get("start_line"),
+                "end_line": cg_meta.get("end_line"),
+                "qualified_name": cg_meta.get("qualified_name"),
+                "signature": cg_meta.get("signature"),
+            }
+        else:
+            result[mid] = None
+    return result
+
+
 def _resolve_file_path(
     file_path: Optional[str],
     project_root: Path,
@@ -236,11 +301,40 @@ def _read_method_body(
 ) -> Optional[str]:
     """读源文件 [start_line, end_line] 切片 (两边均 1-based, 包含)。
 
+    end_line=None 时, 从 start_line 扫描到方法体闭合大括号。
     任意边界缺失 → 返回 None (调用方决定降级)。
     """
     if not file_path.is_file():
         return None
-    if start_line <= 0 or end_line is None or end_line < start_line:
+    if start_line <= 0:
+        return None
+    if end_line is None:
+        # Scan from start_line to find method closing brace
+        try:
+            with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
+                lines = fh.readlines()
+            if start_line > len(lines):
+                return None
+            brace_depth = 0
+            found_open = False
+            end = start_line
+            for i in range(start_line - 1, len(lines)):
+                line = lines[i]
+                for ch in line:
+                    if ch == '{':
+                        brace_depth += 1
+                        found_open = True
+                    elif ch == '}':
+                        brace_depth -= 1
+                if found_open and brace_depth <= 0:
+                    end = i + 1
+                    break
+            if found_open and brace_depth <= 0:
+                return "".join(lines[start_line - 1:end])
+            return None
+        except OSError:
+            return None
+    if end_line < start_line:
         return None
     try:
         # 1-based → 0-based 切片
@@ -420,6 +514,7 @@ def build_chain(
     jar_path: Optional[Path] = None,
     source_root: Optional[Path] = None,
     loop_audit_dir: Optional[Path] = None,
+    jar_analyzer_db_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """构建**单条**调用链 (entry → 所有 reachable 节点, depth-ordered)。
 
@@ -480,45 +575,147 @@ def build_chain(
         else:
             source_root = project_root
 
-    # 1. entry fqn → nodes.id
-    entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
-    if not entry_id:
-        raise LookupError(
-            f"entry_fqn 在 codegraph 中找不到 method 节点: {entry_fqn!r} "
-            f"(db={db_path})"
+    # 1. entry resolution: try jar-analyzer first, fall back to codegraph
+    used_jar_analyzer = False
+    entry_id: str = ""  # will be set by one of the branches below
+
+    if jar_analyzer_db_path is not None:
+        if _jac is None:
+            raise ImportError(
+                "jar_analyzer_cte.py 未加载, 无法使用 --jar-analyzer-db; "
+                "请确保 scripts/chain/jar_analyzer_cte.py 存在"
+            )
+        ja_entry_id = _jac.resolve_entry_jar_analyzer(  # type: ignore[union-attr]
+            str(jar_analyzer_db_path), entry_fqn,
         )
+        if ja_entry_id:
+            entry_id = ja_entry_id
+            used_jar_analyzer = True
+            _log("jar-analyzer entry resolved: %s → %s", entry_fqn, ja_entry_id)
+
+    if not used_jar_analyzer:
+        cg_entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
+        if not cg_entry_id:
+            raise LookupError(
+                f"entry_fqn 在 codegraph 中找不到 method 节点: {entry_fqn!r} "
+                f"(db={db_path})"
+            )
+        entry_id = cg_entry_id
+
+    assert entry_id, "entry_id 未被设置 (逻辑错误)"
 
     # 检查入口方法是否有参数
+    #   jar-analyzer 没有 signature 列, 需从 codegraph 查 (按 qualified_name 匹配)
     entry_has_params = True
-    with _open_db(db_path) as conn:
-        row = conn.execute(
-            "SELECT signature FROM nodes WHERE id = ?", (entry_id,)
-        ).fetchone()
-    if row:
-        sig = row["signature"] or ""
-        # 形如 "attack()" = 无参数, "getUser(String id)" = 有参数
-        entry_has_params = "()" not in sig or len(sig) > sig.find(")") + 1 > sig.find("(") + 1
+    if used_jar_analyzer:
+        # jar-analyzer qualified_name 用 '::', codegraph 用 '#'
+        cg_entry_fqn = entry_fqn  # 用户传入的 entry_fqn 已是 '#' 格式
+        with _open_db(db_path) as conn:
+            row = conn.execute(
+                "SELECT id, signature FROM nodes WHERE qualified_name = ? LIMIT 1",
+                (cg_entry_fqn,),
+            ).fetchone()
+        if row:
+            sig = row["signature"] or ""
+            entry_has_params = (
+                "()" not in sig
+                or len(sig) > sig.find(")") + 1 > sig.find("(") + 1
+            )
+        else:
+            # 无 codegraph 匹配 → 保守假设有参数
+            entry_has_params = True
+    else:
+        with _open_db(db_path) as conn:
+            row = conn.execute(
+                "SELECT signature FROM nodes WHERE id = ?", (entry_id,)
+            ).fetchone()
+        if row:
+            sig = row["signature"] or ""
+            entry_has_params = (
+                "()" not in sig
+                or len(sig) > sig.find(")") + 1 > sig.find("(") + 1
+            )
 
     # 2. CTE 递归拿链 (depth-ordered)
-    raw_rows = _sec.extract_recursive(str(db_path), entry_id, max_depth)
+    #   used_jar_analyzer=True 意味着 _jac 已通过上方 None 检查 (类型窄化不传导, 加 ignore)
+    if used_jar_analyzer:
+        raw_rows = _jac.extract_recursive_with_impl(  # type: ignore[union-attr]
+            str(jar_analyzer_db_path), entry_id, max_depth,
+        )
+    else:
+        raw_rows = _sec.extract_recursive(str(db_path), entry_id, max_depth)
+
     if not raw_rows:
         _log("entry %s → CTE 返回空链 (depth=%d, db=%s)",
-             entry_id, max_depth, db_path)
+             entry_id, max_depth,
+             jar_analyzer_db_path if used_jar_analyzer else db_path)
         return _empty_chain_result(entry_fqn, entry_id)
 
     node_ids = [r["id"] for r in raw_rows]
 
-    # 3. 反查 node 元信息 + 出向边 (一次 round-trip 避免 N+1)
-    with _open_db(db_path) as conn:
-        meta_map = _fetch_node_meta(conn, node_ids)
-        edges_map = _fetch_outgoing_edges(conn, node_ids)
+    # 3. 反查 node 元信息 + 出向边
+    #   jar-analyzer 模式: 交叉引用 codegraph 拿 file_path/start_line/end_line/edges
+    #   codegraph 模式: 直接查 codegraph (现有逻辑)
+    jar_cg_meta: Dict[str, Optional[Dict[str, Any]]] = {}
+    resolved_meta: Dict[str, Dict[str, Any]] = {}
+    resolved_edges_map: Dict[str, List[str]] = {}
+    meta_map: Dict[str, Dict[str, Any]] = {}
+    edges_map: Dict[str, List[str]] = {}
+
+    if used_jar_analyzer:
+        with _open_db(db_path) as conn:
+            jar_cg_meta = _resolve_codegraph_meta_for_jar_nodes(conn, raw_rows)
+            # 收集所有匹配到的 codegraph node_id, 批量查 edges
+            cg_node_ids = [
+                m["codegraph_node_id"]
+                for m in jar_cg_meta.values()
+                if m and m.get("codegraph_node_id")
+            ]
+            cg_edges = _fetch_outgoing_edges(conn, cg_node_ids) if cg_node_ids else {}
+
+        # 构建每个 jar-analyzer method_id 的综合元信息 + edges 映射
+        for r in raw_rows:
+            mid = r["id"]
+            cg_info = jar_cg_meta.get(mid)
+            if cg_info:
+                resolved_meta[mid] = {
+                    "node_id": cg_info["codegraph_node_id"],
+                    "fqn": cg_info.get("qualified_name")
+                           or r.get("qualified_name", "").replace("::", "#"),
+                    "file_path": cg_info.get("file_path"),
+                    "start_line": cg_info.get("start_line") or r.get("start_line", 0),
+                    "end_line": cg_info.get("end_line"),
+                }
+                # edges 用 codegraph node_id 查
+                resolved_edges_map[mid] = cg_edges.get(
+                    cg_info["codegraph_node_id"], [],
+                )
+            else:
+                resolved_meta[mid] = {
+                    "node_id": mid,
+                    "fqn": r.get("qualified_name", "").replace("::", "#"),
+                    "file_path": None,
+                    "start_line": r.get("start_line", 0) or 0,
+                    "end_line": None,
+                }
+                resolved_edges_map[mid] = []
+    else:
+        with _open_db(db_path) as conn:
+            meta_map = _fetch_node_meta(conn, node_ids)
+            edges_map = _fetch_outgoing_edges(conn, node_ids)
 
     # 4. 收集链上所有唯一文件路径, 一次性调 JAR --config (符号跨文件解析更准,
     #    短名不会被误判为 sink; 旧 per-file 模式有此问题)
+    #    jar-analyzer 节点的 file_path=None, 需从 resolved_meta 取 codegraph 的 file_path
     chain_file_paths: List[Path] = []
     seen_files: set[str] = set()
     for r in raw_rows:
-        fp = _resolve_file_path(r.get("file_path"), project_root)
+        nid = r["id"]
+        if used_jar_analyzer:
+            file_path_str = resolved_meta.get(nid, {}).get("file_path")
+        else:
+            file_path_str = r.get("file_path")
+        fp = _resolve_file_path(file_path_str, project_root)
         if fp is not None and str(fp) not in seen_files:
             seen_files.add(str(fp))
             chain_file_paths.append(fp)
@@ -535,6 +732,7 @@ def build_chain(
 
     # 5. 构建 ChainNode 列表 (按 depth 升序, 同 depth 维持 CTE 顺序)
     #    去重 node_id（CTE 可能返回同节点不同深度，保留首次出现 = 最长路径）
+    #    jar-analyzer 模式用 resolved_meta/resolved_edges_map, codegraph 用 meta_map/edges_map
     chain_nodes: List[ChainNode] = []
     total_sinks = 0
     all_dynamic_sinks: List[Dict[str, Any]] = []
@@ -544,13 +742,25 @@ def build_chain(
         if nid in seen_node_ids:  # 已处理过此节点，跳过（兄弟节点）
             continue
         seen_node_ids.add(nid)
-        nid = r["id"]
-        meta = meta_map.get(nid, {})
-        fqn = meta.get("qualified_name") or r.get("qualified_name") or ""
-        start_line = int(r["start_line"] or 0)
-        end_line = meta.get("end_line")
+
+        if used_jar_analyzer:
+            rm = resolved_meta.get(nid, {})
+            fqn = rm.get("fqn", "")
+            node_id_for_chain = rm.get("node_id", nid)
+            file_path_str = rm.get("file_path")
+            start_line = int(rm.get("start_line", 0) or 0)
+            end_line = rm.get("end_line")
+            node_edges = resolved_edges_map.get(nid, [])
+        else:
+            meta = meta_map.get(nid, {})
+            fqn = meta.get("qualified_name") or r.get("qualified_name") or ""
+            node_id_for_chain = nid
+            file_path_str = r.get("file_path")
+            start_line = int(r["start_line"] or 0)
+            end_line = meta.get("end_line")
+            node_edges = edges_map.get(nid, [])
+
         depth = int(r["depth"])
-        file_path_str = r.get("file_path")
         file_p = _resolve_file_path(file_path_str, project_root)
 
         # body slice
@@ -590,14 +800,14 @@ def build_chain(
 
         chain_nodes.append(ChainNode(
             fqn=fqn,
-            node_id=nid,
+            node_id=node_id_for_chain,
             file=file_path_str,
             start_line=start_line,
             end_line=end_line,
             body=annotated_body or None,
             depth=depth,
             sinks=sinks,
-            edges=edges_map.get(nid, []),
+            edges=node_edges,
         ))
 
     # 6. 统计 + cycle detection
@@ -606,7 +816,9 @@ def build_chain(
 
     # cycle: 任何 node 被本链上游节点再次引用即视为环 (CTE 已用 path 防环,
     # 因此此处"环"含义=实际代码里存在的递归调用, 但 chain 中只展示一次)
-    cycle_detected = _detect_cycle_in_chain(chain_nodes, edges_map)
+    # jar-analyzer 模式用 resolved_edges_map (key=jar method_id), codegraph 用 edges_map
+    effective_edges_map = resolved_edges_map if used_jar_analyzer else edges_map
+    cycle_detected = _detect_cycle_in_chain(chain_nodes, effective_edges_map)
 
     sig_hash = _sig_hash_for_entry(entry_id)
 
@@ -626,6 +838,7 @@ def build_chain(
         "entry_has_params": entry_has_params,
         "file_calls_cache_size": len(file_calls_cache),
         "file_calls_failures": fetch_failures,
+        "cte_source": "jar-analyzer" if used_jar_analyzer else "codegraph",
     }
 
     # 6a. Write chain to SQLite if loop_audit_dir is provided
@@ -723,6 +936,7 @@ def build_all_chains_for_endpoint(
     jar_path: Optional[Path] = None,
     source_root: Optional[Path] = None,
     loop_audit_dir: Optional[Path] = None,
+    jar_analyzer_db_path: Optional[Path] = None,
 ) -> List[Dict[str, Any]]:
     """同一 entry 的**所有**根→叶路径变体。
 
@@ -755,26 +969,87 @@ def build_all_chains_for_endpoint(
         else:
             source_root = project_root
 
-    entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
-    if not entry_id:
-        raise LookupError(
-            f"entry_fqn 在 codegraph 中找不到 method 节点: {entry_fqn!r}"
-        )
+    # entry resolution: try jar-analyzer first, fall back to codegraph
+    used_jar_analyzer_all = False
+    entry_id: str = ""
 
-    paths = _extract_paths_with_cycle_flag(str(db_path), entry_id, max_depth)
-    if not paths:
-        _log("entry %s → 无可达路径", entry_id)
-        return []
+    if jar_analyzer_db_path is not None:
+        if _jac is None:
+            raise ImportError(
+                "jar_analyzer_cte.py 未加载, 无法使用 --jar-analyzer-db; "
+                "请确保 scripts/chain/jar_analyzer_cte.py 存在"
+            )
+        ja_entry_id = _jac.resolve_entry_jar_analyzer(  # type: ignore[union-attr]
+            str(jar_analyzer_db_path), entry_fqn,
+        )
+        if ja_entry_id:
+            entry_id = ja_entry_id
+            used_jar_analyzer_all = True
+            _log("jar-analyzer entry resolved (all_paths): %s → %s",
+                 entry_fqn, ja_entry_id)
+
+    if not used_jar_analyzer_all:
+        cg_entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
+        if not cg_entry_id:
+            raise LookupError(
+                f"entry_fqn 在 codegraph 中找不到 method 节点: {entry_fqn!r}"
+            )
+        entry_id = cg_entry_id
+
+    assert entry_id, "entry_id 未被设置 (逻辑错误)"
+
+    # path extraction: jar-analyzer uses its own CTE; codegraph uses existing logic
+    # jar-analyzer CTE also provides a 'path' column, parse unique paths from it
+    ja_all_rows: List[Dict[str, Any]] = []
+    if used_jar_analyzer_all:
+        ja_all_rows = _jac.extract_recursive_with_impl(  # type: ignore[union-attr]
+            str(jar_analyzer_db_path), entry_id, max_depth,
+        )
+        if not ja_all_rows:
+            _log("entry %s → jar-analyzer CTE 返回空链", entry_id)
+            return []
+        # Extract unique paths from jar-analyzer CTE output
+        seen_paths: set[str] = set()
+        paths: List[Dict[str, Any]] = []
+        for r in ja_all_rows:
+            path_str = r.get("path", "")
+            if path_str in seen_paths:
+                continue
+            seen_paths.add(path_str)
+            node_ids = [n for n in path_str.split("|") if n]
+            paths.append({
+                "nodes": node_ids,
+                "cycle_in_cte": False,
+            })
+    else:
+        paths = _extract_paths_with_cycle_flag(str(db_path), entry_id, max_depth)
+        if not paths:
+            _log("entry %s → 无可达路径", entry_id)
+            return []
 
     # 检查入口方法是否有参数
     entry_has_params = True
-    with _open_db(db_path) as conn:
-        row = conn.execute(
-            "SELECT signature FROM nodes WHERE id = ?", (entry_id,)
-        ).fetchone()
-    if row:
-        sig = row["signature"] or ""
-        entry_has_params = "()" not in sig or len(sig) > sig.find(")") + 1 > sig.find("(") + 1
+    if used_jar_analyzer_all:
+        # jar-analyzer 没有 signature, 按 qualified_name 查 codegraph
+        with _open_db(db_path) as conn:
+            row = conn.execute(
+                "SELECT id, signature FROM nodes WHERE qualified_name = ? LIMIT 1",
+                (entry_fqn,),
+            ).fetchone()
+        if row:
+            sig = row["signature"] or ""
+            entry_has_params = (
+                "()" not in sig
+                or len(sig) > sig.find(")") + 1 > sig.find("(") + 1
+            )
+    else:
+        with _open_db(db_path) as conn:
+            row = conn.execute(
+                "SELECT signature FROM nodes WHERE id = ?", (entry_id,)
+            ).fetchone()
+        if row:
+            sig = row["signature"] or ""
+            entry_has_params = "()" not in sig or len(sig) > sig.find(")") + 1 > sig.find("(") + 1
 
     # 收集所有出现过的 node id (去重) → 一次性反查 meta + edges + file_path
     all_ids: set[str] = set()
@@ -782,18 +1057,66 @@ def build_all_chains_for_endpoint(
         for nid in p["nodes"]:
             all_ids.add(nid)
     all_ids_list = list(all_ids)
-    with _open_db(db_path) as conn:
-        meta_map = _fetch_node_meta(conn, all_ids_list)
-        edges_map = _fetch_outgoing_edges(conn, all_ids_list)
-        # 额外批量查 file_path, 供 JAR --config 批量调用收集文件 (避免 N+1)
-        node_file_paths: Dict[str, Optional[str]] = {}
-        if all_ids_list:
-            placeholders = ",".join("?" * len(all_ids_list))
-            cur = conn.execute(
-                f"SELECT id, file_path FROM nodes WHERE id IN ({placeholders})",
-                tuple(all_ids_list),
+
+    # jar-analyzer 模式: 交叉引用 codegraph; codegraph 模式: 直接查
+    all_jar_cg_meta: Dict[str, Optional[Dict[str, Any]]] = {}
+    all_resolved_meta: Dict[str, Dict[str, Any]] = {}
+    all_resolved_edges_map: Dict[str, List[str]] = {}
+    meta_map: Dict[str, Dict[str, Any]] = {}
+    edges_map: Dict[str, List[str]] = {}
+    node_file_paths: Dict[str, Optional[str]] = {}
+
+    if used_jar_analyzer_all:
+        # Build jar-analyzer rows lookup by method_id for cross-ref
+        ja_rows_by_id = {r["id"]: r for r in ja_all_rows}
+        with _open_db(db_path) as conn:
+            all_jar_cg_meta = _resolve_codegraph_meta_for_jar_nodes(
+                conn, ja_all_rows,
             )
-            node_file_paths = {row["id"]: row["file_path"] for row in cur.fetchall()}
+            cg_node_ids = [
+                m["codegraph_node_id"]
+                for m in all_jar_cg_meta.values()
+                if m and m.get("codegraph_node_id")
+            ]
+            cg_edges = _fetch_outgoing_edges(conn, cg_node_ids) if cg_node_ids else {}
+
+        for mid in all_ids_list:
+            r = ja_rows_by_id.get(mid)
+            cg_info = all_jar_cg_meta.get(mid)
+            if cg_info:
+                all_resolved_meta[mid] = {
+                    "node_id": cg_info["codegraph_node_id"],
+                    "fqn": cg_info.get("qualified_name")
+                           or (r.get("qualified_name", "").replace("::", "#") if r else ""),
+                    "file_path": cg_info.get("file_path"),
+                    "start_line": cg_info.get("start_line") or (r.get("start_line", 0) if r else 0),
+                    "end_line": cg_info.get("end_line"),
+                }
+                all_resolved_edges_map[mid] = cg_edges.get(
+                    cg_info["codegraph_node_id"], [],
+                )
+                node_file_paths[mid] = cg_info.get("file_path")
+            else:
+                all_resolved_meta[mid] = {
+                    "node_id": mid,
+                    "fqn": (r.get("qualified_name", "").replace("::", "#") if r else ""),
+                    "file_path": None,
+                    "start_line": (r.get("start_line", 0) or 0) if r else 0,
+                    "end_line": None,
+                }
+                all_resolved_edges_map[mid] = []
+                node_file_paths[mid] = None
+    else:
+        with _open_db(db_path) as conn:
+            meta_map = _fetch_node_meta(conn, all_ids_list)
+            edges_map = _fetch_outgoing_edges(conn, all_ids_list)
+            if all_ids_list:
+                placeholders = ",".join("?" * len(all_ids_list))
+                cur = conn.execute(
+                    f"SELECT id, file_path FROM nodes WHERE id IN ({placeholders})",
+                    tuple(all_ids_list),
+                )
+                node_file_paths = {row["id"]: row["file_path"] for row in cur.fetchall()}
 
     # 收集所有唯一文件路径, 一次性调 JAR --config (整个 endpoint 只解析一次)
     chain_file_paths: List[Path] = []
@@ -831,29 +1154,33 @@ def build_all_chains_for_endpoint(
                 cycle_in_path = True
             seen.add(nid)
 
-            meta = meta_map.get(nid, {})
-            r_start = meta.get("start_line") if isinstance(meta.get("start_line"), int) else None
-            r_end = meta.get("end_line")
-            fqn = meta.get("qualified_name") or ""
-
-            # 查 start_line (CTE path 没有带, 需另查)
-            if r_start is None:
-                with _open_db(db_path) as conn:
-                    row = conn.execute(
-                        "SELECT start_line, file_path FROM nodes WHERE id=?",
-                        (nid,),
-                    ).fetchone()
-                r_start = int(row["start_line"]) if row else 0
-                file_path_str = row["file_path"] if row else None
+            if used_jar_analyzer_all:
+                rm = all_resolved_meta.get(nid, {})
+                fqn = rm.get("fqn", "")
+                node_id_for_chain = rm.get("node_id", nid)
+                r_start = rm.get("start_line") if isinstance(rm.get("start_line"), int) else None
+                r_end = rm.get("end_line")
+                file_path_str = rm.get("file_path")
+                node_edges = all_resolved_edges_map.get(nid, [])
             else:
-                file_path_str = None
-                with _open_db(db_path) as conn:
-                    row = conn.execute(
-                        "SELECT file_path FROM nodes WHERE id=?",
-                        (nid,),
-                    ).fetchone()
-                if row:
-                    file_path_str = row["file_path"]
+                meta = meta_map.get(nid, {})
+                fqn = meta.get("qualified_name") or ""
+                node_id_for_chain = nid
+                r_start = meta.get("start_line") if isinstance(meta.get("start_line"), int) else None
+                r_end = meta.get("end_line")
+
+                # 查 start_line (CTE path 没有带, 需另查)
+                if r_start is None:
+                    with _open_db(db_path) as conn:
+                        row = conn.execute(
+                            "SELECT start_line, file_path FROM nodes WHERE id=?",
+                            (nid,),
+                        ).fetchone()
+                    r_start = int(row["start_line"]) if row else 0
+                    file_path_str = row["file_path"] if row else None
+                else:
+                    file_path_str = node_file_paths.get(nid)
+                node_edges = edges_map.get(nid, [])
 
             file_p = _resolve_file_path(file_path_str, project_root)
             body: Optional[str] = None
@@ -885,14 +1212,14 @@ def build_all_chains_for_endpoint(
 
             chain_nodes.append(ChainNode(
                 fqn=fqn,
-                node_id=nid,
+                node_id=node_id_for_chain,
                 file=file_path_str,
                 start_line=r_start or 0,
                 end_line=r_end,
                 body=_annotate_body_with_sinks(body or "", ext_calls) or None,
                 depth=depth,
                 sinks=sinks,
-                edges=edges_map.get(nid, []),
+                edges=node_edges,
             ))
 
         total_edges = sum(len(n.edges) for n in chain_nodes)
@@ -912,6 +1239,7 @@ def build_all_chains_for_endpoint(
             "sink_categories": {s["fqn"]: s["category"] for s in all_dynamic_sinks},
             "preset_sink_count": _sr.match_preset_sinks([_chain_node_to_dict(n) for n in chain_nodes]),
             "file_calls_cache_size": len(file_calls_cache),
+            "cte_source": "jar-analyzer" if used_jar_analyzer_all else "codegraph",
         }
         results.append(result)
 
@@ -1003,7 +1331,577 @@ def build_all_chains_for_endpoint(
     return results
 
 
-# ============================================================== CTE path 提取 (私有)
+# ============================================================== jar-analyzer only (无 codegraph)
+
+def build_chain_jar_analyzer(
+    entry_fqn: str,
+    group_id: str,
+    project_root: Path,
+    jar_analyzer_db_path: Path,
+    max_depth: int = 20,
+    memurai_client: Any = None,
+    ttl: int = 864000,
+    jar_path: Optional[Path] = None,
+    source_root: Optional[Path] = None,
+    loop_audit_dir: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """纯 jar-analyzer 模式: 不使用 codegraph, 所有数据来自 jar-analyzer.db.
+
+    与 build_chain() 输出格式兼容, 但 cte_source='jar-analyzer', node_id=jar method_id,
+    缓存 key 用 jar method_id.
+    """
+    if _jac is None:
+        raise ImportError(
+            "jar_analyzer_cte.py 未加载, 无法使用 jar-analyzer-only 模式; "
+            "请确保 scripts/chain/jar_analyzer_cte.py 存在"
+        )
+
+    project_root = Path(project_root)
+    jar_analyzer_db_path = Path(jar_analyzer_db_path)
+    if source_root is None:
+        for candidate in [project_root / "src" / "main" / "java", project_root / "sources"]:
+            if candidate.is_dir():
+                source_root = candidate
+                break
+        else:
+            source_root = project_root
+
+    # 1. 入口解析: jar-analyzer only
+    entry_id = _jac.resolve_entry_jar_analyzer(str(jar_analyzer_db_path), entry_fqn)
+    if not entry_id:
+        _log("entry %s → jar-analyzer 找不到方法", entry_fqn)
+        return _empty_chain_result(entry_fqn, "")
+
+    _log("jar-analyzer-only entry resolved: %s → %s", entry_fqn, entry_id)
+
+    # 2. CTE 递归: jar-analyzer only
+    raw_rows = _jac.extract_recursive_with_impl(
+        str(jar_analyzer_db_path), entry_id, max_depth,
+    )
+    if not raw_rows:
+        _log("entry %s → jar-analyzer CTE 返回空链", entry_id)
+        return _empty_chain_result(entry_fqn, entry_id)
+
+    node_ids = [r["id"] for r in raw_rows]
+
+    # 3. 元信息: jar-analyzer only
+    # 3a. file paths from class_file_table
+    class_names_in_chain = [r["class_name"] for r in raw_rows if r.get("class_name")]
+    class_path_map = _jac.get_file_paths(str(jar_analyzer_db_path), class_names_in_chain)
+
+    # 3b. line numbers from method_table
+    line_number_map = _jac.get_method_line_numbers(str(jar_analyzer_db_path), node_ids)
+
+    # 3c. method metadata for fqn construction
+    method_meta_map = _jac.get_method_meta(str(jar_analyzer_db_path), node_ids)
+
+    # 3d. edges from method_call_table
+    edges_map = _jac.get_method_call_edges(str(jar_analyzer_db_path), node_ids)
+
+    # 3e. entry_has_params: check method_desc for params
+    entry_meta = method_meta_map.get(entry_id, {})
+    entry_method_desc = entry_meta.get("method_desc", "")
+    # method_desc contains parameter info; non-empty desc with types means has params
+    entry_has_params = bool(entry_method_desc and entry_method_desc != "()")
+
+    # 4. 收集所有唯一 java 文件路径, 一次性调 JAR
+    chain_java_files: List[Path] = []
+    seen_java_files: set[str] = set()
+    for r in raw_rows:
+        cn = r.get("class_name", "")
+        if cn:
+            java_p = _jac.class_name_to_java_source_path(cn, project_root)
+            if java_p.is_file() and str(java_p) not in seen_java_files:
+                seen_java_files.add(str(java_p))
+                chain_java_files.append(java_p)
+
+    file_calls_cache, fetch_failures = _batch_fetch_file_calls(
+        chain_java_files, source_root, group_id, jar_path, log=True,
+    )
+
+    def _get_file_calls(file_path: Path) -> List[Dict[str, Any]]:
+        return _get_file_calls_with_cache(
+            file_path, file_calls_cache, source_root,
+            group_id, jar_path, fetch_failures,
+        )
+
+    # 5. 构建 ChainNode 列表
+    chain_nodes: List[ChainNode] = []
+    total_sinks = 0
+    all_dynamic_sinks: List[Dict[str, Any]] = []
+    seen_node_ids: set[str] = set()
+
+    for r in raw_rows:
+        nid = r["id"]
+        if nid in seen_node_ids:
+            continue
+        seen_node_ids.add(nid)
+
+        meta = method_meta_map.get(nid, {})
+        cn = r.get("class_name", meta.get("class_name", ""))
+        mn = r.get("method_name", meta.get("method_name", ""))
+
+        # fqn: org/owasp/...ClassName::methodName (dot format)
+        fqn = f"{_jac._jar_class_to_dot(cn)}::{mn}" if cn and mn else ""
+
+        # node_id = jar method_id (integer, used as string)
+        node_id_for_chain = nid
+
+        # file path: convert class_name → java source path
+        java_file_path = None
+        java_file_p = None
+        if cn:
+            java_file_p = _jac.class_name_to_java_source_path(cn, project_root)
+            if java_file_p.is_file():
+                java_file_path = str(java_file_p)
+
+        # start_line: from method_table
+        start_line = line_number_map.get(nid, 0) or 0
+        end_line = None  # jar-analyzer 没有 end_line
+
+        # edges
+        node_edges = edges_map.get(nid, [])
+
+        # body: read from java source file
+        body: Optional[str] = None
+        if java_file_p is not None and java_file_p.is_file() and start_line > 0:
+            body = _read_method_body(java_file_p, start_line, end_line)
+
+        depth = int(r.get("depth", 0))
+
+        # sinks: 从 JAR 解析的调用中识别
+        sinks: List[str] = []
+        ext_calls: List[str] = []
+        if java_file_p is not None and java_file_p.is_file() and start_line > 0:
+            all_calls = _get_file_calls(java_file_p)
+            jar_start = start_line - 1
+            method_calls = [
+                c for c in all_calls
+                if int(c.get("method_start_line") or -1) == jar_start
+            ]
+            all_called_fqns = [c["called_fqn"] for c in method_calls]
+            dynamic_sinks = _sr.identify_dynamic_sinks(group_id, all_called_fqns)
+            sinks = [s["fqn"] for s in dynamic_sinks]
+            all_dynamic_sinks.extend(dynamic_sinks)
+            total_sinks += len(sinks)
+            ext_calls = [
+                c["called_fqn"] for c in method_calls
+                if not c["called_fqn"].startswith(group_id + ".")
+                and not c["called_fqn"].startswith(group_id + "#")
+                and not c["called_fqn"].startswith("this.")
+                and not c["called_fqn"].startswith("super.")
+                and "." in c["called_fqn"]
+            ]
+
+        annotated_body = _annotate_body_with_sinks(body or "", ext_calls) if body else None
+
+        chain_nodes.append(ChainNode(
+            fqn=fqn,
+            node_id=node_id_for_chain,
+            file=java_file_path,
+            start_line=start_line,
+            end_line=end_line,
+            body=annotated_body or None,
+            depth=depth,
+            sinks=sinks,
+            edges=node_edges,
+        ))
+
+    # 6. cycle detection
+    total_nodes = len(chain_nodes)
+    total_edges = sum(len(n.edges) for n in chain_nodes)
+    cycle_detected = _detect_cycle_in_chain(chain_nodes, edges_map)
+
+    sig_hash = _sig_hash_for_entry(entry_id)
+
+    result: Dict[str, Any] = {
+        "entry_fqn": entry_fqn,
+        "entry_id": entry_id,
+        "sig_hash": sig_hash,
+        "group_id": group_id,
+        "depth_limit": max_depth,
+        "chain": [_chain_node_to_dict(n) for n in chain_nodes],
+        "total_nodes": total_nodes,
+        "total_edges": total_edges,
+        "total_sinks": total_sinks,
+        "sink_categories": {s["fqn"]: s["category"] for s in all_dynamic_sinks},
+        "preset_sink_count": _sr.match_preset_sinks([_chain_node_to_dict(n) for n in chain_nodes]),
+        "cycle_detected": cycle_detected,
+        "entry_has_params": entry_has_params,
+        "file_calls_cache_size": len(file_calls_cache),
+        "file_calls_failures": fetch_failures,
+        "cte_source": "jar-analyzer",
+    }
+
+    # 6a. Write chain to SQLite if loop_audit_dir provided
+    if loop_audit_dir is not None:
+        try:
+            from chain_db import ChainDB
+            db = ChainDB(loop_audit_dir / "chains.db")
+            chain_path_parts = []
+            node_path_parts = []
+            for n in chain_nodes:
+                sink_num = len(n.sinks)
+                chain_path_parts.append(f"{n.fqn}(sink num: {sink_num})")
+                node_path_parts.append(n.node_id)
+
+            last_sinks = len(chain_nodes[-1].sinks) if chain_nodes else 0
+            last_preset = _sr.match_preset_sinks([_chain_node_to_dict(chain_nodes[-1])]) if chain_nodes else 0
+            penalty = 0 if entry_has_params else 100
+            priority = max(0, last_preset * 10 + last_sinks - penalty)
+
+            chain_path_str = " -> ".join(chain_path_parts)
+            node_path_str = " -> ".join(node_path_parts)
+            db.insert_chain(
+                chain_id=sig_hash,
+                endpoint_fqn=entry_fqn,
+                priority=priority,
+                total_sinks=total_sinks,
+                preset_sinks=result.get("preset_sink_count", 0),
+                cycle_detected=cycle_detected,
+                chain_path=chain_path_str,
+                node_path=node_path_str,
+                last_sinks=last_sinks,
+                is_sink=last_sinks > 0,
+                node_count=len(chain_nodes),
+            )
+            result["chain_db"] = str(loop_audit_dir / "chains.db")
+            result["last_sinks_priority"] = priority
+        except Exception as e:  # noqa: BLE001
+            _log("chain_db write failed: %s", e)
+            result["chain_db_error"] = str(e)
+
+    # 6b. redis-batch-prefetch: cache key uses jar method_id
+    if memurai_client is not None:
+        chain_for_prefetch = [
+            {
+                "fqn": n.fqn,
+                "startLine": n.start_line,
+                "line": n.start_line,
+                "body": n.body,
+                "file": n.file,
+                "depth": n.depth,
+                "node_id": n.node_id,
+            }
+            for n in chain_nodes
+        ]
+        try:
+            prefetch_result = _rbp.prefetch_chain(
+                memurai_client, chain_for_prefetch, group_id,
+                sig_hash, method_ttl=ttl, prefetch_ttl=3600,
+            )
+            result["prefetch_stats"] = prefetch_result
+        except Exception as e:  # noqa: BLE001
+            _log("redis-batch-prefetch failed: %s", e)
+            result["prefetch_error"] = str(e)
+
+    # 7. Memurai 缓存 (可选) — 缓存 key 用 jar method_id
+    if memurai_client is not None:
+        cache_key = f"{group_id}:audit:chain:{sig_hash}"
+        try:
+            ok = memurai_client.set_json(
+                cache_key, result, ex=ttl,
+            )
+            result["cache_key"] = cache_key
+            result["cache_written"] = bool(ok)
+        except Exception as e:  # noqa: BLE001
+            _log("Memurai 写缓存失败 (%s): %s", cache_key, e)
+            result["cache_key"] = cache_key
+            result["cache_written"] = False
+            result["cache_error"] = str(e)
+
+    return result
+
+
+def build_all_chains_for_endpoint_jar_analyzer(
+    entry_fqn: str,
+    group_id: str,
+    project_root: Path,
+    jar_analyzer_db_path: Path,
+    max_depth: int = 20,
+    memurai_client: Any = None,
+    ttl: int = 864000,
+    jar_path: Optional[Path] = None,
+    source_root: Optional[Path] = None,
+    loop_audit_dir: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    """纯 jar-analyzer 模式的多路径变体版本.
+
+    与 build_all_chains_for_endpoint 输出格式兼容, 但 cte_source='jar-analyzer'.
+    """
+    if _jac is None:
+        raise ImportError(
+            "jar_analyzer_cte.py 未加载; "
+            "请确保 scripts/chain/jar_analyzer_cte.py 存在"
+        )
+
+    project_root = Path(project_root)
+    jar_analyzer_db_path = Path(jar_analyzer_db_path)
+    if source_root is None:
+        for candidate in [project_root / "src" / "main" / "java", project_root / "sources"]:
+            if candidate.is_dir():
+                source_root = candidate
+                break
+        else:
+            source_root = project_root
+
+    # 入口解析
+    entry_id = _jac.resolve_entry_jar_analyzer(str(jar_analyzer_db_path), entry_fqn)
+    if not entry_id:
+        _log("entry %s → jar-analyzer 找不到方法", entry_fqn)
+        return []
+
+    # CTE: all rows
+    ja_all_rows = _jac.extract_recursive_with_impl(
+        str(jar_analyzer_db_path), entry_id, max_depth,
+    )
+    if not ja_all_rows:
+        _log("entry %s → jar-analyzer CTE 返回空链", entry_id)
+        return []
+
+    # Extract unique paths from CTE output
+    seen_paths: set[str] = set()
+    paths: List[Dict[str, Any]] = []
+    for r in ja_all_rows:
+        path_str = r.get("path", "")
+        if path_str in seen_paths:
+            continue
+        seen_paths.add(path_str)
+        node_ids = [n for n in path_str.split("|") if n]
+        paths.append({
+            "nodes": node_ids,
+            "cycle_in_cte": False,
+        })
+
+    # 元信息: batch load
+    all_ids = set()
+    for p in paths:
+        for nid in p["nodes"]:
+            all_ids.add(nid)
+    all_ids_list = list(all_ids)
+
+    class_names_in_chain = []
+    for r in ja_all_rows:
+        cn = r.get("class_name", "")
+        if cn and cn not in class_names_in_chain:
+            class_names_in_chain.append(cn)
+    class_path_map = _jac.get_file_paths(str(jar_analyzer_db_path), class_names_in_chain)
+    line_number_map = _jac.get_method_line_numbers(str(jar_analyzer_db_path), all_ids_list)
+    method_meta_map = _jac.get_method_meta(str(jar_analyzer_db_path), all_ids_list)
+    edges_map_all = _jac.get_method_call_edges(str(jar_analyzer_db_path), all_ids_list)
+
+    # entry_has_params
+    entry_meta = method_meta_map.get(entry_id, {})
+    entry_method_desc = entry_meta.get("method_desc", "")
+    entry_has_params = bool(entry_method_desc and entry_method_desc != "()")
+
+    # 收集所有唯一 java 文件路径
+    chain_java_files: List[Path] = []
+    seen_java_files: set[str] = set()
+    for nid in all_ids_list:
+        meta = method_meta_map.get(nid, {})
+        cn = meta.get("class_name", "")
+        if cn:
+            java_p = _jac.class_name_to_java_source_path(cn, project_root)
+            if java_p.is_file() and str(java_p) not in seen_java_files:
+                seen_java_files.add(str(java_p))
+                chain_java_files.append(java_p)
+
+    file_calls_cache, fetch_failures = _batch_fetch_file_calls(
+        chain_java_files, source_root, group_id, jar_path, log=True,
+    )
+
+    def _get_file_calls(file_path: Path) -> List[Dict[str, Any]]:
+        return _get_file_calls_with_cache(
+            file_path, file_calls_cache, source_root,
+            group_id, jar_path, fetch_failures,
+        )
+
+    sig_hash = _sig_hash_for_entry(entry_id)
+    cache_key = f"{group_id}:audit:chain:{sig_hash}"
+    results: List[Dict[str, Any]] = []
+
+    for path_idx, p in enumerate(paths):
+        node_ids = p["nodes"]
+        chain_nodes: List[ChainNode] = []
+        total_sinks = 0
+        all_dynamic_sinks: List[Dict[str, Any]] = []
+        cycle_in_path = False
+        seen: set[str] = set()
+
+        for depth, nid in enumerate(node_ids):
+            if nid in seen:
+                cycle_in_path = True
+            seen.add(nid)
+
+            meta = method_meta_map.get(nid, {})
+            cn = meta.get("class_name", "")
+            mn = meta.get("method_name", "")
+            fqn = f"{_jac._jar_class_to_dot(cn)}::{mn}" if cn and mn else ""
+
+            node_id_for_chain = nid
+
+            # file path
+            java_file_p = None
+            java_file_path = None
+            if cn:
+                java_file_p = _jac.class_name_to_java_source_path(cn, project_root)
+                if java_file_p.is_file():
+                    java_file_path = str(java_file_p)
+
+            start_line = line_number_map.get(nid, 0) or 0
+            end_line = None
+
+            node_edges = edges_map_all.get(nid, [])
+
+            # body
+            body: Optional[str] = None
+            if java_file_p is not None and java_file_p.is_file() and start_line > 0:
+                body = _read_method_body(java_file_p, start_line, end_line)
+
+            # sinks
+            sinks: List[str] = []
+            ext_calls: List[str] = []
+            if java_file_p is not None and java_file_p.is_file() and start_line > 0:
+                all_calls = _get_file_calls(java_file_p)
+                jar_start = start_line - 1
+                method_calls = [
+                    c for c in all_calls
+                    if int(c.get("method_start_line") or -1) == jar_start
+                ]
+                all_called_fqns = [c["called_fqn"] for c in method_calls]
+                dynamic_sinks = _sr.identify_dynamic_sinks(group_id, all_called_fqns)
+                sinks = [s["fqn"] for s in dynamic_sinks]
+                all_dynamic_sinks.extend(dynamic_sinks)
+                total_sinks += len(sinks)
+                ext_calls = [
+                    c["called_fqn"] for c in method_calls
+                    if not c["called_fqn"].startswith(group_id + ".")
+                    and not c["called_fqn"].startswith(group_id + "#")
+                    and not c["called_fqn"].startswith("this.")
+                    and not c["called_fqn"].startswith("super.")
+                    and "." in c["called_fqn"]
+                ]
+
+            annotated_body = _annotate_body_with_sinks(body or "", ext_calls) if body else None
+
+            chain_nodes.append(ChainNode(
+                fqn=fqn,
+                node_id=node_id_for_chain,
+                file=java_file_path,
+                start_line=start_line,
+                end_line=end_line,
+                body=annotated_body or None,
+                depth=depth,
+                sinks=sinks,
+                edges=node_edges,
+            ))
+
+        total_edges = sum(len(n.edges) for n in chain_nodes)
+        result = {
+            "entry_fqn": entry_fqn,
+            "entry_id": entry_id,
+            "sig_hash": sig_hash,
+            "group_id": group_id,
+            "depth_limit": max_depth,
+            "path_index": path_idx,
+            "path_node_ids": node_ids,
+            "cycle_detected": cycle_in_path or p.get("cycle_in_cte", False),
+            "chain": [_chain_node_to_dict(n) for n in chain_nodes],
+            "total_nodes": len(chain_nodes),
+            "total_edges": total_edges,
+            "total_sinks": total_sinks,
+            "sink_categories": {s["fqn"]: s["category"] for s in all_dynamic_sinks},
+            "preset_sink_count": _sr.match_preset_sinks([_chain_node_to_dict(n) for n in chain_nodes]),
+            "file_calls_cache_size": len(file_calls_cache),
+            "cte_source": "jar-analyzer",
+        }
+        results.append(result)
+
+    # Write chains to SQLite
+    if loop_audit_dir is not None and results:
+        try:
+            from chain_db import ChainDB
+            db = ChainDB(loop_audit_dir / "chains.db")
+            chains_to_insert = []
+            for r in results:
+                chain_path_parts = []
+                node_path_parts = []
+                for n in r["chain"]:
+                    sink_num = len(n.get("sinks", []))
+                    chain_path_parts.append(f"{n['fqn']}(sink num: {sink_num})")
+                    node_path_parts.append(n['node_id'])
+                last_node = r["chain"][-1] if r["chain"] else None
+                last_sinks = len(last_node.get("sinks", [])) if last_node else 0
+                last_preset = _sr.match_preset_sinks([last_node]) if last_node else 0
+                penalty = 0 if entry_has_params else 100
+                priority = max(0, last_preset * 10 + last_sinks - penalty)
+                chains_to_insert.append({
+                    "chain_id": f"{sig_hash}_{r.get('path_index', 0)}",
+                    "endpoint_fqn": entry_fqn,
+                    "priority": priority,
+                    "total_sinks": r.get("total_sinks", 0),
+                    "preset_sinks": r.get("preset_sink_count", 0),
+                    "cycle_detected": r.get("cycle_detected", False),
+                    "chain_path": " -> ".join(chain_path_parts),
+                    "node_path": " -> ".join(node_path_parts),
+                    "last_sinks": last_sinks,
+                    "is_sink": last_sinks > 0,
+                    "node_count": len(r["chain"]),
+                })
+            db.insert_chains_batch(chains_to_insert)
+            for r in results:
+                r["chain_db"] = str(loop_audit_dir / "chains.db")
+        except Exception as e:  # noqa: BLE001
+            _log("chain_db write failed: %s", e)
+            for r in results:
+                r["chain_db_error"] = str(e)
+
+    # Prefetch: batch prefetch all chain nodes to Memurai
+    if memurai_client is not None and results:
+        all_chain_nodes = []
+        for r in results:
+            for node_dict in r["chain"]:
+                all_chain_nodes.append(node_dict)
+        chain_for_prefetch = [
+            {
+                "fqn": n.get("fqn", ""),
+                "startLine": n.get("start_line", 0),
+                "line": n.get("start_line", 0),
+                "body": n.get("body"),
+                "file": n.get("file"),
+                "depth": n.get("depth", 0),
+                "node_id": n.get("node_id", ""),
+            }
+            for n in all_chain_nodes
+        ]
+        try:
+            prefetch_result = _rbp.prefetch_chain(
+                memurai_client, chain_for_prefetch, group_id,
+                sig_hash, method_ttl=ttl, prefetch_ttl=3600,
+            )
+            for r in results:
+                r["prefetch_stats"] = prefetch_result
+        except Exception as e:  # noqa: BLE001
+            _log("redis-batch-prefetch failed: %s", e)
+            for r in results:
+                r["prefetch_error"] = str(e)
+
+    # Write Memurai cache (覆盖同 sigHash), 包含所有变体
+    if memurai_client is not None and results:
+        try:
+            ok = memurai_client.set_json(
+                cache_key,
+                {"paths": results, "path_count": len(results)},
+                ex=ttl,
+            )
+            for r in results:
+                r["cache_key"] = cache_key
+                r["cache_written"] = bool(ok)
+        except Exception as e:  # noqa: BLE001
+            _log("Memurai 写缓存失败 (%s): %s", cache_key, e)
+
+    return results
 
 # 与 sqlite-extract-chain.py 的 RECURSIVE_SQL 同结构, 但额外返回 path 列
 # 纯粹的 INNER JOIN 递归展开: 每跳 JOIN edges ON kind='calls', 不加额外计算
@@ -1139,6 +2037,8 @@ def _build_argparser() -> argparse.ArgumentParser:
                    help="JAR 的 sourceRoot 参数 (默认 = project_root)")
     p.add_argument("--jar", default=None,
                    help="java-method-call-extractor-1.0.0.jar 路径")
+    p.add_argument("--jar-analyzer-db", default=None,
+                   help="jar-analyzer SQLite DB path (preferred over codegraph for CTE traversal)")
     p.add_argument("--output", "-o", default=None,
                    help="输出 JSON 文件路径 (省略则打印到 stdout)")
     p.add_argument("--memurai", action="store_true",
@@ -1204,28 +2104,56 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     db_path = Path(args.db)
     source_root = Path(args.source_root) if args.source_root else None
     jar_path = Path(args.jar) if args.jar else None
+    jar_analyzer_db_path = Path(args.jar_analyzer_db) if args.jar_analyzer_db else None
 
     memurai = _maybe_connect_memurai(args)
 
-    common_kwargs = dict(
-        entry_fqn=args.entry,
-        group_id=args.group_id,
-        project_root=project_root,
-        db_path=db_path,
-        max_depth=args.depth,
-        memurai_client=memurai,
-        ttl=args.ttl,
-        jar_path=jar_path,
-        source_root=source_root,
-        loop_audit_dir=args.loop_dir,
+    # 当 jar_analyzer_db_path 存在且 db_path (codegraph) 不存在时, 使用纯 jar-analyzer 模式
+    use_jar_analyzer_only = (
+        jar_analyzer_db_path is not None
+        and jar_analyzer_db_path.is_file()
+        and not db_path.is_file()
     )
 
     try:
-        if args.all_paths:
-            results = build_all_chains_for_endpoint(**common_kwargs)
+        if use_jar_analyzer_only:
+            # 纯 jar-analyzer 模式: 不需要 codegraph
+            ja_common_kwargs = dict(
+                entry_fqn=args.entry,
+                group_id=args.group_id,
+                project_root=project_root,
+                jar_analyzer_db_path=jar_analyzer_db_path,
+                max_depth=args.depth,
+                memurai_client=memurai,
+                ttl=args.ttl,
+                jar_path=jar_path,
+                source_root=source_root,
+                loop_audit_dir=args.loop_dir,
+            )
+            if args.all_paths:
+                results = build_all_chains_for_endpoint_jar_analyzer(**ja_common_kwargs)
+            else:
+                single = build_chain_jar_analyzer(**ja_common_kwargs)
+                results = [single]
         else:
-            single = build_chain(**common_kwargs)
-            results = [single]
+            common_kwargs = dict(
+                entry_fqn=args.entry,
+                group_id=args.group_id,
+                project_root=project_root,
+                db_path=db_path,
+                max_depth=args.depth,
+                memurai_client=memurai,
+                ttl=args.ttl,
+                jar_path=jar_path,
+                source_root=source_root,
+                loop_audit_dir=args.loop_dir,
+                jar_analyzer_db_path=jar_analyzer_db_path,
+            )
+            if args.all_paths:
+                results = build_all_chains_for_endpoint(**common_kwargs)
+            else:
+                single = build_chain(**common_kwargs)
+                results = [single]
     except LookupError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2

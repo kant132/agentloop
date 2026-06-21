@@ -118,6 +118,11 @@ class ChainDB:
                 conn.execute("ALTER TABLE chains ADD COLUMN is_sink INTEGER DEFAULT 0")
         except Exception:
             pass
+        try:
+            with self._conn() as conn:
+                conn.execute("ALTER TABLE chains ADD COLUMN mismatch_score REAL DEFAULT 0")
+        except Exception:
+            pass
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path))
@@ -277,6 +282,26 @@ class ChainDB:
             conn.commit()
             return cur.rowcount
 
+    def update_mismatch_score(self, chain_id: str, score: float) -> None:
+        """更新链的 mismatch_score 并自动调整 status。
+
+        mismatch_score > 0.5 → status='low_confidence'
+        mismatch_score <= 0.5 → status 保持不变 (通常为 'pending')
+        """
+        status = "low_confidence" if score > 0.5 else None
+        with self._conn() as conn:
+            if status:
+                conn.execute(
+                    "UPDATE chains SET mismatch_score = ?, status = ? WHERE chain_id = ?",
+                    (score, status, chain_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE chains SET mismatch_score = ? WHERE chain_id = ?",
+                    (score, chain_id),
+                )
+            conn.commit()
+
     # ============================================================
     # 统计
     # ============================================================
@@ -320,6 +345,49 @@ class ChainDB:
                 "avg_priority": round(avg_priority or 0, 2),
                 "total_sinks": total_sinks or 0,
             }
+
+    def top_by_node_count(self, limit: int = 3) -> list[dict[str, Any]]:
+        """按节点数降序取前 N 条链（用于"最长链"摘要）。"""
+        with self._conn() as conn:
+            cur = conn.execute(
+                "SELECT * FROM chains ORDER BY node_count DESC, priority DESC LIMIT ?",
+                (limit,),
+            )
+            return [dict(row) for row in cur.fetchall()]
+
+    def bottom_by_priority(self, limit: int = 3) -> list[dict[str, Any]]:
+        """按优先级升序取前 N 条链（用于"最低优先级"摘要）。"""
+        with self._conn() as conn:
+            cur = conn.execute(
+                "SELECT * FROM chains ORDER BY priority ASC LIMIT ?",
+                (limit,),
+            )
+            return [dict(row) for row in cur.fetchall()]
+
+    def mismatch_stats(self) -> dict[str, Any]:
+        """边验证摘要：高/低置信链数 + 平均 mismatch_score。
+
+        - high_confidence: mismatch_score <= 0.5 的链数
+        - low_confidence:  mismatch_score > 0.5 的链数（status='low_confidence'）
+        - avg_mismatch_score: 所有链 mismatch_score 的平均值
+        """
+        with self._conn() as conn:
+            total = conn.execute("SELECT COUNT(*) FROM chains").fetchone()[0]
+            high = conn.execute(
+                "SELECT COUNT(*) FROM chains WHERE mismatch_score <= 0.5"
+            ).fetchone()[0]
+            low = conn.execute(
+                "SELECT COUNT(*) FROM chains WHERE mismatch_score > 0.5"
+            ).fetchone()[0]
+            avg_score = conn.execute(
+                "SELECT AVG(mismatch_score) FROM chains"
+            ).fetchone()[0]
+        return {
+            "high_confidence": high,
+            "low_confidence": low,
+            "avg_mismatch_score": round(avg_score or 0.0, 3),
+            "total": total,
+        }
 
     # ============================================================
     # agent_results 操作
