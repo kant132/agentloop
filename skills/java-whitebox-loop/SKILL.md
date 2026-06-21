@@ -71,7 +71,7 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 
 #### 并发策略
 
-- **审计阶段**：同时启动 4 个审计 agent（task() 并行）
+- **审计阶段**：同时启动 4 个审计 agent（task() 并行，category="quick"）
 - **PoC 阶段**：同时启动 4 个 PoC agent（task() 并行）
 
 #### 判断逻辑
@@ -104,55 +104,59 @@ top_25 = all_endpoints[:max(1, len(all_endpoints) // 4)]
 
 #### 方法体加载
 
-**主 agent 派发 task() 后自动轮询收集结果**，不等待用户介入：
+**主 agent 预加载方法体，直接传给子 agent，不让子 agent 自己调脚本。**
 
 ```python
-import time
-def dispatch_batch(tasks: list) -> list:
-    """派发一批 task() 并自动轮询收集结果。"""
-    pending = {task(run_in_background=True, **t): t for t in tasks}
-    results = []
-    deadline = time.time() + 600  # 最多等 10 分钟
-    while pending and time.time() < deadline:
-        for bg_id, t in list(pending.items()):
-            out = background_output(task_id=bg_id, block=False, timeout=10000)
-            if out is not None:
-                results.append(out)
-                del pending[bg_id]
-        if pending:
-            time.sleep(15)  # 每 15 秒轮询一次
-    return results
+from chain_db import ChainDB
+from memurai_client import Memurai
+
+db = ChainDB("{loop_audit_dir}/chains.db")
+m = Memurai()
+GID = "{group_id}"
+
+# 取 is_sink=1 的链
+chains = db.batch_by_priority(limit=100, is_sink=1)
+
+def load_front4_tail2(node_path: str) -> list[dict]:
+    """加载前4层+后2层的方法体（<6层全部加载）。"""
+    nodes = [x.strip() for x in (node_path or "").split("->") if x.strip()]
+    if len(nodes) <= 6:
+        selected = nodes
+    else:
+        selected = nodes[:4] + nodes[-2:]
+    bodies = []
+    for nid in selected:
+        key = f"{GID}:method:{nid}"
+        raw = m.get(key)
+        if raw:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+            bodies.append(data)
+    return bodies
+
+for c in chains:
+    bodies = load_front4_tail2(c["node_path"])
+    # 直接传入 task prompt，不让子 agent 自己调脚本
+    # task(..., prompt=f"方法体数据: {json.dumps(bodies)} ...")
 ```
 
-**注入类/文件类子 agent 只审计最后一个方法体的 sink 点**：
-- 从 `node_path` 取最后一个 `node_id`
-- 用 `load_method_body.py --node-id` 加载该方法体
-- 只分析该方法体内的 `// #fqn` 注释列出的外部调用
-- 入口方法是否有用户参数，由主 agent 从 chain_path/route.json 判断
-
-```powershell
-# 加载最后一个 node 的方法体（注入类/文件类子 agent 用）
-python scripts/chain/load_method_body.py --group-id {groupId} --node-id "{last_node_id}"
-```
-
-**认证鉴权/业务逻辑类需要看整条链的逻辑**：
-```powershell
-python scripts/chain/load_method_body.py --group-id {groupId} --node-path "..." --max-depth 5 --tail-depth 0
-```
+**子 agent 逆向分析方法**：
+1. **先看最后一层** — 分析最后一个方法体的 `// #fqn` 注释，判断存在什么类型的漏洞（SQL注入/RCE/SSRF/路径遍历等）
+2. **再看上层** — 从最后一个节点向上层回溯，检查污点是否可达（用户输入是否能传递到这个 sink）
+3. **组合判定** — sink 存在 + 污点可达 = vuln
 
 **主 agent 提供给子 agent 的数据**：
 - `chain_id` — 链 ID
-- `endpoint_fqn` — 入口方法
-- `node_path` — node_id 序列
-- `last_node_id` — 最后一个 node_id（注入类/文件类审计用）
-- `entry_has_params` — 入口方法是否接收用户参数（主 agent 从 route.json 判断）
-- `total_sinks` — sink 总数
+- `endpoint_fqn` — 入口方法  
+- `entry_has_params` — 入口方法是否接收用户参数
+- `chain_path` — 人可读链路径（每层含 sink num）
+- `method_bodies` — 预加载的前4+后2层方法体（JSON 字符串）
 - `group_id` — 项目 groupId
 
 **子 agent 约束**：
-1. 注入类/文件类：只加载最后一个 node 的方法体，只分析该方法的 `// #fqn` 注释
+1. 子 agent 不调任何脚本（方法体已预加载）
 2. 不读源文件，不探索项目目录
-3. 返回结论文本（小，不传方法体回主 agent）
+3. 逆向分析：先看最后一层漏洞类型，再回溯污点
+4. 返回结论文本（小，不传方法体回主 agent）
 
 ### Phase 3.5: 主 agent 生成静态报告（Markdown）
 
