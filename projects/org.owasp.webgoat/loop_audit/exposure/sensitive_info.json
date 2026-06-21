@@ -13,7 +13,7 @@
   },
   "errors": [],
   "degraded": false,
-  "collected_at": "2026-06-20T15:55:59.690274+00:00",
+  "collected_at": "2026-06-21T15:18:47.701879+00:00",
   "items": [
     {
       "file": ".mvn\\wrapper\\MavenWrapperDownloader.java",

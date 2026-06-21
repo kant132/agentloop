@@ -12,7 +12,7 @@
   },
   "errors": [],
   "degraded": false,
-  "collected_at": "2026-06-20T15:55:56.273459+00:00",
+  "collected_at": "2026-06-21T15:18:44.263805+00:00",
   "items": [
     {
       "fqn": "org.owasp.webgoat.lessons.pathtraversal::ProfileUploadBase::execute",

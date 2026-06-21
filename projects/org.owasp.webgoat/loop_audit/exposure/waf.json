@@ -11,7 +11,7 @@
   },
   "errors": [],
   "degraded": false,
-  "collected_at": "2026-06-20T15:55:59.956709+00:00",
+  "collected_at": "2026-06-21T15:18:47.942008+00:00",
   "items": [
     {
       "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\WebSecurityConfig.java",

@@ -1,0 +1,53 @@
+{
+  "injection_chains": [
+    {
+      "chain_id": "c0c62d57c2703446_0",
+      "endpoint_fqn": "org.owasp.webgoat.webwolf.jwt.JWTController#encode",
+      "priority": 4,
+      "sinks": 4
+    }
+  ],
+  "auth_biz_endpoints": [
+    {
+      "fqn": "org.owasp.webgoat.webwolf.jwt.JWTController#encode",
+      "is_auth_biz": true
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.requests.Requests#get",
+      "is_auth_biz": true
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.jwt.JWTController#decode",
+      "is_auth_biz": false
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.mailbox.MailboxController#mail",
+      "is_auth_biz": false
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.requests.LandingPage#ok",
+      "is_auth_biz": false
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.mailbox.MailboxController#sendEmail",
+      "is_auth_biz": false
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.HammerHead#attack",
+      "is_auth_biz": false
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.WebWolfRedirect#openWebWolf",
+      "is_auth_biz": false
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.jwt.JWTController#jwt",
+      "is_auth_biz": false
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.mailbox.MailboxController#deleteAllMail",
+      "is_auth_biz": false
+    }
+  ],
+  "pending_total": 4
+}
