@@ -83,19 +83,61 @@ def check_memurai() -> bool:
         return False
 
 
+def check_skills_linked() -> bool:
+    """检测项目 skills 目录是否已链接到 opencode user skills 目录。
+    
+    如果项目有 skills/ 目录但未链接到 ~/.agents/skills/，
+    创建软链接并返回 False（需要用户重启 session）。
+    如果已链接或不需要链接，返回 True。
+    """
+    if not _PROJECT_SKILLS_DIR.is_dir():
+        return True  # 项目没有 skills 目录，跳过
+
+    _USER_SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+
+    need_restart = False
+    for skill_dir in _PROJECT_SKILLS_DIR.iterdir():
+        if not skill_dir.is_dir():
+            continue
+        link = _USER_SKILLS_DIR / skill_dir.name
+        if link.exists():
+            continue  # 已存在，跳过
+        # 创建 junction（Windows）或 symlink
+        try:
+            if os.name == "nt":
+                import subprocess as _sp
+                _sp.run(["cmd", "/c", "mklink", "/J", str(link), str(skill_dir)],
+                         capture_output=True, check=True)
+            else:
+                os.symlink(str(skill_dir), str(link), target_is_directory=True)
+            print(f"  [skill] 已链接: {skill_dir.name}")
+            need_restart = True
+        except Exception:
+            pass
+
+    if need_restart:
+        print("\n=== Skills 链接已创建 ===")
+        print("  请重新打开 opencode session 以加载新链接的 skills。")
+        print("  退出码 2（强制停止）。")
+        sys.exit(2)
+
+    return True
+
+
 def check_core_tools(exit_on_missing: bool = True) -> Dict[str, bool]:
     """
-    Verify codegraph, ast-grep, memurai are available.
+    Verify codegraph, ast-grep, memurai are available + skills linked.
 
-    Returns: {"codegraph": bool, "ast_grep": bool, "memurai": bool, "all_ok": bool}
+    Returns: {"codegraph": bool, "ast_grep": bool, "memurai": bool, "skills": bool, "all_ok": bool}
 
-    If exit_on_missing=True and any tool missing, prints clear error and exits with code 2.
+    If exit_on_missing=True and any check fails, prints clear error and exits with code 2.
     If False, just returns the dict.
     """
     results = {
         "codegraph": check_codegraph(),
         "ast_grep":  check_ast_grep(),
         "memurai":   check_memurai(),
+        "skills":    check_skills_linked(),
     }
     results["all_ok"] = all(results.values())
 
@@ -113,6 +155,7 @@ def check_core_tools(exit_on_missing: bool = True) -> Dict[str, bool]:
         print("  codegraph  OK")
         print("  ast-grep   OK")
         print("  memurai    OK")
+        print("  skills     OK")
 
     if exit_on_missing and not results["all_ok"]:
         print("Exiting with code 2 (per requirement #17: no degradation).")
