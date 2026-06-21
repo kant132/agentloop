@@ -76,6 +76,8 @@ CREATE TABLE IF NOT EXISTS chains (
     chain_path    TEXT,
     node_path     TEXT,
     agent_results TEXT DEFAULT '{}',
+    last_sinks    INTEGER DEFAULT 0,     -- 最后一个节点的 sink 数
+    is_sink       INTEGER DEFAULT 0,     -- 最后一个节点是否有 sink (0/1)
     created_at    TEXT
 );
 
@@ -104,6 +106,17 @@ class ChainDB:
     def _init_schema(self) -> None:
         with self._conn() as conn:
             conn.executescript(_SCHEMA)
+        # 迁移：兼容旧库（忽略已存在的列）
+        try:
+            with self._conn() as conn:
+                conn.execute("ALTER TABLE chains ADD COLUMN last_sinks INTEGER DEFAULT 0")
+        except Exception:
+            pass
+        try:
+            with self._conn() as conn:
+                conn.execute("ALTER TABLE chains ADD COLUMN is_sink INTEGER DEFAULT 0")
+        except Exception:
+            pass
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path))
@@ -124,14 +137,17 @@ class ChainDB:
         cycle_detected: bool = False,
         chain_path: str = "",
         node_path: str = "",
+        last_sinks: int = 0,
+        is_sink: bool = False,
     ) -> None:
         """插入或替换一条调用链。"""
         with self._conn() as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO chains
                    (chain_id, endpoint_fqn, priority, total_sinks, preset_sinks,
-                    cycle_detected, status, chain_path, node_path, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)""",
+                    cycle_detected, status, chain_path, node_path, created_at,
+                    last_sinks, is_sink)
+                   VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)""",
                 (
                     chain_id,
                     endpoint_fqn,
@@ -142,6 +158,8 @@ class ChainDB:
                     chain_path,
                     node_path,
                     datetime.now(timezone.utc).isoformat(),
+                    last_sinks,
+                    1 if is_sink else 0,
                 ),
             )
             conn.commit()
@@ -162,6 +180,8 @@ class ChainDB:
                 c.get("chain_path", ""),
                 c.get("node_path", ""),
                 datetime.now(timezone.utc).isoformat(),
+                c.get("last_sinks", 0),
+                1 if c.get("is_sink", False) else 0,
             )
             for c in chains
         ]
@@ -169,8 +189,9 @@ class ChainDB:
             conn.executemany(
                 """INSERT OR REPLACE INTO chains
                    (chain_id, endpoint_fqn, priority, total_sinks, preset_sinks,
-                    cycle_detected, status, chain_path, node_path, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    cycle_detected, status, chain_path, node_path, created_at,
+                    last_sinks, is_sink)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 rows,
             )
             conn.commit()
@@ -185,7 +206,7 @@ class ChainDB:
         limit: int = 100,
         offset: int = 0,
         status: str | None = None,
-        min_last_sinks: int = 0,
+        is_sink: int | None = None,
     ) -> list[dict[str, Any]]:
         """按优先级降序批量加载调用链。
 
@@ -193,30 +214,23 @@ class ChainDB:
             limit: 每批数量
             offset: 偏移量（分页）
             status: 只加载指定状态的链（None = 全部）
-            min_last_sinks: 只返回最后一个节点 sink 数 >= 此值的链（0=不限）
-
-        Returns:
-            list[dict]: 每条含所有字段
+            is_sink: 1=只加载最后一个节点有 sink 的链，0=只加载无 sink 的，None=不限
         """
+        conditions = []
+        params = []
+        if status:
+            conditions.append("status = ?")
+            params.append(status)
+        if is_sink is not None:
+            conditions.append("is_sink = ?")
+            params.append(int(bool(is_sink)))
+        where = "WHERE " + " AND ".join(conditions) if conditions else ""
         with self._conn() as conn:
-            if status:
-                cur = conn.execute(
-                    """SELECT * FROM chains WHERE status = ?
-                       ORDER BY priority DESC LIMIT ? OFFSET ?""",
-                    (status, limit, offset),
-                )
-            else:
-                cur = conn.execute(
-                    """SELECT * FROM chains
-                       ORDER BY priority DESC LIMIT ? OFFSET ?""",
-                    (limit, offset),
-                )
-            rows = [dict(row) for row in cur.fetchall()]
-
-        if min_last_sinks > 0:
-            rows = [r for r in rows if _extract_last_sinks(r.get("chain_path")) >= min_last_sinks]
-
-        return rows
+            cur = conn.execute(
+                f"SELECT * FROM chains {where} ORDER BY priority DESC LIMIT ? OFFSET ?",
+                params + [limit, offset],
+            )
+            return [dict(row) for row in cur.fetchall()]
 
     def get_chain(self, chain_id: str) -> dict[str, Any] | None:
         """按 chain_id 取单条。"""

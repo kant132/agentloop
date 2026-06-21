@@ -607,19 +607,28 @@ def build_chain(
                 sink_num = len(n.sinks)
                 chain_path_parts.append(f"{n.fqn}(sink num: {sink_num})")
                 node_path_parts.append(n.node_id)
+
+            # 只计算最后一个节点的 sink + preset 匹配
+            last_sinks = len(chain_nodes[-1].sinks) if chain_nodes else 0
+            last_preset = _sr.match_preset_sinks([_chain_node_to_dict(chain_nodes[-1])]) if chain_nodes else 0
+            priority = last_preset * 10 + last_sinks  # 只按最后一个节点算
+
             chain_path_str = " -> ".join(chain_path_parts)
             node_path_str = " -> ".join(node_path_parts)
             db.insert_chain(
                 chain_id=sig_hash,
                 endpoint_fqn=entry_fqn,
-                priority=result.get("preset_sink_count", 0) * 10 + total_sinks,
+                priority=priority,
                 total_sinks=total_sinks,
                 preset_sinks=result.get("preset_sink_count", 0),
                 cycle_detected=cycle_detected,
                 chain_path=chain_path_str,
                 node_path=node_path_str,
+                last_sinks=last_sinks,
+                is_sink=last_sinks > 0,
             )
             result["chain_db"] = str(loop_audit_dir / "chains.db")
+            result["last_sinks_priority"] = priority
         except Exception as e:  # noqa: BLE001
             _log("chain_db write failed: %s", e)
             result["chain_db_error"] = str(e)
