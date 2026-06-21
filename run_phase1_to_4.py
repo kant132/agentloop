@@ -242,6 +242,11 @@ def main():
     from load_method_body import load_chain as _load_chain
     _memurai = _Memurai()
 
+    # 加载固定 prompt 模板
+    _prompt_template = (REPO_ROOT / "prompts" / "expert-injection.md").read_text(encoding="utf-8")
+    # 找到模板正文（--- 之后的 内容）
+    _template_body = _prompt_template.split("---", 1)[1] if "---" in _prompt_template else _prompt_template
+
     for k, chain in enumerate(pending_chains):
         chain_id = chain["chain_id"]
         endpoint = chain["endpoint_fqn"]
@@ -257,41 +262,34 @@ def main():
             db.update_status(chain_id, "safe")
             continue
 
-        # 格式化方法体
+        # 格式化方法体（只填充这部分）
         lines = []
         for b in bodies:
             is_last = b["depth"] == len(bodies) - 1
             tag = "  # last method" if is_last else ""
-            lines.append(f"--- depth={b['depth']}: {b['fqn']} ---{tag}")
+            lines.append(f"=== depth={b['depth']}: {b['fqn']} ==={tag}")
             lines.append(b["body"])
             lines.append("")
-        formatted = "\n".join(lines)
+        method_bodies = "\n".join(lines)
 
-        # 派发 task 审计 (task 是 opencode 全局函数)
+        # 端点信息
+        endpoint_method = endpoint.split("#")[-1] if "#" in endpoint else endpoint
+        class_fqn = endpoint.split("#")[0] if "#" in endpoint else endpoint
+
+        # 从模板填充
+        prompt = _template_body
+        prompt = prompt.replace("{endpoint_method}", endpoint_method)
+        prompt = prompt.replace("{http_method}", "POST")
+        prompt = prompt.replace("{path}", endpoint_method)
+        prompt = prompt.replace("{class_fqn}", class_fqn)
+        prompt = prompt.replace("{auth_required}", "Yes")
+        prompt = prompt.replace("{method_bodies}", method_bodies)
+
+        # 派发 task 审计
         task_result = task(
             category="deep",
             description=f"Phase3 audit {chain_id}",
-            prompt=f"""## TASK: 注入类漏洞审计
-
-你是注入类漏洞审计专家。专注：用户输入流入危险 sink（SQL/CMD/XXE/表达式/SSRF/反序列化）。
-
-### 方法体（已预加载，共 {node_count} 层）
-
-{formatted}
-
-### 审计规则
-1. 审计聚焦 = 最后一个方法体（标注了 # last method）
-2. 结合整条调用链上下文分析污点传播
-3. 只发现漏洞，不写修复建议
-
-### 输出格式
-```json
-{{"verdict": "vuln"|"safe"|"inconclusive", "analysis": "...", "vulnerabilities": []}}
-```
-
-### MUST NOT DO
-- 不写修复建议
-- 不使用 emoji""",
+            prompt=prompt,
         )
 
         # 解析结果
