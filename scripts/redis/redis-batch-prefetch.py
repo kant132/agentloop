@@ -34,10 +34,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from memurai_client import Memurai, MemuraiError
 
 
-def make_method_key(group_id: str, fqn: str, start_line: int) -> str:
-    return f"{group_id}:method:{fqn}#{start_line}"
-
-
 def make_prefetch_key(group_id: str, chain_id: str) -> str:
     return f"{group_id}:prefetch:{chain_id}"
 
@@ -69,7 +65,9 @@ def prefetch_chain(
         fqn = m["fqn"]
         start_line = m.get("startLine") or m.get("line") or 0
         node_id = m.get("node_id", "")
-        key = make_method_key(group_id, fqn, start_line)
+        if not node_id:
+            continue  # 没有 node_id 无法缓存
+        key = f"{group_id}:method:{node_id}"
 
         value = json.dumps({
             "fqn": fqn,
@@ -84,12 +82,6 @@ def prefetch_chain(
         }, ensure_ascii=False)
 
         method_keyvalues[key] = value
-
-        # 同时按 node_id 存一份（load_method_body.py 用这个 key）
-        if node_id:
-            node_key = f"{group_id}:method:{node_id}"
-            method_keyvalues[node_key] = value
-            setex_items.append((node_key, method_ttl, value))
         setex_items.append((key, method_ttl, value))
         chain_summary["methods"].append({
             "fqn": fqn,
