@@ -236,42 +236,27 @@ class ChainDB:
             )
             return [dict(row) for row in cur.fetchall()]
 
-    def top_chain_per_endpoint(
+    def top_sink_chains(
         self,
         status: str | None = "pending",
-        is_sink: int | None = 1,
         min_priority: int = 1,
     ) -> list[dict[str, Any]]:
-        """每个 endpoint 取 1 条优先级最高的链。
-
-        SQL: is_sink=1 AND priority>0 AND status='pending'，按 endpoint 分组取最高优先级。
+        """取 is_sink=1 且 priority>=min_priority 的链，按优先级降序。
 
         Args:
             status: 链状态过滤（None = 不限）
-            is_sink: 1=只取有 sink 的链
             min_priority: 最低优先级阈值（默认 >0）
         """
-        conditions = ["priority >= ?"]
+        conditions = ["is_sink = 1", "priority >= ?"]
         params: list = [min_priority]
         if status:
             conditions.append("status = ?")
             params.append(status)
-        if is_sink is not None:
-            conditions.append("is_sink = ?")
-            params.append(int(bool(is_sink)))
         where = "WHERE " + " AND ".join(conditions)
 
         with self._conn() as conn:
             cur = conn.execute(
-                f"""SELECT * FROM chains
-                    WHERE rowid IN (
-                        SELECT rowid FROM (
-                            SELECT rowid,
-                                   ROW_NUMBER() OVER (PARTITION BY endpoint_fqn ORDER BY priority DESC) AS rn
-                            FROM chains {where}
-                        ) WHERE rn = 1
-                    )
-                    ORDER BY priority DESC""",
+                f"SELECT * FROM chains {where} ORDER BY priority DESC",
                 params,
             )
             return [dict(row) for row in cur.fetchall()]
