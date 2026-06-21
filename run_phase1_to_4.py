@@ -211,6 +211,31 @@ def main():
         log.info("      node_path:  %s", chain["node_path"][:120] + "..." if len(chain["node_path"]) > 120 else chain["node_path"])
 
     # ============================================================
+    # Phase 2.5: 链边验证（codegraph 误匹配检测）
+    # ============================================================
+    log.info("")
+    log.info(">>> Phase 2.5: 链边验证")
+    t0 = time.time()
+    import subprocess as _sp
+    _verify_script = REPO_ROOT / "scripts" / "chain" / "verify_edges.py"
+    if _verify_script.exists():
+        _verify_result = _sp.run(
+            [sys.executable, str(_verify_script)],
+            capture_output=True, text=True, timeout=300,
+        )
+        for line in _verify_result.stdout.splitlines():
+            if "结果" in line or "总边" in line or "断裂" in line or "标记" in line:
+                log.info("  %s", line)
+        if _verify_result.returncode != 0:
+            log.warning("  验证脚本异常退出: %s", _verify_result.stderr[:200] if _verify_result.stderr else "unknown")
+    log.info("  Phase 2.5 完成: %.1fs", time.time() - t0)
+
+    # 重新统计（排除 broken 链）
+    chain_stats = db.stats()
+    pending_count = len(db.top_sink_chains())
+    log.info("  验证后 pending 链: %d", pending_count)
+
+    # ============================================================
     # Phase 3: AI 分析（主 agent 执行, task() 委派）
     # 注意: task() 是 opencode 全局函数, 只在 agent 会话中可用
     # subprocess 调用时用 --phase 2 跳过 Phase 3/4

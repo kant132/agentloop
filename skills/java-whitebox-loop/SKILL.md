@@ -22,6 +22,19 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 - `chains.db` — 调用链 SQLite（chain_path + node_path + priority + status + total_sinks + node_count）
 - Memurai: `{groupId}:method:{node_id}` — 方法体缓存（含 `//fqn:` 注释）
 
+### Phase 2.5: 链边验证（codegraph 误匹配检测）
+
+```powershell
+python {agentloop_root}/scripts/chain/verify_edges.py
+```
+
+codegraph 按方法名匹配调用边，存在系统性误匹配（如 `java.util.Queue#add` 匹配到 `WebWolfTraceRepository::add`）。此步骤：
+1. 从 Memurai 批量取方法体，提取 `//fqn:` 注释
+2. 对比 codegraph edges 的 target FQN 是否在 source body 的 `//fqn:` 中出现
+3. 不匹配则标记链为 `status='broken'`
+
+**Phase 3 选链时自动排除 broken 链**（`status='pending'` 过滤）。
+
 ### Phase 3: 主 agent 分发审计
 
 **禁止自己写临时脚本。** 用以下固定步骤执行，代码已写好，直接调用。
