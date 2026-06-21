@@ -3,6 +3,8 @@
   "projectName": "WebGoat-2025.3",
   "projectRoot": "D:\\code\\WebGoat-2025.3",
   "codegraphDb": "D:\\code\\WebGoat-2025.3\\.codegraph\\codegraph.db",
+  "jarAnalyzerDb": "D:\\agentloop\\projects\\org.owasp.webgoat\\loop_audit\\jar-analyzer.db",
+  "targetJarPath": "D:\\code\\WebGoat-2025.3\\target\\webgoat-2025.3.jar",
   "loopDir": "D:\\agentloop\\projects\\org.owasp.webgoat\\loop_audit",
   "epJsonl": "D:\\agentloop\\projects\\org.owasp.webgoat\\external_endpoints\\端点.jsonl",
   "dockerContainer": "",

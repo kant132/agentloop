@@ -3,6 +3,8 @@
   "projectName": "{{projectName}}",
   "projectRoot": "{{projectRoot}}",
   "codegraphDb": "{{projectRoot}}/.codegraph/codegraph.db",
+  "jarAnalyzerDb": "{{loopDir}}/jar-analyzer.db",
+  "targetJarPath": "{{targetJarPath}}",
   "loopDir": "loop_audit",
   "epJsonl": "external_endpoints/端点.jsonl",
   "dockerContainer": "{{dockerContainer}}",

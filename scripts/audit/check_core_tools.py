@@ -83,6 +83,29 @@ def check_memurai() -> bool:
         return False
 
 
+# jar-analyzer 路径（可选工具，非硬依赖）
+JAR_ANALYZER_PATH = Path(r"D:\agentloop\tools\javaparser\jar-analyzer-5.22.jar")
+
+
+def check_jar_analyzer() -> bool:
+    """Check if jar-analyzer JAR exists and Java runtime is available.
+    
+    Optional tool — pipeline continues on failure, falls back to codegraph-only.
+    """
+    if not JAR_ANALYZER_PATH.exists():
+        return False
+    try:
+        result = subprocess.run(
+            ["java", "-version"],
+            capture_output=True,
+            text=True,
+            timeout=TIMEOUT_SECS,
+        )
+        return result.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
 def check_skills_linked() -> bool:
     """检测项目 skills 目录是否已链接到 opencode user skills 目录。
     
@@ -141,7 +164,10 @@ def check_core_tools(exit_on_missing: bool = True) -> Dict[str, bool]:
     }
     results["all_ok"] = all(results.values())
 
-    missing = [k for k, v in results.items() if k != "all_ok" and not v]
+    # jar-analyzer: optional tool, not part of hard dependency check
+    results["jar_analyzer"] = check_jar_analyzer()
+
+    missing = [k for k, v in results.items() if k not in ("all_ok", "jar_analyzer") and not v]
 
     if missing:
         print("=== Core Tool Check FAILED ===")
@@ -152,10 +178,11 @@ def check_core_tools(exit_on_missing: bool = True) -> Dict[str, bool]:
 
     if results["all_ok"]:
         print("=== Core Tool Check OK ===")
-        print("  codegraph  OK")
-        print("  ast-grep   OK")
-        print("  memurai    OK")
-        print("  skills     OK")
+        print("  codegraph    OK")
+        print("  ast-grep     OK")
+        print("  memurai      OK")
+        print("  skills       OK")
+        print(f"  jar-analyzer {'OK' if results['jar_analyzer'] else 'SKIP (optional)'}")
 
     if exit_on_missing and not results["all_ok"]:
         print("Exiting with code 2 (per requirement #17: no degradation).")
