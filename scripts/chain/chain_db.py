@@ -14,17 +14,34 @@ Schema:
         status        TEXT DEFAULT 'pending', -- pending/analyzed/vuln/safe
         chain_path    TEXT,                 -- com.example.A#m(sink num: 3) -> com.example.B#n(sink num: 0) -> ...
         node_path     TEXT,                 -- method:abc123 -> method:def456 -> method:ghi789
+        agent_results TEXT DEFAULT '{}',    -- JSON: {injection:{verdict,vulns}, file:{}, auth:{}, biz:{}}
         created_at    TEXT
     );
+
+agent_results JSON 结构:
+    {
+      "injection": {
+        "verdict": "vuln" | "safe" | "inconclusive",
+        "vulnerabilities": [
+          {"type": "SQL注入", "root_cause": "...", "poc_status": "pending", "poc_verified_by": null}
+        ]
+      },
+      "file": {...},
+      "auth": {...},
+      "biz": {...}
+    }
 
 用法:
     db = ChainDB("chains.db")
     db.insert_chain(chain_id, endpoint_fqn, priority, ...)
     batch = db.batch_by_priority(limit=100, offset=0)
     db.update_status(chain_id, "analyzed")
+    db.update_agent_result(chain_id, "injection", result_json)
+    vuln_chains = db.batch_for_poc(limit=4)
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,12 +59,21 @@ CREATE TABLE IF NOT EXISTS chains (
     status        TEXT DEFAULT 'pending',
     chain_path    TEXT,
     node_path     TEXT,
+    agent_results TEXT DEFAULT '{}',
     created_at    TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_chains_priority ON chains(priority DESC);
 CREATE INDEX IF NOT EXISTS idx_chains_status ON chains(status);
 CREATE INDEX IF NOT EXISTS idx_chains_endpoint ON chains(endpoint_fqn);
+"""
+
+# agent_results JSON 中已存在该 key 时替换 value，否则添加
+_AGENT_RESULT_SQL = """
+UPDATE chains SET agent_results = json_set(
+    COALESCE(agent_results, '{}'),
+    '$.{agent_key}', json(?)
+) WHERE chain_id = ?
 """
 
 
@@ -246,6 +272,110 @@ class ChainDB:
                 "avg_priority": round(avg_priority or 0, 2),
                 "total_sinks": total_sinks or 0,
             }
+
+    # ============================================================
+    # agent_results 操作
+    # ============================================================
+
+    def update_agent_result(self, chain_id: str, agent_key: str, result: dict) -> None:
+        """写入某类 agent 的审计结果。
+
+        Args:
+            chain_id: 链 ID
+            agent_key: "injection" | "file" | "auth" | "biz"
+            result: {"verdict": "vuln", "vulnerabilities": [...], ...}
+        """
+        with self._conn() as conn:
+            conn.execute(
+                _AGENT_RESULT_SQL.replace("{agent_key}", agent_key),
+                (json.dumps(result, ensure_ascii=False), chain_id),
+            )
+            conn.commit()
+
+    def update_vuln_poc_status(
+        self, chain_id: str, agent_key: str, vuln_index: int, poc_status: str
+    ) -> None:
+        """更新某个 agent 的某个漏洞的 PoC 验证状态。
+
+        Args:
+            chain_id: 链 ID
+            agent_key: "injection" | "file" | "auth" | "biz"
+            vuln_index: 漏洞在 vulnerabilities 数组中的索引
+            poc_status: "confirmed" | "denied" | "inconclusive"
+        """
+        with self._conn() as conn:
+            conn.execute(
+                f"""UPDATE chains SET agent_results = json_set(
+                    agent_results,
+                    '$.{agent_key}.vulnerabilities[{vuln_index}].poc_status',
+                    ?
+                ) WHERE chain_id = ?""",
+                (poc_status, chain_id),
+            )
+            conn.commit()
+
+    def batch_for_poc(self, limit: int = 4) -> list[dict[str, Any]]:
+        """取待 PoC 验证的链（status=analyzed，agent_results 中有 vuln 且 poc_status=pending）。
+
+        按 priority DESC 排序，每次取 limit 条。
+        """
+        with self._conn() as conn:
+            # 不能用 JSON 函数做复杂过滤，用 Python 后处理
+            rows = conn.execute(
+                """SELECT * FROM chains
+                   WHERE status IN ('analyzed', 'vuln', 'safe')
+                   ORDER BY priority DESC"""
+            ).fetchall()
+        result = []
+        for row in rows:
+            d = dict(row)
+            if self._has_pending_vulns(d.get("agent_results", "{}")):
+                result.append(d)
+                if len(result) >= limit:
+                    break
+        return result
+
+    @staticmethod
+    def _has_pending_vulns(agent_results_str: str) -> bool:
+        """检查 agent_results 中是否有待验证的漏洞。"""
+        try:
+            results = json.loads(agent_results_str) if isinstance(agent_results_str, str) else agent_results_str
+        except json.JSONDecodeError:
+            return False
+        for key in ("injection", "file", "auth", "biz"):
+            agent_data = results.get(key, {})
+            if agent_data.get("verdict") != "vuln":
+                continue
+            for vuln in agent_data.get("vulnerabilities", []):
+                if vuln.get("poc_status", "pending") == "pending":
+                    return True
+        return False
+
+    @staticmethod
+    def get_pending_vulns(agent_results_str: str) -> list[dict]:
+        """从 agent_results 中提取所有待验证的漏洞列表。
+
+        Returns:
+            [{"agent_key": "injection", "vuln_index": 0, "type": "SQL注入", "root_cause": "..."}, ...]
+        """
+        try:
+            results = json.loads(agent_results_str) if isinstance(agent_results_str, str) else agent_results_str
+        except json.JSONDecodeError:
+            return []
+        pending = []
+        for key in ("injection", "file", "auth", "biz"):
+            agent_data = results.get(key, {})
+            if agent_data.get("verdict") != "vuln":
+                continue
+            for i, vuln in enumerate(agent_data.get("vulnerabilities", [])):
+                if vuln.get("poc_status", "pending") == "pending":
+                    pending.append({
+                        "agent_key": key,
+                        "vuln_index": i,
+                        "type": vuln.get("type", ""),
+                        "root_cause": vuln.get("root_cause", ""),
+                    })
+        return pending
 
     # ============================================================
     # 维护

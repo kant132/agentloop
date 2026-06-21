@@ -160,32 +160,39 @@ Audit terminates when ALL are true simultaneously:
   │     │   涉及文件路径 → file-audit skill                                │
   │     │   不涉及文件路径 → injection-audit skill                           │
   │     │   方法体加载: 前4层+后2层（<6层全部）                               │
+  │     │   写回: db.update_agent_result(chain_id, "injection", {...})      │
   │     │                                                                  │
   │     │ 认证鉴权/业务逻辑（所有 chain）:                                   │
   │     │   只校验前 25% 端点（按优先级排序后取前 1/4）                       │
   │     │   每 endpoint 1 条链，前 5 层                                     │
+  │     │   写回: db.update_agent_result(chain_id, "auth", {...})           │
   │     │                                                                  │
   │     │ chain 无 sink → 不调注入/文件类                                    │
+  │     │ 并发: 同时 4 个 task() 并行                                       │
   │     └──────────────────────────────────────────────────────────────────┘
   │
   ├── Phase 3.5: 主 agent 生成静态报告
-  │     汇总所有专家结论 → diag/static_report.json
+  │     汇总所有 agent_results → diag/static_report.json
   │
   └── 验证 agent: Phase 4（PoC 动态验证）
-        取 status=vuln 的链 → PoC agent 验证 → 写回 chains.db
-        PoC agent 通过 Memurai 缓存 + codegraph 获取代码信息（禁止直接读源文件）
+        取 agent_results 中 verdict=vuln & poc_status=pending 的链
+        → PoC agent 逐一验证（不重新分析，直接读 agent_results JSON）
+        → 并发: 同时 4 个 task() 并行
+        → 写回: db.update_vuln_poc_status(chain_id, agent_key, idx, status)
+        PoC agent 通过 Memurai 缓存 + codegraph SQLite 获取代码信息（禁止直接读源文件）
 ```
 
-**加速策略**：
-- 注入类/文件类：每 endpoint 只审 1 条链（优先级最高），不再所有链都审
-- 认证鉴权/业务逻辑：只校验前 25% 端点
-- 方法体加载：注入类/文件类前4层+后2层，认证鉴权/业务逻辑前5层
-- **所有 agent 禁止直接读源文件**，只通过 `load_method_body.py` 加载缓存
-- PoC agent 通过 Memurai 缓存 + codegraph SQLite 获取代码信息
+**agent_results JSON 列**（chains.db 新增列）:
+```json
+{
+  "injection": {"verdict": "vuln", "vulnerabilities": [{"type": "...", "root_cause": "...", "poc_status": "pending"}]},
+  "file": {"verdict": "safe"},
+  "auth": {"verdict": "vuln", "vulnerabilities": [...]},
+  "biz": {"verdict": "inconclusive", "reason": "...", "extra_info_needed": "..."}
+}
+```
 
-**关键设计**：
-- **skill 机制**，不是 prompt 机制 — 主 agent 根据需要加载 skill，subagent 加载对应专家 skill
-- **上下文隔离** — 主 agent 只读链元数据（轻量），方法体只在子 agent 上下文中
-- **静态报告先行** — Phase 3 结束后生成静态报告，再对 vuln 链做动态验证
-- **PoC agent 代码信息来源**：Memurai 缓存（方法体）+ codegraph SQLite（调用关系、参数类型）
-- 专家返回结论后主 agent 写回 chains.db — status: pending → analyzed → vuln/safe
+- vuln → 必须给 root_cause + poc_status=pending
+- safe → 说明原因
+- inconclusive → 标注哪里无法判断 + 需要什么额外信息
+- poc_status: pending → PoC agent 验证后 → confirmed/denied/inconclusive
