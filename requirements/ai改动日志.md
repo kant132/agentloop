@@ -943,4 +943,71 @@ groupId=org.owasp.webgoat projectRoot=D:\code\WebGoat-2025.3 loopDir=D:\agentloo
 
 ---
 
+### 2026-06-21 加速设计 + agent_results + 静态报告 Markdown
+
+**需求维度**: 性能加速 + agent 审计结论规范化 + PoC 流程
+
+**目的**:
+1. 加速策略：注入类/文件类每 endpoint 只审 1 条链，认证鉴权/业务逻辑只审前 25% 端点
+2. 方法体加载：前4层+后2层（默认），<6层全部加载
+3. chains.db 新增 agent_results JSON 列：存储 4 类 agent 审计结果
+4. 静态报告改为 Markdown：含污点传播路径分析（每层标注未消毒）
+5. PoC agent 不重新分析，直接读 agent_results JSON，逐一验证
+6. 并发：4 个审计 agent + 4 个 PoC agent 同时运行
+
+**行为**:
+
+**加速策略**:
+- `load_method_body.py`: 默认 `--max-depth 4 --tail-depth 2`（前4+后2）
+- 注入类/文件类：每 endpoint 只取优先级最高的 1 条链
+- 认证鉴权/业务逻辑：只校验前 25% 端点（按优先级排序后取前 1/4）
+- 方法体已含 `// #fqn` 注释，子 agent 不额外读源文件
+
+**agent_results JSON**:
+- chains.db 新增列：`agent_results TEXT DEFAULT '{}'`
+- 格式：`{injection: {verdict, vulnerabilities: [{type, root_cause, poc_status}]}, file, auth, biz}`
+- 新增方法：`update_agent_result()`, `update_vuln_poc_status()`, `batch_for_poc()`, `get_pending_vulns()`
+- vuln → 必须给 root_cause + 污点传播路径 + poc_status=pending
+- inconclusive → 标注哪里无法判断 + 需要什么额外信息，**也需 PoC 验证**
+- poc_status: pending → confirmed/denied/inconclusive
+
+**静态报告 (Phase 3.5)**:
+- 格式：Markdown (.md)，按端点分文件
+- root_cause 必须包含污点传播路径（默认中间层未消毒）
+- 认证鉴权/业务逻辑类必须说明漏洞链
+
+**PoC 验证 (Phase 4)**:
+- PoC agent 直接读 agent_results JSON，不重新分析
+- vuln_index=-1 表示不确定项（inconclusive）
+- 逐一验证每个漏洞（不全部加载）
+- 代码来源：Memurai 缓存 + codegraph SQLite（禁止直接读源文件）
+
+**TTL**:
+- 所有缓存 TTL 从 24h 改为 10 天（864000s）
+
+**验证结果**:
+- 45 个 chain 测试全部通过
+- agent_results CRUD 验证通过
+- `--tail-depth` 默认参数验证通过
+- Phase 1→4 完整流程跑通（3 chains, 12 sinks）
+
+**影响范围**:
+- `scripts/chain/chain_db.py` — agent_results 列 + 5 个新方法
+- `scripts/chain/load_method_body.py` — tail-depth + 默认参数
+- `scripts/chain/chain_builder.py` — 写入 chains.db 带 agent_results
+- `scripts/redis/redis-batch-prefetch.py` — node_id key + TTL 10天
+- `skills/java-whitebox-loop/SKILL.md` — 加速规则 + agent_results 格式 + Markdown 报告
+- `AGENTS.md` — 两层架构图 + agent_results 设计 + 并发策略
+- `run_phase1_to_4.py` — Memurai 连接 + TTL 10天
+- `simulate_dispatch.py` — 调度模拟脚本
+
+**Git 提交**:
+- `5a7c62c` fix: make front-4+tail-2 the default loading strategy
+- `502f31b` feat(accelerate): front-4+tail-2 loading, top-25% endpoints, static report first
+- `5768796` fix(skill): constrain sub-agents to method body only
+- `8031783` feat(agent_results): JSON column for audit results + PoC flow
+- `14abf3b` refactor(phase3.5/4): Markdown report, taint propagation, inconclusive PoC
+
+---
+
 (End of file - total 706 lines)
