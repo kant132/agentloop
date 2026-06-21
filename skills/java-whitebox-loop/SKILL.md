@@ -12,18 +12,79 @@ description: "Java 白盒审计顶层入口。主 agent 作为调度中心，按
 ### Phase 0-2: 脚本执行（确定性工作）
 
 ```powershell
-python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --limit 100
+python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --limit 100 --phase 2
 ```
+
+**注意：`--phase 2` 只执行 Phase 1+2，不执行 Phase 3/4**（Phase 3/4 需要 `task()` 全局函数，只能在 agent 会话里执行，不能在 subprocess 里调用）。
 
 产出：
 - `exposure/*.json` — 9 类资产
-- `chains.db` — 调用链 SQLite（chain_path + node_path + priority + status + total_sinks）
-- Memurai: `{groupId}:method:{fqn}#{startline}` — 方法体缓存（含 `// #fqn` 注释）
-- Memurai: `{groupId}:filter:{file}` / `{groupId}:config:{file}` / `{groupId}:waf:{file}` — 文件缓存
+- `chains.db` — 调用链 SQLite（chain_path + node_path + priority + status + total_sinks + node_count）
+- Memurai: `{groupId}:method:{node_id}` — 方法体缓存（含 `//fqn:` 注释）
 
 ### Phase 3: 主 agent 分发审计
 
-主 agent 从 chains.db 批量取链，按以下规则分发。
+**禁止自己写临时脚本。** 用以下固定步骤执行，代码已写好，直接调用。
+
+#### 步骤 1: 选链（从 chains.db 读取）
+
+```python
+import sys, json
+sys.path.insert(0, r"{agentloop_root}/scripts/chain")
+sys.path.insert(0, r"{agentloop_root}/scripts/redis")
+from chain_db import ChainDB
+from memurai_client import Memurai
+from load_method_body import load_chain
+
+db = ChainDB(r"{loop_audit_dir}/chains.db")
+m = Memurai()
+GID = "{group_id}"
+```
+
+选 3 条链：最长 / 最高优先级 / 随机。每条链单独审计，**不合并多条链**。
+
+#### 步骤 2: 加载方法体（从 Memurai，禁止读源文件）
+
+```python
+bodies = load_chain(m, GID, chain["node_path"], 0, 0)  # 全部加载
+# 格式化为纯文本
+lines = []
+for b in bodies:
+    is_last = b["depth"] == len(bodies) - 1
+    tag = "  # last method" if is_last else ""
+    lines.append(f"=== depth={b['depth']}: {b['fqn']} ==={tag}")
+    lines.append(b["body"])
+    lines.append("")
+method_bodies = "\n".join(lines)
+```
+
+#### 步骤 3: 从固定模板读取 prompt，只填充方法体
+
+```python
+template = open(r"{agentloop_root}/prompts/expert-injection.md", encoding="utf-8").read()
+# 找到模板正文（--- 之后的 内容）
+template_body = template.split("---", 1)[1] if "---" in template else template
+prompt = template_body
+prompt = prompt.replace("{endpoint_method}", chain["endpoint_fqn"].split("#")[-1])
+prompt = prompt.replace("{class_fqn}", chain["endpoint_fqn"])
+prompt = prompt.replace("{method_bodies}", method_bodies)
+```
+
+#### 步骤 4: task() 派发（每条链单独一个 task）
+
+```python
+result = task(category="deep", description=f"Phase3 {chain['chain_id']}", prompt=prompt)
+```
+
+#### 步骤 5: 写回 chains.db
+
+```python
+import re, json
+match = re.search(r'\{[^{}]*"verdict"[^{}]*\}', result, re.DOTALL)
+data = json.loads(match.group()) if match else {"verdict":"inconclusive","analysis":result[:200],"vulnerabilities":[]}
+db.update_agent_result(chain["chain_id"], "injection", data)
+db.update_status(chain["chain_id"], "safe" if data["verdict"]=="safe" else "vuln")
+```
 
 #### 分发规则（加速版）
 
