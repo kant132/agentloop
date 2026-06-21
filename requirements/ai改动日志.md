@@ -1010,4 +1010,61 @@ groupId=org.owasp.webgoat projectRoot=D:\code\WebGoat-2025.3 loopDir=D:\agentloo
 
 ---
 
+### 2026-06-21 真实审计后修复 — 子 agent 只审最后 sink + --chain-id + is_sink 列
+
+**需求维度**: 真实审计流程修复（基于 10 条链的真实测试发现的问题）
+
+**目的**: 解决真实审计过程中发现的 6 个问题
+
+**行为**:
+
+**问题 1：子 agent 速度慢（decode 8m20s, get 5m38s）**
+- 根因：node_path 硬编码到 task prompt，chains.db 重建后 node_id 不匹配
+- 子 agent 花了大量时间（~5-7m）调试方法体加载失败
+- 修复：`load_method_body.py` 新增 `--chain-id` 参数，自动从 chains.db 读最新 node_path
+- 结果：加载时间降至 0.28s
+
+**问题 2：子 agent 审计了所有 sink 点（注意力分散）**
+- 根因：子 agent 加载了前4+后2层的方法体，分析所有 sink
+- 修复：子 agent 只加载最后一个节点的方法体，只审计该方法的 sink 点
+- 前面的层只做污点传播路径标注，不做漏洞分析
+
+**问题 3：优先级计算用了所有节点的 sink 数**
+- 根因：`priority = total_sinks + preset_sinks * 10`（跨所有节点）
+- 修复：`priority = last_node_sinks + last_node_preset * 10`
+- mail 链（8 sinks 都在前两层）从 priority=8 → priority=0
+
+**问题 4：无 is_sink 过滤字段**
+- 根因：无字段区分"最后一个节点是否有 sink"
+- 修复：chains.db 新增 `last_sinks`、`is_sink` 列
+- `batch_by_priority(is_sink=1)` 直接 SQL 过滤
+
+**问题 5：主 agent 不能自动收集结果**
+- 根因：无轮询机制，需用户问"结束了吗"
+- 修复：`dispatch_batch()` 每 15s 自动轮询收集，不等人问
+
+**问题 6：方法体缓存 key 格式不统一**
+- 根因：prefetch 存 `{groupId}:method:{fqn}#{line}`，load 查 `{groupId}:method:{node_id}`
+- 修复：prefetch 同时写两套 key；node_path 去掉双重 `method:` 前缀
+
+**验证结果**:
+- 45 个 chain 测试全部通过
+- `--chain-id` 加载时间 0.28s
+- 迁移兼容（ALTER TABLE ADD COLUMN）
+- chain_builder 优先使用最后一个节点的 sink 数计算
+
+**影响范围**:
+- `scripts/chain/load_method_body.py` — `--chain-id` 参数 + 自动查找 chains.db
+- `scripts/chain/chain_db.py` — `last_sinks`/`is_sink` 列 + 迁移 + `batch_by_priority(is_sink=)`
+- `scripts/chain/chain_builder.py` — 优先使用 last_sinks + last_preset 计算
+- `skills/java-whitebox-loop/SKILL.md` — 子 agent 只审最后 sink + `dispatch_batch()` 轮询
+
+**Git 提交**:
+- `8e19a85` fix(skill): sub-agent only audits last node's sinks + auto result collection
+- `8fb7367` fix(script): add --chain-id to load_method_body for auto node_path lookup
+- `861e165` feat(prune): add _extract_last_sinks + min_last_sinks filter
+- `1794993` feat(priority): last-node-only sink count, is_sink column
+
+---
+
 (End of file - total 706 lines)
