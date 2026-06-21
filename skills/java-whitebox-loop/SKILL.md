@@ -104,7 +104,55 @@ top_25 = all_endpoints[:max(1, len(all_endpoints) // 4)]
 
 #### 方法体加载
 
-子 agent 加载方法体工具：load_method_body.py（默认前4+后2，链<6层全部）
+**主 agent 派发 task() 后自动轮询收集结果**，不等待用户介入：
+
+```python
+import time
+def dispatch_batch(tasks: list) -> list:
+    """派发一批 task() 并自动轮询收集结果。"""
+    pending = {task(run_in_background=True, **t): t for t in tasks}
+    results = []
+    deadline = time.time() + 600  # 最多等 10 分钟
+    while pending and time.time() < deadline:
+        for bg_id, t in list(pending.items()):
+            out = background_output(task_id=bg_id, block=False, timeout=10000)
+            if out is not None:
+                results.append(out)
+                del pending[bg_id]
+        if pending:
+            time.sleep(15)  # 每 15 秒轮询一次
+    return results
+```
+
+**注入类/文件类子 agent 只审计最后一个方法体的 sink 点**：
+- 从 `node_path` 取最后一个 `node_id`
+- 用 `load_method_body.py --node-id` 加载该方法体
+- 只分析该方法体内的 `// #fqn` 注释列出的外部调用
+- 入口方法是否有用户参数，由主 agent 从 chain_path/route.json 判断
+
+```powershell
+# 加载最后一个 node 的方法体（注入类/文件类子 agent 用）
+python scripts/chain/load_method_body.py --group-id {groupId} --node-id "{last_node_id}"
+```
+
+**认证鉴权/业务逻辑类需要看整条链的逻辑**：
+```powershell
+python scripts/chain/load_method_body.py --group-id {groupId} --node-path "..." --max-depth 5 --tail-depth 0
+```
+
+**主 agent 提供给子 agent 的数据**：
+- `chain_id` — 链 ID
+- `endpoint_fqn` — 入口方法
+- `node_path` — node_id 序列
+- `last_node_id` — 最后一个 node_id（注入类/文件类审计用）
+- `entry_has_params` — 入口方法是否接收用户参数（主 agent 从 route.json 判断）
+- `total_sinks` — sink 总数
+- `group_id` — 项目 groupId
+
+**子 agent 约束**：
+1. 注入类/文件类：只加载最后一个 node 的方法体，只分析该方法的 `// #fqn` 注释
+2. 不读源文件，不探索项目目录
+3. 返回结论文本（小，不传方法体回主 agent）
 
 ### Phase 3.5: 主 agent 生成静态报告（Markdown）
 
