@@ -466,9 +466,19 @@ def build_chain(
     project_root = Path(project_root)
     db_path = Path(db_path)
     if source_root is None:
-        # 优先用 src/main/java（Java 标准源码根），JAR 的符号解析需要正确的 sourceRoot
-        java_src = project_root / "src" / "main" / "java"
-        source_root = java_src if java_src.is_dir() else project_root
+        # 按优先级探测源码根目录:
+        # 1. src/main/java (Maven/Gradle 标准项目)
+        # 2. sources (JADX 反编译输出)
+        # 3. project_root (兜底)
+        for candidate in [
+            project_root / "src" / "main" / "java",
+            project_root / "sources",
+        ]:
+            if candidate.is_dir():
+                source_root = candidate
+                break
+        else:
+            source_root = project_root
 
     # 1. entry fqn → nodes.id
     entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
@@ -731,9 +741,19 @@ def build_all_chains_for_endpoint(
     project_root = Path(project_root)
     db_path = Path(db_path)
     if source_root is None:
-        # 优先用 src/main/java（Java 标准源码根），JAR 的符号解析需要正确的 sourceRoot
-        java_src = project_root / "src" / "main" / "java"
-        source_root = java_src if java_src.is_dir() else project_root
+        # 按优先级探测源码根目录:
+        # 1. src/main/java (Maven/Gradle 标准项目)
+        # 2. sources (JADX 反编译输出)
+        # 3. project_root (兜底)
+        for candidate in [
+            project_root / "src" / "main" / "java",
+            project_root / "sources",
+        ]:
+            if candidate.is_dir():
+                source_root = candidate
+                break
+        else:
+            source_root = project_root
 
     entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
     if not entry_id:
