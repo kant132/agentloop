@@ -118,7 +118,6 @@ GID = "{group_id}"
 chains = db.batch_by_priority(limit=100, is_sink=1)
 
 def load_front4_tail2(node_path: str) -> list[dict]:
-    """加载前4层+后2层的方法体（<6层全部加载）。"""
     nodes = [x.strip() for x in (node_path or "").split("->") if x.strip()]
     if len(nodes) <= 6:
         selected = nodes
@@ -133,10 +132,21 @@ def load_front4_tail2(node_path: str) -> list[dict]:
             bodies.append(data)
     return bodies
 
+def bodies_to_prompt(bodies: list[dict]) -> str:
+    """把方法体列表格式化为纯文本，最后一个标记 # last method。"""
+    lines = []
+    for i, b in enumerate(bodies):
+        fqn = b.get("fqn", "")
+        body = b.get("body", "")
+        marker = "  # last method" if i == len(bodies) - 1 else ""
+        lines.append(f"=== depth={b.get('depth',i)}: {fqn} ==={marker}")
+        lines.append(body)
+    return "\n".join(lines)
+
 for c in chains:
     bodies = load_front4_tail2(c["node_path"])
-    # 直接传入 task prompt，不让子 agent 自己调脚本
-    # task(..., prompt=f"方法体数据: {json.dumps(bodies)} ...")
+    prompt_body = bodies_to_prompt(bodies)
+    # task(..., prompt=f"方法体数据:\n{prompt_body}")
 ```
 
 **子 agent 逆向分析方法**：

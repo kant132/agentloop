@@ -477,6 +477,17 @@ def build_chain(
             f"(db={db_path})"
         )
 
+    # 检查入口方法是否有参数
+    entry_has_params = True
+    with _open_db(db_path) as conn:
+        row = conn.execute(
+            "SELECT signature FROM nodes WHERE id = ?", (entry_id,)
+        ).fetchone()
+    if row:
+        sig = row["signature"] or ""
+        # 形如 "attack()" = 无参数, "getUser(String id)" = 有参数
+        entry_has_params = "()" not in sig or len(sig) > sig.find(")") + 1 > sig.find("(") + 1
+
     # 2. CTE 递归拿链 (depth-ordered)
     raw_rows = _sec.extract_recursive(str(db_path), entry_id, max_depth)
     if not raw_rows:
@@ -591,6 +602,7 @@ def build_chain(
         "sink_categories": {s["fqn"]: s["category"] for s in all_dynamic_sinks},
         "preset_sink_count": _sr.match_preset_sinks([_chain_node_to_dict(n) for n in chain_nodes]),
         "cycle_detected": cycle_detected,
+        "entry_has_params": entry_has_params,
         "file_calls_cache_size": len(file_calls_cache),
         "file_calls_failures": fetch_failures,
     }
@@ -611,7 +623,10 @@ def build_chain(
             # 只计算最后一个节点的 sink + preset 匹配
             last_sinks = len(chain_nodes[-1].sinks) if chain_nodes else 0
             last_preset = _sr.match_preset_sinks([_chain_node_to_dict(chain_nodes[-1])]) if chain_nodes else 0
-            priority = last_preset * 10 + last_sinks  # 只按最后一个节点算
+            # 入口无用户参数时降权
+            entry_has_params = result.get("entry_has_params", True)
+            penalty = 0 if entry_has_params else 100
+            priority = max(0, last_preset * 10 + last_sinks - penalty)
 
             chain_path_str = " -> ".join(chain_path_parts)
             node_path_str = " -> ".join(node_path_parts)
