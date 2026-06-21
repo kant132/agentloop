@@ -42,10 +42,26 @@ agent_results JSON 结构:
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+
+_LAST_SINKS_RE = re.compile(r"sink num:\s*(\d+)")
+
+
+def _extract_last_sinks(chain_path: str | None) -> int:
+    """从 chain_path 最后一个节点提取 sink 数。
+    如 "fqn(sink num: 3) -> fqn(sink num: 0)" → 0
+    """
+    if not chain_path:
+        return 0
+    nodes = chain_path.split(" -> ")
+    last = nodes[-1] if nodes else ""
+    m = _LAST_SINKS_RE.search(last)
+    return int(m.group(1)) if m else 0
 
 
 _SCHEMA = """
@@ -169,6 +185,7 @@ class ChainDB:
         limit: int = 100,
         offset: int = 0,
         status: str | None = None,
+        min_last_sinks: int = 0,
     ) -> list[dict[str, Any]]:
         """按优先级降序批量加载调用链。
 
@@ -176,6 +193,7 @@ class ChainDB:
             limit: 每批数量
             offset: 偏移量（分页）
             status: 只加载指定状态的链（None = 全部）
+            min_last_sinks: 只返回最后一个节点 sink 数 >= 此值的链（0=不限）
 
         Returns:
             list[dict]: 每条含所有字段
@@ -193,7 +211,12 @@ class ChainDB:
                        ORDER BY priority DESC LIMIT ? OFFSET ?""",
                     (limit, offset),
                 )
-            return [dict(row) for row in cur.fetchall()]
+            rows = [dict(row) for row in cur.fetchall()]
+
+        if min_last_sinks > 0:
+            rows = [r for r in rows if _extract_last_sinks(r.get("chain_path")) >= min_last_sinks]
+
+        return rows
 
     def get_chain(self, chain_id: str) -> dict[str, Any] | None:
         """按 chain_id 取单条。"""
