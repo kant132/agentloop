@@ -106,31 +106,103 @@ top_25 = all_endpoints[:max(1, len(all_endpoints) // 4)]
 
 子 agent 加载方法体工具：load_method_body.py（默认前4+后2，链<6层全部）
 
-### Phase 3.5: 主 agent 生成静态报告
+### Phase 3.5: 主 agent 生成静态报告（Markdown）
 
-汇总 agent_results → diag/static_report.json
+汇总 agent_results，生成 Markdown 报告文档。
+
+#### 报告内容
+
+**对每条链，需要包含**：
+
+1. **调用链污点传播分析**（注入类/文件类）：
+   - 从入口到 sink 的每层数据流
+   - 标注每一层的污点状态：**中间层默认未做消毒处理**
+   - 如果有消毒处理，明确指出消毒函数和位置
+   - 格式：`入口 method1(param) → method2(t) [未消毒] → ... → methodN(sink) [触发漏洞]`
+
+2. **漏洞根因**（所有 agent）：
+   - 不是简单指出来个地方有问题
+   - 必须说明**污点在这 6 层中的传播路径**
+   - 必须说明**为什么中间层没有做消毒处理**
+   - 认证鉴权/业务逻辑类，需要给出**导致漏洞的完整漏洞链说明**
+
+3. **不确定项标注**（inconclusive）：
+   - 明确标注哪些环节无法确定
+   - 需要什么额外信息才能确认
+   - **inconclusive 也需要 PoC 验证**（尽量通过动态验证消除不确定）
+
+#### 输出格式
+
+Markdown 文件，写入 `loop_audit/routes/` 目录，按端点分文件：
+
+```markdown
+# 端点: GET /api/users/{id}
+## 调用链路径
+org.owasp.webgoat.lesson.UserController#getUser(sink num: 0)
+  → org.owasp.webgoat.lesson.UserService#findById(sink num: 1) [未消毒]
+  → org.owasp.webgoat.lesson.UserDao#query(sink num: 2) [未消毒]
+  → java.sql.Statement.executeQuery [SQL注入 sink]
+
+## 污点传播分析
+1. entry: getUser(String id) — id 参数来自 HTTP 请求
+2. depth=1: findById(id) — 参数直接透传，未做校验 [未消毒]
+3. depth=2: query(sql) — 参数拼接到 SQL 字符串，未做参数化 [触发漏洞]
+
+## 漏洞根因
+用户输入的 id 参数经过 2 层调用，全程未做任何消毒处理（白名单校验/参数化查询），
+最终在 UserDao.query() 中直接拼接到 SQL 语句，导致 SQL 注入。
+
+## 注入类审计
+- verdict: vuln
+- 漏洞类型: SQL注入
+- root_cause: 污点从 HTTP 参数 → UserController.getUser() → UserService.findById() → UserDao.query() 全程未消毒，最终拼入 SQL
+- poc_status: pending
+
+## 认证鉴权类审计
+- verdict: safe
+- 说明: 该端点有 @PreAuthorize 注解，Spring Security 在 dispatcher 层已做鉴权
+
+## 业务逻辑类审计
+- verdict: inconclusive
+- 不确定: 无法确定 findById 是否对 id 做了权限校验（是否校验了当前用户有权查看该 id）
+- 需要: 运行时确认 UserService.findById 的鉴权逻辑
+```
+
+#### 不确定项验证
+
+inconclusive 的结论也需要 PoC 验证：
+- 通过运行时动态分析（arthas/curl）尝试确认不确定项
+- PoC agent 从 `agent_results` 中取 `verdict=vuln OR verdict=inconclusive` 的链
+- 验证后写回：confirmed（确认漏洞）/ denied（证伪）/ inconclusive（受环境限制仍无法确认）
 
 ### Phase 4: PoC 动态验证
 
 PoC agent 行为：
 - **不重新分析** — 从 `agent_results` JSON 取审计结果
-- **逐一验证** — 从 `get_pending_vulns()` 取待验证漏洞列表，逐一验证
+- **vuln + inconclusive 都验证** — 尽量通过动态验证消除不确定
+- **逐一验证** — 从 `get_pending_vulns()` 取待验证列表，逐一验证
 - **按优先级** — `batch_for_poc()` 按 priority DESC 排序
 - **并发** — 同时启动 4 个 PoC agent
 
 ```python
-# 取待 PoC 的链
+# 取待 PoC 的链（vuln + inconclusive 都验证）
 vuln_chains = db.batch_for_poc(limit=4)
 for chain in vuln_chains:
     pending_vulns = db.get_pending_vulns(chain["agent_results"])
     for vuln in pending_vulns:
-        # task(poc-verify, chain_id=chain["chain_id"], vuln=vuln)
+        # task(poc-verify, chain_id=vuln["agent_key"], vuln=vuln)
         # PoC agent:
-        #   1. load_method_body.py 加载方法体
-        #   2. codegraph SQLite 查调用关系
-        #   3. 根据 root_cause 生成针对性 PoC
-        #   4. 验证 → db.update_vuln_poc_status(chain_id, agent_key, vuln_index, poc_status)
+        #   1. 读 vuln.root_cause → 理解污点传播路径
+        #   2. load_method_body.py 加载方法体
+        #   3. codegraph SQLite 查调用关系
+        #   4. 根据 root_cause 生成针对性 PoC
+        #   5. 验证 → db.update_vuln_poc_status(chain_id, agent_key, vuln_index, "confirmed")
 ```
+
+**PoC 三态结论**：
+- `confirmed`: 验证确认漏洞存在
+- `denied`: 验证证明不是漏洞
+- `inconclusive`: 受环境限制无法验证（非代码问题）
 
 **PoC agent 代码信息来源**（禁止直接读源文件）：
 - 方法体：`load_method_body.py --node-id "method:xxx"`

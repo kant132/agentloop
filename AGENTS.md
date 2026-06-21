@@ -193,6 +193,8 @@ Audit terminates when ALL are true simultaneously:
 ```
 
 - vuln → 必须给 root_cause + poc_status=pending
+  - root_cause 必须包含污点传播路径分析（从入口到 sink 的每层，默认中间层未消毒）
+  - 认证鉴权/业务逻辑类必须说明漏洞链（如何导致的安全问题）
 - safe → 说明原因
-- inconclusive → 标注哪里无法判断 + 需要什么额外信息
+- inconclusive → 标注哪里无法判断 + 需要什么额外信息，**也需要 PoC 验证**
 - poc_status: pending → PoC agent 验证后 → confirmed/denied/inconclusive

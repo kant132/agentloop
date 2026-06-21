@@ -337,18 +337,20 @@ class ChainDB:
 
     @staticmethod
     def _has_pending_vulns(agent_results_str: str) -> bool:
-        """检查 agent_results 中是否有待验证的漏洞。"""
+        """检查 agent_results 中是否有待验证的漏洞（vuln 或 inconclusive）。"""
         try:
             results = json.loads(agent_results_str) if isinstance(agent_results_str, str) else agent_results_str
         except json.JSONDecodeError:
             return False
         for key in ("injection", "file", "auth", "biz"):
             agent_data = results.get(key, {})
-            if agent_data.get("verdict") != "vuln":
-                continue
-            for vuln in agent_data.get("vulnerabilities", []):
-                if vuln.get("poc_status", "pending") == "pending":
-                    return True
+            verdict = agent_data.get("verdict", "")
+            if verdict == "vuln":
+                for vuln in agent_data.get("vulnerabilities", []):
+                    if vuln.get("poc_status", "pending") == "pending":
+                        return True
+            if verdict == "inconclusive":
+                return True  # 不确定项也需要验证
         return False
 
     @staticmethod
@@ -357,6 +359,7 @@ class ChainDB:
 
         Returns:
             [{"agent_key": "injection", "vuln_index": 0, "type": "SQL注入", "root_cause": "..."}, ...]
+            inconclusive 项也返回（vuln_index = -1，无具体漏洞索引）
         """
         try:
             results = json.loads(agent_results_str) if isinstance(agent_results_str, str) else agent_results_str
@@ -365,16 +368,23 @@ class ChainDB:
         pending = []
         for key in ("injection", "file", "auth", "biz"):
             agent_data = results.get(key, {})
-            if agent_data.get("verdict") != "vuln":
-                continue
-            for i, vuln in enumerate(agent_data.get("vulnerabilities", [])):
-                if vuln.get("poc_status", "pending") == "pending":
-                    pending.append({
-                        "agent_key": key,
-                        "vuln_index": i,
-                        "type": vuln.get("type", ""),
-                        "root_cause": vuln.get("root_cause", ""),
-                    })
+            verdict = agent_data.get("verdict", "")
+            if verdict == "vuln":
+                for i, vuln in enumerate(agent_data.get("vulnerabilities", [])):
+                    if vuln.get("poc_status", "pending") == "pending":
+                        pending.append({
+                            "agent_key": key,
+                            "vuln_index": i,
+                            "type": vuln.get("type", ""),
+                            "root_cause": vuln.get("root_cause", ""),
+                        })
+            if verdict == "inconclusive":
+                pending.append({
+                    "agent_key": key,
+                    "vuln_index": -1,  # -1 表示不确定项
+                    "type": "inconclusive",
+                    "root_cause": agent_data.get("reason", ""),
+                })
         return pending
 
     # ============================================================
