@@ -70,7 +70,7 @@ def resolve_entry(db_path: str, entry_fqn: str) -> str | None:
 RECURSIVE_SQL = """
 WITH RECURSIVE chain(id, qualified_name, depth, path, file_path, start_line) AS (
     -- 起点
-    SELECT n.id, n.qualified_name, 0, '|' || n.id,
+    SELECT n.id, n.qualified_name, 0, '|' || n.id || '|',
            n.file_path, n.start_line
     FROM nodes n
     WHERE n.id = :entry_id AND n.kind = 'method'
@@ -79,7 +79,7 @@ WITH RECURSIVE chain(id, qualified_name, depth, path, file_path, start_line) AS 
 
     -- 递归：沿 calls 边前向走
     SELECT callee.id, callee.qualified_name, c.depth + 1,
-           c.path || '|' || callee.id,
+           c.path || callee.id || '|',
            callee.file_path, callee.start_line
     FROM chain c
     JOIN edges e ON e.source = c.id AND e.kind = 'calls'

@@ -388,16 +388,15 @@ def _get_file_calls_with_cache(
         except ValueError:
             pass
 
-    # Miss → 旧 per-file 回退 (符号无法跨文件, 但至少能拿到本文件内调用)
+    # Miss → 用 --config 模式回退（单文件但带 sourceRoot，符号解析更准）
     try:
-        records = _mce.extract_method_calls(
-            java_path=file_path,
+        records = _mce.extract_method_calls_via_config(
+            files=[file_path],
             source_root=source_root,
             group_id=group_id,
             jar_path=jar_path,
+            workers=1,
             timeout=30,
-            max_workers=1,         # 单文件, 无需并行
-            recursive=False,
             log=False,
         )
     except Exception as e:  # noqa: BLE001
@@ -851,11 +850,13 @@ def build_all_chains_for_endpoint(
                 sinks = [s["fqn"] for s in dynamic_sinks]
                 all_dynamic_sinks.extend(dynamic_sinks)
                 total_sinks += len(sinks)
-                # 所有非 groupId 调用都标注
                 ext_calls = [
                     c["called_fqn"] for c in method_calls
                     if not c["called_fqn"].startswith(group_id + ".")
                     and not c["called_fqn"].startswith(group_id + "#")
+                    and not c["called_fqn"].startswith("this.")
+                    and not c["called_fqn"].startswith("super.")
+                    and "." in c["called_fqn"]
                 ]
 
             chain_nodes.append(ChainNode(
@@ -984,7 +985,7 @@ def build_all_chains_for_endpoint(
 # 纯粹的 INNER JOIN 递归展开: 每跳 JOIN edges ON kind='calls', 不加额外计算
 _RECURSIVE_WITH_PATH_SQL = """
 WITH RECURSIVE chain(id, qualified_name, depth, path, file_path, start_line) AS (
-    SELECT n.id, n.qualified_name, 0, '|' || n.id,
+    SELECT n.id, n.qualified_name, 0, '|' || n.id || '|',
            n.file_path, n.start_line
     FROM nodes n
     WHERE n.id = :entry_id AND n.kind = 'method'
@@ -992,7 +993,7 @@ WITH RECURSIVE chain(id, qualified_name, depth, path, file_path, start_line) AS 
     UNION ALL
 
     SELECT callee.id, callee.qualified_name, c.depth + 1,
-           c.path || '|' || callee.id,
+           c.path || callee.id || '|',
            callee.file_path, callee.start_line
     FROM chain c
     JOIN edges e ON e.source = c.id AND e.kind = 'calls'
