@@ -122,8 +122,8 @@ def main():
     parser.add_argument("--group-id", required=True, help="项目 groupId")
     parser.add_argument("--node-id", help="单个 node_id")
     parser.add_argument("--node-path", help="node_path (method:id1 -> method:id2 -> ...)")
-    parser.add_argument("--max-depth", type=int, default=0, help="前 N 层（0=全部）")
-    parser.add_argument("--tail-depth", type=int, default=0, help="后 N 层（0=不限，与 --max-depth 配合使用）")
+    parser.add_argument("--max-depth", type=int, default=4, help="前 N 层（默认 4）")
+    parser.add_argument("--tail-depth", type=int, default=2, help="后 N 层（默认 2，链<6层时全部加载）")
     args = parser.parse_args()
 
     memurai = Memurai()

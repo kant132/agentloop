@@ -68,11 +68,14 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 子 agent 加载方法体工具：
 
 ```powershell
-# 注入类/文件类：前4层+后2层（链 <6 层时全部加载）
-python scripts/chain/load_method_body.py --group-id {groupId} --node-path "..." --max-depth 4 --tail-depth 2
+# 注入类/文件类：默认前4层+后2层（链 <6 层时全部加载，无需指定参数）
+python scripts/chain/load_method_body.py --group-id {groupId} --node-path "..."
 
-# 认证鉴权/业务逻辑：前 5 层
-python scripts/chain/load_method_body.py --group-id {groupId} --node-path "..." --max-depth 5
+# 认证鉴权/业务逻辑：前 5 层，不要尾部
+python scripts/chain/load_method_body.py --group-id {groupId} --node-path "..." --max-depth 5 --tail-depth 0
+
+# 加载全部（PoC agent 需要完整上下文时）
+python scripts/chain/load_method_body.py --group-id {groupId} --node-path "..." --max-depth 0 --tail-depth 0
 
 # 加载单个方法体（PoC agent 用）
 python scripts/chain/load_method_body.py --group-id {groupId} --node-id "method:abc123"
