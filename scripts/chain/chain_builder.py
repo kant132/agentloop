@@ -523,10 +523,16 @@ def build_chain(
         )
 
     # 5. 构建 ChainNode 列表 (按 depth 升序, 同 depth 维持 CTE 顺序)
+    #    去重 node_id（CTE 可能返回同节点不同深度，保留首次出现 = 最长路径）
     chain_nodes: List[ChainNode] = []
     total_sinks = 0
     all_dynamic_sinks: List[Dict[str, Any]] = []
+    seen_node_ids: set[str] = set()
     for r in raw_rows:
+        nid = r["id"]
+        if nid in seen_node_ids:  # 已处理过此节点，跳过（兄弟节点）
+            continue
+        seen_node_ids.add(nid)
         nid = r["id"]
         meta = meta_map.get(nid, {})
         fqn = meta.get("qualified_name") or r.get("qualified_name") or ""
