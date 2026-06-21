@@ -37,6 +37,7 @@ def main():
     parser = argparse.ArgumentParser(description="完整执行 Phase 1→4")
     parser.add_argument("--preset", required=True, help="preset.json 路径")
     parser.add_argument("--limit", type=int, default=3, help="只跑前 N 条链 (默认 3)")
+    parser.add_argument("--phase", type=int, default=4, help="执行到哪个 Phase (1/2/4, 4=全流程)")
     args = parser.parse_args()
 
     # 加载 preset
@@ -210,8 +211,14 @@ def main():
         log.info("      node_path:  %s", chain["node_path"][:120] + "..." if len(chain["node_path"]) > 120 else chain["node_path"])
 
     # ============================================================
-    # Phase 3: AI 分析（task() 委派，预加载方法体）
+    # Phase 3: AI 分析（主 agent 执行, task() 委派）
+    # 注意: task() 是 opencode 全局函数, 只在 agent 会话中可用
+    # subprocess 调用时用 --phase 2 跳过 Phase 3/4
     # ============================================================
+    if args.phase < 3:
+        log.info("  --phase=%d, 跳过 Phase 3/4", args.phase)
+        return 0
+
     log.info("")
     log.info(">>> Phase 3: 调用链分析 (v4 flash, task 委派)")
     t0 = time.time()
@@ -260,7 +267,7 @@ def main():
             lines.append("")
         formatted = "\n".join(lines)
 
-        # 派发 task 审计
+        # 派发 task 审计 (task 是 opencode 全局函数)
         task_result = task(
             category="deep",
             description=f"Phase3 audit {chain_id}",
@@ -299,7 +306,6 @@ def main():
         log.info("    结论: %s", verdict)
 
         # 写 agent_results
-        agent_result = {"injection": result_data}
         db.update_agent_result(chain_id, "injection", result_data)
         status = "safe" if verdict == "safe" else "vuln" if verdict == "vuln" else "analyzed"
         db.update_status(chain_id, status)
@@ -310,8 +316,21 @@ def main():
     log.info("  Phase 3 完成: %.1fs", time.time() - t0)
     log.info("  链状态: %s", json.dumps(after_stats["by_status"], ensure_ascii=False))
 
+    if args.phase < 4:
+        log.info("  --phase=%d, 跳过 Phase 4", args.phase)
+        # 打印最终统计
+        final_stats = db.stats()
+        log.info("")
+        log.info("=" * 60)
+        log.info("Phase 1→%d 完成", args.phase)
+        log.info("  链统计: %s", json.dumps(final_stats, ensure_ascii=False))
+        log.info("  chains.db: %s", chains_db)
+        log.info("=" * 60)
+        return 0
+
     # ============================================================
     # Phase 4: 动态利用（HTTP PoC 对运行中的 WebGoat 发请求）
+    # 注意: Phase 4 也需要 task() 上下文, subprocess 调用时用 --phase 2
     # ============================================================
     log.info("")
     log.info(">>> Phase 4: 动态利用 (HTTP PoC)")
