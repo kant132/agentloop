@@ -162,16 +162,30 @@ def extract_recursive_jar_analyzer(
 def _batch_line_numbers(
     conn: sqlite3.Connection, method_ids: list[str],
 ) -> dict[str, int | None]:
-    """Batch query line_number from method_table for a list of method_ids."""
+    """Batch query line_number from method_table for a list of method_ids.
+    
+    Handles large lists by deduplicating and batching (500 at a time).
+    """
     if not method_ids:
         return {}
-    placeholders = ",".join("?" * len(method_ids))
-    rows = conn.execute(
-        f"SELECT method_id, line_number FROM method_table "
-        f"WHERE CAST(method_id AS TEXT) IN ({placeholders})",
-        method_ids,
-    ).fetchall()
-    return {str(r["method_id"]): r["line_number"] for r in rows}
+    
+    # Deduplicate
+    unique_ids = list(set(method_ids))
+    
+    # Batch in chunks of 500 to avoid SQLite variable limit
+    result = {}
+    chunk_size = 500
+    for i in range(0, len(unique_ids), chunk_size):
+        chunk = unique_ids[i:i + chunk_size]
+        placeholders = ",".join("?" * len(chunk))
+        rows = conn.execute(
+            f"SELECT method_id, line_number FROM method_table "
+            f"WHERE CAST(method_id AS TEXT) IN ({placeholders})",
+            chunk,
+        ).fetchall()
+        result.update({str(r["method_id"]): r["line_number"] for r in rows})
+    
+    return result
 
 
 # ============================================================ method_impl resolution
@@ -220,7 +234,7 @@ WITH RECURSIVE chain(method_id, class_name, method_name, method_desc, depth, pat
       AND instr(c.path, '|' || CAST(impl.method_id AS TEXT) || '|') = 0
 )
 SELECT method_id, class_name, method_name, method_desc, depth, path
-FROM chain ORDER BY depth
+FROM chain
 """
 
 
@@ -286,23 +300,30 @@ def get_method_meta(db_path: str, method_ids: list[str]) -> dict[str, dict]:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     try:
-        placeholders = ",".join("?" * len(method_ids))
-        rows = conn.execute(
-            f"SELECT method_id, class_name, method_name, method_desc, "
-            f"is_static, line_number "
-            f"FROM method_table "
-            f"WHERE CAST(method_id AS TEXT) IN ({placeholders})",
-            method_ids,
-        ).fetchall()
-
+        # Deduplicate
+        unique_ids = list(set(method_ids))
+        
+        # Batch in chunks of 500 to avoid SQLite variable limit
         result = {}
-        for r in rows:
-            mid = str(r["method_id"])
-            qname = f"{_jar_class_to_dot(r['class_name'])}::{r['method_name']}"
-            result[mid] = {
-                "qualified_name": qname,
-                "class_name": r["class_name"],
-                "method_name": r["method_name"],
+        chunk_size = 500
+        for i in range(0, len(unique_ids), chunk_size):
+            chunk = unique_ids[i:i + chunk_size]
+            placeholders = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                f"SELECT method_id, class_name, method_name, method_desc, "
+                f"is_static, line_number "
+                f"FROM method_table "
+                f"WHERE CAST(method_id AS TEXT) IN ({placeholders})",
+                chunk,
+            ).fetchall()
+
+            for r in rows:
+                mid = str(r["method_id"])
+                qname = f"{_jar_class_to_dot(r['class_name'])}::{r['method_name']}"
+                result[mid] = {
+                    "qualified_name": qname,
+                    "class_name": r["class_name"],
+                    "method_name": r["method_name"],
                 "method_desc": r["method_desc"],
                 "line_number": r["line_number"],
                 "is_static": r["is_static"],
@@ -371,15 +392,27 @@ def get_method_line_numbers(db_path: str, method_ids: list[str]) -> dict[str, in
     Returns:
         dict: method_id → line_number
     """
+    if not method_ids:
+        return {}
+    
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     try:
-        placeholders = ",".join("?" * len(method_ids))
-        rows = conn.execute(
-            f"SELECT method_id, line_number FROM method_table WHERE CAST(method_id AS TEXT) IN ({placeholders})",
-            tuple(method_ids),
-        ).fetchall()
-        result = {str(row["method_id"]): row["line_number"] for row in rows}
+        # Deduplicate
+        unique_ids = list(set(method_ids))
+        
+        # Batch in chunks of 500 to avoid SQLite variable limit
+        result = {}
+        chunk_size = 500
+        for i in range(0, len(unique_ids), chunk_size):
+            chunk = unique_ids[i:i + chunk_size]
+            placeholders = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                f"SELECT method_id, line_number FROM method_table WHERE CAST(method_id AS TEXT) IN ({placeholders})",
+                tuple(chunk),
+            ).fetchall()
+            result.update({str(row["method_id"]): row["line_number"] for row in rows})
+        
         return result
     finally:
         conn.close()
@@ -397,24 +430,45 @@ def get_method_call_edges(db_path: str, method_ids: list[str]) -> dict[str, list
     Returns:
         dict: caller_method_id → [callee_method_id, ...]
     """
+    if not method_ids:
+        return {}
+    
     # Build (class_name, method_name, method_desc) → method_id mapping
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     try:
-        placeholders = ",".join("?" * len(method_ids))
-        method_rows = conn.execute(
-            f"SELECT method_id, class_name, method_name, method_desc FROM method_table WHERE CAST(method_id AS TEXT) IN ({placeholders})",
-            tuple(method_ids),
-        ).fetchall()
+        # Deduplicate
+        unique_ids = list(set(method_ids))
+        
+        # Batch in chunks of 500 to avoid SQLite variable limit
         sig_to_id = {}
         all_ids = set()
-        for r in method_rows:
-            mid = str(r["method_id"])
-            sig_to_id[(r["class_name"], r["method_name"], r["method_desc"])] = mid
-            all_ids.add(mid)
+        chunk_size = 500
+        for i in range(0, len(unique_ids), chunk_size):
+            chunk = unique_ids[i:i + chunk_size]
+            placeholders = ",".join("?" * len(chunk))
+            method_rows = conn.execute(
+                f"SELECT method_id, class_name, method_name, method_desc FROM method_table WHERE CAST(method_id AS TEXT) IN ({placeholders})",
+                tuple(chunk),
+            ).fetchall()
+            for r in method_rows:
+                mid = str(r["method_id"])
+                sig_to_id[(r["class_name"], r["method_name"], r["method_desc"])] = mid
+                all_ids.add(mid)
 
         edges_map: dict[str, list[str]] = {}
-        for r in method_rows:
+        # Re-query all method_rows for edge lookup (reuse the data)
+        all_method_rows = []
+        for i in range(0, len(unique_ids), chunk_size):
+            chunk = unique_ids[i:i + chunk_size]
+            placeholders = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                f"SELECT method_id, class_name, method_name, method_desc FROM method_table WHERE CAST(method_id AS TEXT) IN ({placeholders})",
+                tuple(chunk),
+            ).fetchall()
+            all_method_rows.extend(rows)
+        
+        for r in all_method_rows:
             mid = str(r["method_id"])
             caller_class = r["class_name"]
             caller_method = r["method_name"]
