@@ -66,7 +66,7 @@ def test_inject_sink_comment_with_match():
     third_party_calls = ["com.example.MyClient#get"]
     fqn_sink_set = {"com.example.MyClient#get"}
     result = inject_sink_comment(line, third_party_calls, fqn_sink_set)
-    assert "// #com.example.MyClient#get" in result
+    assert "//fqn: com.example.MyClient#get" in result
     assert "client.get(url);" in result
 
 
@@ -85,7 +85,7 @@ def test_inject_sink_comment_multiple_sinks():
     third_party_calls = ["com.http.HttpClient#get", "com.http.HttpClient#post"]
     fqn_sink_set = {"com.http.HttpClient#get", "com.http.HttpClient#post"}
     result = inject_sink_comment(line, third_party_calls, fqn_sink_set)
-    assert "// #com.http.HttpClient#get" in result
+    assert "//fqn: com.http.HttpClient#get" in result
 
 
 # =============================================================================

@@ -647,6 +647,7 @@ def build_chain(
                 node_path=node_path_str,
                 last_sinks=last_sinks,
                 is_sink=last_sinks > 0,
+                node_count=len(chain_nodes),
             )
             result["chain_db"] = str(loop_audit_dir / "chains.db")
             result["last_sinks_priority"] = priority
@@ -738,6 +739,16 @@ def build_all_chains_for_endpoint(
         _log("entry %s → 无可达路径", entry_id)
         return []
 
+    # 检查入口方法是否有参数
+    entry_has_params = True
+    with _open_db(db_path) as conn:
+        row = conn.execute(
+            "SELECT signature FROM nodes WHERE id = ?", (entry_id,)
+        ).fetchone()
+    if row:
+        sig = row["signature"] or ""
+        entry_has_params = "()" not in sig or len(sig) > sig.find(")") + 1 > sig.find("(") + 1
+
     # 收集所有出现过的 node id (去重) → 一次性反查 meta + edges + file_path
     all_ids: set[str] = set()
     for p in paths:
@@ -780,17 +791,17 @@ def build_all_chains_for_endpoint(
     cache_key = f"{group_id}:audit:chain:{sig_hash}"
     results: List[Dict[str, Any]] = []
 
-    for variant_idx, p in enumerate(paths):
+    for path_idx, p in enumerate(paths):
         node_ids = p["nodes"]
         chain_nodes: List[ChainNode] = []
         total_sinks = 0
         all_dynamic_sinks: List[Dict[str, Any]] = []
-        cycle_in_variant = False
+        cycle_in_path = False
         seen: set[str] = set()
 
         for depth, nid in enumerate(node_ids):
             if nid in seen:
-                cycle_in_variant = True
+                cycle_in_path = True
             seen.add(nid)
 
             meta = meta_map.get(nid, {})
@@ -862,9 +873,9 @@ def build_all_chains_for_endpoint(
             "sig_hash": sig_hash,
             "group_id": group_id,
             "depth_limit": max_depth,
-            "variant_index": variant_idx,
-            "variant_path": node_ids,
-            "cycle_detected": cycle_in_variant or p.get("cycle_in_cte", False),
+            "path_index": path_idx,
+            "path_node_ids": node_ids,
+            "cycle_detected": cycle_in_path or p.get("cycle_in_cte", False),
             "chain": [_chain_node_to_dict(n) for n in chain_nodes],
             "total_nodes": len(chain_nodes),
             "total_edges": total_edges,
@@ -888,15 +899,24 @@ def build_all_chains_for_endpoint(
                     sink_num = len(n.get("sinks", []))
                     chain_path_parts.append(f"{n['fqn']}(sink num: {sink_num})")
                     node_path_parts.append(n['node_id'])
+                # 只计算最后一个节点的 sink + preset 匹配
+                last_node = r["chain"][-1] if r["chain"] else None
+                last_sinks = len(last_node.get("sinks", [])) if last_node else 0
+                last_preset = _sr.match_preset_sinks([last_node]) if last_node else 0
+                penalty = 0 if entry_has_params else 100
+                priority = max(0, last_preset * 10 + last_sinks - penalty)
                 chains_to_insert.append({
-                    "chain_id": f"{sig_hash}_{r.get('variant_index', 0)}",
+                    "chain_id": f"{sig_hash}_{r.get('path_index', 0)}",
                     "endpoint_fqn": entry_fqn,
-                    "priority": r.get("preset_sink_count", 0) * 10 + r.get("total_sinks", 0),
+                    "priority": priority,
                     "total_sinks": r.get("total_sinks", 0),
                     "preset_sinks": r.get("preset_sink_count", 0),
                     "cycle_detected": r.get("cycle_detected", False),
                     "chain_path": " -> ".join(chain_path_parts),
                     "node_path": " -> ".join(node_path_parts),
+                    "last_sinks": last_sinks,
+                    "is_sink": last_sinks > 0,
+                    "node_count": len(r["chain"]),
                 })
             db.insert_chains_batch(chains_to_insert)
             for r in results:
@@ -921,6 +941,7 @@ def build_all_chains_for_endpoint(
                 "body": n.get("body"),
                 "file": n.get("file"),
                 "depth": n.get("depth", 0),
+                "node_id": n.get("node_id", ""),
             }
             for n in all_chain_nodes
         ]
@@ -941,7 +962,7 @@ def build_all_chains_for_endpoint(
         try:
             ok = memurai_client.set_json(
                 cache_key,
-                {"variants": results, "variant_count": len(results)},
+                {"paths": results, "path_count": len(results)},
                 ex=ttl,
             )
             for r in results:
@@ -955,7 +976,8 @@ def build_all_chains_for_endpoint(
 
 # ============================================================== CTE path 提取 (私有)
 
-# 与 sqlite-extract-chain.py 的 RECURSIVE_SQL 同结构, 但额外返回 path 列 + 标记环
+# 与 sqlite-extract-chain.py 的 RECURSIVE_SQL 同结构, 但额外返回 path 列
+# 纯粹的 INNER JOIN 递归展开: 每跳 JOIN edges ON kind='calls', 不加额外计算
 _RECURSIVE_WITH_PATH_SQL = """
 WITH RECURSIVE chain(id, qualified_name, depth, path, file_path, start_line) AS (
     SELECT n.id, n.qualified_name, 0, '|' || n.id,
@@ -1096,7 +1118,7 @@ def _build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--memurai-port", type=int, default=6379)
     p.add_argument("--ttl", type=int, default=864000,
                    help="缓存 TTL 秒数 (默认 864000 = 10天)")
-    p.add_argument("--all-variants", action="store_true",
+    p.add_argument("--all-paths", action="store_true",
                    help="调用 build_all_chains_for_endpoint 而非 build_chain")
     p.add_argument("--loop-dir",
                    type=Path,
@@ -1170,7 +1192,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
 
     try:
-        if args.all_variants:
+        if args.all_paths:
             results = build_all_chains_for_endpoint(**common_kwargs)
         else:
             single = build_chain(**common_kwargs)
@@ -1183,8 +1205,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 2
 
     payload = {
-        "variant_count": len(results),
-        "variants": results,
+        "path_count": len(results),
+        "paths": results,
         "summary": {
             "total_nodes": sum(r["total_nodes"] for r in results),
             "total_edges": sum(r["total_edges"] for r in results),
@@ -1197,16 +1219,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         out = Path(args.output)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(text, encoding="utf-8")
-        _log("已写入 %s (variants=%d, total_nodes=%d, total_sinks=%d)",
+        _log("已写入 %s (paths=%d, total_nodes=%d, total_sinks=%d)",
              out, len(results),
              payload["summary"]["total_nodes"],
              payload["summary"]["total_sinks"])
     else:
         print(text)
 
-    # 顺便把第一个 variant 的摘要打到 stderr, 便于人工快速核对
+    # 顺便把第一条路径的摘要打到 stderr, 便于人工快速核对
     if results:
-        _log("\n--- variant[0] summary ---\n%s", _summarize(results[0]))
+        _log("\n--- path[0] summary ---\n%s", _summarize(results[0]))
 
     return 0
 

@@ -110,9 +110,13 @@ def load_chain(
     results = []
     for depth, nid in selected:
         body_data = load_single(memurai, group_id, nid)
-        if body_data:
-            body_data["depth"] = depth
-            results.append(body_data)
+        if body_data is None:
+            raise LookupError(
+                f"Memurai 缓存未命中: {group_id}:method:{nid} (depth={depth})。"
+                f"请先运行 Phase 2 完成方法体预取。"
+            )
+        body_data["depth"] = depth
+        results.append(body_data)
 
     return results
 

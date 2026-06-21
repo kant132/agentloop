@@ -175,7 +175,7 @@ def inject_sink_comment(
     third_party_calls: List[str],
     fqn_sink_set: Set[str],
 ) -> str:
-    """若行包含任何 third_party_calls 的方法名 + '(', 返回带 ``// #fqn`` 注释的行。
+    """若行包含任何 third_party_calls 的方法名 + '(', 返回带 ``//fqn:`` 注释的行。
 
     标注所有 third_party_calls（非 groupId 调用），不区分是否为 sink。
     已有注释开头的行跳过。
@@ -187,7 +187,7 @@ def inject_sink_comment(
     for call in third_party_calls:
         method_name = fqn_to_method_name(call)
         if method_name and method_name + "(" in line:
-            return f"{indent}// #{call}\n" + line
+            return f"{indent}//fqn: {call}\n" + line
     return line
 
 

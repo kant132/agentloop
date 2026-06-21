@@ -135,7 +135,7 @@ def main():
     t0 = time.time()
 
     from chain_db import ChainDB
-    from chain_builder import build_chain
+    from chain_builder import build_all_chains_for_endpoint
 
     # 清空旧链
     chains_db = loop_dir / "chains.db"
@@ -171,7 +171,7 @@ def main():
 
         t1 = time.time()
         try:
-            result = build_chain(
+            paths = build_all_chains_for_endpoint(
                 entry_fqn=fqn,
                 group_id=gid,
                 project_root=proj,
@@ -182,13 +182,11 @@ def main():
                 ttl=864000,
             )
             elapsed = time.time() - t1
-            total_nodes = result.get("total_nodes", 0)
-            total_sinks = result.get("total_sinks", 0)
-            preset_sinks = result.get("preset_sink_count", 0)
-            cycle = result.get("cycle_detected", False)
-            log.info("  [chain %d] %s | nodes=%d sinks=%d preset=%d cycle=%s (%.1fs)",
-                     built_count + 1, endpoint_label, total_nodes, total_sinks, preset_sinks, cycle, elapsed)
-            if total_nodes > 0:
+            total_nodes = sum(p.get("total_nodes", 0) for p in paths)
+            total_sinks = sum(p.get("total_sinks", 0) for p in paths)
+            log.info("  [chain %d] %s | paths=%d nodes=%d sinks=%d (%.1fs)",
+                     built_count + 1, endpoint_label, len(paths), total_nodes, total_sinks, elapsed)
+            if paths:
                 built_count += 1
         except LookupError as e:
             log.info("  [skip] %s: codegraph 中找不到", endpoint_label)

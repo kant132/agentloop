@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS chains (
     agent_results TEXT DEFAULT '{}',
     last_sinks    INTEGER DEFAULT 0,     -- 最后一个节点的 sink 数
     is_sink       INTEGER DEFAULT 0,     -- 最后一个节点是否有 sink (0/1)
+    node_count    INTEGER DEFAULT 1,     -- 调用链节点数（路径长度）
     created_at    TEXT
 );
 
@@ -139,6 +140,7 @@ class ChainDB:
         node_path: str = "",
         last_sinks: int = 0,
         is_sink: bool = False,
+        node_count: int = 1,
     ) -> None:
         """插入或替换一条调用链。"""
         with self._conn() as conn:
@@ -146,8 +148,8 @@ class ChainDB:
                 """INSERT OR REPLACE INTO chains
                    (chain_id, endpoint_fqn, priority, total_sinks, preset_sinks,
                     cycle_detected, status, chain_path, node_path, created_at,
-                    last_sinks, is_sink)
-                   VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)""",
+                    last_sinks, is_sink, node_count)
+                   VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)""",
                 (
                     chain_id,
                     endpoint_fqn,
@@ -160,6 +162,7 @@ class ChainDB:
                     datetime.now(timezone.utc).isoformat(),
                     last_sinks,
                     1 if is_sink else 0,
+                    node_count,
                 ),
             )
             conn.commit()
@@ -182,6 +185,7 @@ class ChainDB:
                 datetime.now(timezone.utc).isoformat(),
                 c.get("last_sinks", 0),
                 1 if c.get("is_sink", False) else 0,
+                c.get("node_count", 1),
             )
             for c in chains
         ]
@@ -190,8 +194,8 @@ class ChainDB:
                 """INSERT OR REPLACE INTO chains
                    (chain_id, endpoint_fqn, priority, total_sinks, preset_sinks,
                     cycle_detected, status, chain_path, node_path, created_at,
-                    last_sinks, is_sink)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    last_sinks, is_sink, node_count)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 rows,
             )
             conn.commit()
