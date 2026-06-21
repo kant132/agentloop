@@ -42,13 +42,8 @@ GID = "{group_id}"
 
 all_chains = db.batch_by_priority(limit=999, status="pending")
 
-# 注入类/文件类：每 endpoint 1 条最高优先级链
-sink_endpoints = {}
-for c in all_chains:
-    if c["total_sinks"] <= 0: continue
-    ep = c["endpoint_fqn"]
-    if ep not in sink_endpoints or c["priority"] > sink_endpoints[ep]["priority"]:
-        sink_endpoints[ep] = c
+# 注入类/文件类：每 endpoint 1 条最高优先级链（is_sink=1, priority>0）
+sink_chains = db.top_chain_per_endpoint(status="pending", is_sink=1, min_priority=1)
 
 # 认证鉴权/业务逻辑：前 25% 端点
 all_endpoints = list(dict.fromkeys(c["endpoint_fqn"] for c in all_chains))
