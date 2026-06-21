@@ -1,6 +1,8 @@
 package com.javaparsextract;
 
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
+import com.github.javaparser.JavaParser;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
@@ -252,61 +254,65 @@ public class Main {
      * 3. 并行提取方法调用（call.resolve() 是性能瓶颈，可并行）
      */
     static String runCalls(Config config) throws Exception {
-        // 1. 配置符号解析器
-        CombinedTypeSolver typeSolver = new CombinedTypeSolver();
-        typeSolver.add(new ReflectionTypeSolver());
         Path sourceRoot = config.sourceRoot != null ? Path.of(config.sourceRoot) : locateProjectRoot(Path.of(config.files.get(0)));
-        if (sourceRoot != null && Files.isDirectory(sourceRoot)) {
-            typeSolver.add(new JavaParserTypeSolver(sourceRoot));
-        }
-        JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
-        StaticJavaParser.getConfiguration()
-                .setSymbolResolver(symbolSolver)
-                .setLanguageLevel(LanguageLevel.JAVA_21);
-
         List<Path> files = config.files.stream().map(Path::of).toList();
 
-        // 2. 串行解析所有文件（StaticJavaParser 全局配置 + type solver 缓存填充）
-        Map<Path, CompilationUnit> cuMap = new LinkedHashMap<>();
+        // 1. 串行解析所有文件（用全局 StaticJavaParser，只做语法解析，不涉及符号解析）
+        StaticJavaParser.getConfiguration().setLanguageLevel(LanguageLevel.JAVA_21);
+        Map<Path, String> fileSources = new LinkedHashMap<>();
         for (Path f : files) {
             try {
-                CompilationUnit cu = StaticJavaParser.parse(Files.readString(f));
-                cuMap.put(f, cu);
+                fileSources.put(f, Files.readString(f));
             } catch (IOException e) {
-                System.err.println("Skip (parse error): " + f);
+                System.err.println("Skip (read error): " + f);
             }
         }
-        if (cuMap.isEmpty()) return "[]";
+        if (fileSources.isEmpty()) return "[]";
 
-        // 3. 并行提取方法调用
+        // 2. 并行提取方法调用
+        //    每个线程创建独立的 JavaParser + TypeSolver，避免 JavaParserTypeSolver 的 Guava 缓存竞争
         List<CallRecord> allRecords = Collections.synchronizedList(new ArrayList<>());
-        int nWorkers = Math.min(config.workers, cuMap.size());
+        int nWorkers = Math.min(config.workers, fileSources.size());
         ExecutorService pool = Executors.newFixedThreadPool(nWorkers);
         List<Future<?>> futures = new ArrayList<>();
-        for (Map.Entry<Path, CompilationUnit> e : cuMap.entrySet()) {
-            Path f = e.getKey();
-            CompilationUnit cu = e.getValue();
+
+        for (Map.Entry<Path, String> entry : fileSources.entrySet()) {
+            Path f = entry.getKey();
+            String source = entry.getValue();
             String filePath = f.toString().replace("\\", "/");
-            // 每个文件从自己的 package 推导 groupId（前 3 段）
-            List<String> fileGroupIds = new ArrayList<>(config.groupIds);  // 先加配置的
-            String pkg = cu.getPackageDeclaration().map(p -> p.getNameAsString()).orElse(null);
-            if (pkg != null) {
-                String[] parts = pkg.split("\\.");
-                if (parts.length >= 3) {
-                    String autoGid = parts[0] + "." + parts[1] + "." + parts[2];
-                    if (!fileGroupIds.contains(autoGid)) {
-                        fileGroupIds.add(autoGid);
-                    }
-                } else if (!pkg.isEmpty()) {
-                    if (!fileGroupIds.contains(pkg)) {
-                        fileGroupIds.add(pkg);
-                    }
-                }
-            }
-            final List<String> groupIds = fileGroupIds;  // final for lambda
             futures.add(pool.submit(() -> {
                 try {
-                    List<CallRecord> recs = extractFromCU(cu, filePath, groupIds);
+                    // 线程级 JavaParser + TypeSolver
+                    CombinedTypeSolver ts = new CombinedTypeSolver();
+                    ts.add(new ReflectionTypeSolver());
+                    if (sourceRoot != null && Files.isDirectory(sourceRoot)) {
+                        ts.add(new JavaParserTypeSolver(sourceRoot));
+                    }
+                    JavaSymbolSolver ss = new JavaSymbolSolver(ts);
+                    JavaParser parser = new JavaParser(
+                        new ParserConfiguration()
+                            .setLanguageLevel(LanguageLevel.JAVA_21)
+                            .setSymbolResolver(ss)
+                    );
+                    var parseResult = parser.parse(source);
+                    if (!parseResult.isSuccessful()) return;
+                    CompilationUnit cu = parseResult.getResult().orElse(null);
+                    if (cu == null) return;
+
+                    // 从 package 推导 groupId
+                    List<String> fileGroupIds = new ArrayList<>(config.groupIds);
+                    String pkg = cu.getPackageDeclaration().map(p -> p.getNameAsString()).orElse(null);
+                    if (pkg != null) {
+                        String[] parts = pkg.split("\\.");
+                        if (parts.length >= 3) {
+                            String autoGid = parts[0] + "." + parts[1] + "." + parts[2];
+                            if (!fileGroupIds.contains(autoGid)) fileGroupIds.add(autoGid);
+                        } else if (!pkg.isEmpty()) {
+                            if (!fileGroupIds.contains(pkg)) fileGroupIds.add(pkg);
+                        }
+                    }
+
+                    List<CallRecord> recs = extractFromCU(cu, filePath, fileGroupIds);
                     allRecords.addAll(recs);
                 } catch (Throwable t) {
                     System.err.println("Extract error: " + f + " : " + t.getMessage());

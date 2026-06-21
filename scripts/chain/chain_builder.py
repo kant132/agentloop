@@ -466,7 +466,9 @@ def build_chain(
     project_root = Path(project_root)
     db_path = Path(db_path)
     if source_root is None:
-        source_root = project_root
+        # 优先用 src/main/java（Java 标准源码根），JAR 的符号解析需要正确的 sourceRoot
+        java_src = project_root / "src" / "main" / "java"
+        source_root = java_src if java_src.is_dir() else project_root
 
     # 1. entry fqn → nodes.id
     entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
@@ -729,7 +731,9 @@ def build_all_chains_for_endpoint(
     project_root = Path(project_root)
     db_path = Path(db_path)
     if source_root is None:
-        source_root = project_root
+        # 优先用 src/main/java（Java 标准源码根），JAR 的符号解析需要正确的 sourceRoot
+        java_src = project_root / "src" / "main" / "java"
+        source_root = java_src if java_src.is_dir() else project_root
 
     entry_id = _sec.resolve_entry(str(db_path), entry_fqn)
     if not entry_id:
@@ -1178,7 +1182,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     project_root = Path(args.project_root)
     db_path = Path(args.db)
-    source_root = Path(args.source_root) if args.source_root else project_root
+    source_root = Path(args.source_root) if args.source_root else None
     jar_path = Path(args.jar) if args.jar else None
 
     memurai = _maybe_connect_memurai(args)
