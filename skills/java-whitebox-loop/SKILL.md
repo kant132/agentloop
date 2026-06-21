@@ -117,12 +117,16 @@ GID = "{group_id}"
 # 取 is_sink=1 的链
 chains = db.batch_by_priority(limit=100, is_sink=1)
 
-def load_front4_tail2(node_path: str) -> list[dict]:
+def load_front4_tail2(node_path: str) -> tuple[int, list[dict]]:
+    """加载前4层+后2层的方法体，返回(total_nodes, bodies)。"""
     nodes = [x.strip() for x in (node_path or "").split("->") if x.strip()]
-    if len(nodes) <= 6:
+    total = len(nodes)
+    if total <= 6:
         selected = nodes
+        indices = list(range(total))  # 全部加载
     else:
         selected = nodes[:4] + nodes[-2:]
+        indices = [0, 1, 2, 3, total - 2, total - 1]  # 真实链位置
     bodies = []
     for nid in selected:
         key = f"{GID}:method:{nid}"
@@ -130,22 +134,23 @@ def load_front4_tail2(node_path: str) -> list[dict]:
         if raw:
             data = json.loads(raw) if isinstance(raw, str) else raw
             bodies.append(data)
-    return bodies
+    return total, bodies, indices
 
-def bodies_to_prompt(bodies: list[dict]) -> str:
-    """把方法体列表格式化为纯文本，最后一个标记 # last method。"""
+def bodies_to_prompt(total: int, bodies: list[dict], indices: list[int]) -> str:
+    """格式化方法体为纯文本，depth 从 indices 取，最后标记 # last method。"""
     lines = []
     for i, b in enumerate(bodies):
         fqn = b.get("fqn", "")
         body = b.get("body", "")
-        marker = "  # last method" if i == len(bodies) - 1 else ""
-        lines.append(f"=== depth={b.get('depth',i)}: {fqn} ==={marker}")
+        depth = indices[i] if i < len(indices) else i
+        marker = "  # last method" if depth == total - 1 else ""
+        lines.append(f"=== depth={depth}: {fqn} ==={marker}")
         lines.append(body)
     return "\n".join(lines)
 
 for c in chains:
-    bodies = load_front4_tail2(c["node_path"])
-    prompt_body = bodies_to_prompt(bodies)
+    total, bodies, indices = load_front4_tail2(c["node_path"])
+    prompt_body = bodies_to_prompt(total, bodies, indices)
     # task(..., prompt=f"方法体数据:\n{prompt_body}")
 ```
 
