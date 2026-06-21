@@ -26,7 +26,7 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 
 **禁止自己写临时脚本。** 用以下固定步骤执行，代码已写好，直接调用。
 
-#### 步骤 1: 选链（从 chains.db 读取）
+#### 步骤 1: 选链（从 chains.db 读取，按分发规则筛选）
 
 ```python
 import sys, json
@@ -39,9 +39,23 @@ from load_method_body import load_chain
 db = ChainDB(r"{loop_audit_dir}/chains.db")
 m = Memurai()
 GID = "{group_id}"
+
+all_chains = db.batch_by_priority(limit=999, status="pending")
+
+# 注入类/文件类：每 endpoint 1 条最高优先级链
+sink_endpoints = {}
+for c in all_chains:
+    if c["total_sinks"] <= 0: continue
+    ep = c["endpoint_fqn"]
+    if ep not in sink_endpoints or c["priority"] > sink_endpoints[ep]["priority"]:
+        sink_endpoints[ep] = c
+
+# 认证鉴权/业务逻辑：前 25% 端点
+all_endpoints = list(dict.fromkeys(c["endpoint_fqn"] for c in all_chains))
+top_25 = all_endpoints[:max(1, len(all_endpoints) // 4)]
 ```
 
-选 3 条链：最长 / 最高优先级 / 随机。每条链单独审计，**不合并多条链**。
+每条链单独审计，**不合并多条链**。每批 4 个并行分发。
 
 #### 步骤 2: 加载方法体（从 Memurai，禁止读源文件）
 
