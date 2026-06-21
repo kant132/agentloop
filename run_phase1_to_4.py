@@ -210,35 +210,100 @@ def main():
         log.info("      node_path:  %s", chain["node_path"][:120] + "..." if len(chain["node_path"]) > 120 else chain["node_path"])
 
     # ============================================================
-    # Phase 3: AI 分析（模拟）
+    # Phase 3: AI 分析（task() 委派，预加载方法体）
     # ============================================================
     log.info("")
-    log.info(">>> Phase 3: 调用链分析 (模拟 AI 加载方法体)")
+    log.info(">>> Phase 3: 调用链分析 (v4 flash, task 委派)")
     t0 = time.time()
 
-    # 从 chains.db 取前 3 条 pending 链
-    pending_chains = db.batch_by_priority(limit=3, status="pending")
-    log.info("  待分析链: %d 条", len(pending_chains))
+    # 选 3 条链：最长 / 最高优先级 / 随机
+    import random as _random
+    all_pending = db.batch_by_priority(limit=999, status="pending")
+    if len(all_pending) >= 3:
+        _longest = max(all_pending, key=lambda c: c.get("node_count", 1))
+        _highest = max(all_pending, key=lambda c: c.get("priority", 0))
+        _remaining = [c for c in all_pending if c["chain_id"] not in (_longest["chain_id"], _highest["chain_id"])]
+        _random.seed(42)
+        _rand = _random.choice(_remaining) if _remaining else all_pending[2]
+        pending_chains = [_longest, _highest, _rand]
+    else:
+        pending_chains = all_pending
+    log.info("  选中 %d 条链: %s", len(pending_chains), [c["chain_id"][:20] for c in pending_chains])
+
+    # 预加载方法体 + 派发审计
+    from memurai_client import Memurai as _Memurai
+    from load_method_body import load_chain as _load_chain
+    _memurai = _Memurai()
 
     for k, chain in enumerate(pending_chains):
         chain_id = chain["chain_id"]
         endpoint = chain["endpoint_fqn"]
         node_path = chain["node_path"]
-        log.info("  [analyze %d] chain_id=%s endpoint=%s", k + 1, chain_id, endpoint)
+        node_count = chain.get("node_count", 1)
+        log.info("  [analyze %d] chain_id=%s endpoint=%s nodes=%d", k + 1, chain_id, endpoint[:50], node_count)
 
-        # 模拟 Phase 3: 从 node_path 解析 node_id，从 Memurai 加载方法体
-        node_ids = [p.strip() for p in node_path.split("->")]
-        log.info("    节点数: %d", len(node_ids))
-        log.info("    node_path: %s", node_path[:100] + "..." if len(node_path) > 100 else node_path)
+        # 从 Memurai 加载方法体
+        try:
+            bodies = _load_chain(_memurai, gid, node_path, 0, 0)
+        except LookupError as e:
+            log.error("    方法体加载失败: %s", e)
+            db.update_status(chain_id, "safe")
+            continue
 
-        # 模拟 AI 分析结论
-        verdicts = ["vuln", "safe", "inconclusive"]
-        verdict = verdicts[k % len(verdicts)]
+        # 格式化方法体
+        lines = []
+        for b in bodies:
+            is_last = b["depth"] == len(bodies) - 1
+            tag = "  # last method" if is_last else ""
+            lines.append(f"--- depth={b['depth']}: {b['fqn']} ---{tag}")
+            lines.append(b["body"])
+            lines.append("")
+        formatted = "\n".join(lines)
+
+        # 派发 task 审计
+        task_result = task(
+            category="deep",
+            description=f"Phase3 audit {chain_id}",
+            prompt=f"""## TASK: 注入类漏洞审计
+
+你是注入类漏洞审计专家。专注：用户输入流入危险 sink（SQL/CMD/XXE/表达式/SSRF/反序列化）。
+
+### 方法体（已预加载，共 {node_count} 层）
+
+{formatted}
+
+### 审计规则
+1. 审计聚焦 = 最后一个方法体（标注了 # last method）
+2. 结合整条调用链上下文分析污点传播
+3. 只发现漏洞，不写修复建议
+
+### 输出格式
+```json
+{{"verdict": "vuln"|"safe"|"inconclusive", "analysis": "...", "vulnerabilities": []}}
+```
+
+### MUST NOT DO
+- 不写修复建议
+- 不使用 emoji""",
+        )
+
+        # 解析结果
+        import re as _re
+        _json_match = _re.search(r'\{[^{}]*"verdict"[^{}]*\}', task_result, _re.DOTALL)
+        if _json_match:
+            result_data = json.loads(_json_match.group())
+        else:
+            result_data = {"verdict": "inconclusive", "analysis": task_result[:200], "vulnerabilities": []}
+
+        verdict = result_data.get("verdict", "inconclusive")
         log.info("    结论: %s", verdict)
 
-        # 更新链状态
-        db.update_status(chain_id, "analyzed")
-        log.info("    状态更新: pending → analyzed")
+        # 写 agent_results
+        agent_result = {"injection": result_data}
+        db.update_agent_result(chain_id, "injection", result_data)
+        status = "safe" if verdict == "safe" else "vuln" if verdict == "vuln" else "analyzed"
+        db.update_status(chain_id, status)
+        log.info("    状态: pending → %s", status)
 
     # Phase 3 统计
     after_stats = db.stats()
@@ -246,40 +311,72 @@ def main():
     log.info("  链状态: %s", json.dumps(after_stats["by_status"], ensure_ascii=False))
 
     # ============================================================
-    # Phase 4: PoC 验证 + 收敛
+    # Phase 4: 动态利用（HTTP PoC 对运行中的 WebGoat 发请求）
     # ============================================================
     log.info("")
-    log.info(">>> Phase 4: PoC 验证 (模拟) + 收敛判定")
+    log.info(">>> Phase 4: 动态利用 (HTTP PoC)")
     t0 = time.time()
 
-    # 模拟 PoC 验证
-    analyzed_chains = db.batch_by_priority(limit=3, status="analyzed")
-    log.info("  待验证链: %d 条", len(analyzed_chains))
+    # 登录 WebGoat 获取 session
+    import subprocess as _subprocess
+    import urllib.parse as _urlparse
+    app_base = preset.get("appBaseUrl", "http://localhost:8080")
+    login_url = preset.get("loginUrl", f"{app_base}/login")
+    test_user = preset.get("testUser", "guest")
+    test_pass = preset.get("testPass", "guest")
 
+    # curl 登录
+    _login_cmd = ["curl", "-s", "-D", "-", "-X", "POST", login_url,
+                  "-d", f"username={test_user}&password={test_pass}"]
+    _login_out = _subprocess.run(_login_cmd, capture_output=True, text=True, timeout=10)
+    _cookie = ""
+    for line in _login_out.stdout.split("\n"):
+        if "Set-Cookie:" in line:
+            _cookie = line.split("Set-Cookie: ")[1].split(";")[0]
+            break
+    log.info("  登录: %s, cookie=%s", login_url, _cookie[:40] + "..." if _cookie else "FAILED")
+
+    # 对 Phase 3 审计过的链发 HTTP 请求
+    audited_chains = pending_chains  # Phase 3 选中并审计的 3 条链
     poc_results = []
-    for k, chain in enumerate(analyzed_chains):
+    for k, chain in enumerate(audited_chains):
         chain_id = chain["chain_id"]
         endpoint = chain["endpoint_fqn"]
-        sinks = chain["total_sinks"]
+        status = chain.get("status", "pending")
+        poc_status = "not_applicable"
 
-        # 模拟 PoC 结果三态
-        if sinks > 0:
-            poc_status = "confirmed" if k == 0 else "inconclusive"
+        # 从 route.json 找对应的 HTTP path
+        _route_match = None
+        for rt in routes:
+            if rt.get("fqn") == endpoint:
+                _route_match = rt
+                break
+
+        if _route_match and _cookie:
+            _path = _route_match.get("path", "")
+            _method = _route_match.get("http_method", "GET")
+            if _path:
+                _url = f"{app_base}{_path}"
+                _cmd = ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
+                        "-X", _method, _url, "-H", f"Cookie: {_cookie}"]
+                if _method == "POST":
+                    _cmd += ["-d", "token=test&secretKey=test&userid_6b=test"]
+                try:
+                    _resp = _subprocess.run(_cmd, capture_output=True, text=True, timeout=10)
+                    http_code = _resp.stdout.strip()
+                    poc_status = f"http_{http_code}"
+                    log.info("  [poc %d] %s %s → %s", k + 1, _method, _url[:60], http_code)
+                except Exception as e:
+                    poc_status = f"error: {e}"
+                    log.info("  [poc %d] ERROR: %s", k + 1, e)
         else:
-            poc_status = "denied"
+            log.info("  [poc %d] %s → 跳过 (无路由或无cookie)", k + 1, endpoint[:40])
 
         poc_results.append({
             "chain_id": chain_id,
             "endpoint": endpoint,
-            "sinks": sinks,
             "poc_status": poc_status,
         })
-
-        # 更新链最终状态
-        final_status = "vuln" if poc_status == "confirmed" else "safe" if poc_status == "denied" else "pending"
-        db.update_status(chain_id, final_status)
-        log.info("  [poc %d] chain_id=%s sinks=%d → %s → status=%s",
-                 k + 1, chain_id, sinks, poc_status, final_status)
 
     # 收敛判定 (4-AND)
     final_stats = db.stats()

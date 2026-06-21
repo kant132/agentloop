@@ -1,0 +1,11 @@
+{
+  "extraPaths": [
+    "scripts/redis",
+    "scripts/chain",
+    "scripts/ast",
+    "scripts/audit",
+    "scripts/exposure"
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingImports": false
+}

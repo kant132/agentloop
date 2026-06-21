@@ -4,9 +4,12 @@ Startup guard: verify codegraph, ast-grep, memurai are available before daemon s
 
 Per requirement #17 from 原子需求拆解.md:
 "三个核心工具（codegraph/memurai/ast-grep）任一不可用则退出，不降级"
+
+Phase 0 还包括：把项目 skills 目录链接到 opencode 的 user skills 目录。
 """
 
 import argparse
+import os
 import re
 import shutil
 import subprocess
@@ -16,6 +19,11 @@ from typing import Dict
 
 MEMURAI_PATH = Path(r"C:\Program Files\Memurai\memurai-cli.exe")
 TIMEOUT_SECS = 5
+
+# 项目 skills 目录（agentloop/skills/）
+_PROJECT_SKILLS_DIR = Path(__file__).resolve().parent.parent.parent / "skills"
+# opencode user skills 目录
+_USER_SKILLS_DIR = Path(os.path.expanduser("~")) / ".agents" / "skills"
 
 _INSTALL_HINTS: Dict[str, str] = {
     "codegraph": "npm install -g @colbymchenry/codegraph",
