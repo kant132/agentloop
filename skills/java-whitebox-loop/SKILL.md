@@ -25,14 +25,20 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 
 主 agent 从 chains.db 批量取链，按以下规则分发：
 
-#### 分发规则
+#### 分发规则（加速版）
 
-| 专家 skill | 触发条件 | 审计范围 |
-|-----------|---------|---------|
-| `injection-audit` | chain 有 sink（total_sinks > 0），sink 不涉及文件路径 | **所有**有 sink 的链 |
-| `file-audit` | chain 的 sink 涉及文件路径（path_traversal/file_upload） | 所有涉及文件路径的链 |
-| `auth-chain-audit` | 每个 endpoint 调 1 次 | **前 5 层**（depth < 5），**1 条链** |
-| `business-logic-audit` | 每个 endpoint 调 1 次 | **前 5 层**（depth < 5），**1 条链** |
+| 专家 skill | 触发条件 | 审计范围 | 方法体加载策略 |
+|-----------|---------|---------|-------------|
+| `injection-audit` | chain 有 sink，sink 不涉及文件路径 | 每个 endpoint 只判断 1 条链 | 前4层+后2层（<6层全部） |
+| `file-audit` | chain 的 sink 涉及文件路径 | 每个 endpoint 只判断 1 条链 | 前4层+后2层（<6层全部） |
+| `auth-chain-audit` | 前 25% 端点 | 每 endpoint 1 条链，前 5 层 | 前 5 层 |
+| `business-logic-audit` | 前 25% 端点 | 每 endpoint 1 条链，前 5 层 | 前 5 层 |
+
+**加速策略**：
+- 注入类/文件类：每个 endpoint 只判断 1 条链（按优先级最高），不再审计所有有 sink 的链
+- 认证鉴权/业务逻辑：只校验前 25% 端点（按优先级排序后取前 1/4）
+- 方法体加载：注入类/文件类用前4层+后2层（<6层全部），认证鉴权/业务逻辑用前5层
+- 所有 agent 禁止直接读源文件，只通过 `load_method_body.py` 加载缓存
 
 #### 判断逻辑
 
@@ -40,9 +46,9 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 1. chain 的 `total_sinks > 0` → 有 sink
 2. chain 的 sink 涉及文件路径 → subagent 加载 `file-audit` skill
 3. chain 的 sink 不涉及文件路径 → subagent 加载 `injection-audit` skill
-4. 每个 endpoint 只调 1 次 `auth-chain-audit`（取优先级最高的链，前 5 层）
-5. 每个 endpoint 只调 1 次 `business-logic-audit`（取优先级最高的链，前 5 层）
-6. chain 无 sink → 不调注入类 agent，只走认证鉴权 + 业务逻辑
+4. 注入类/文件类：每个 endpoint 只取优先级最高的 1 条链（不再所有链都审）
+5. 认证鉴权/业务逻辑：按优先级排序端点，只取前 25% 端点，每 endpoint 1 条链
+6. chain 无 sink → 不调注入类 agent，只走认证鉴权 + 业务逻辑（前25%端点）
 
 #### 方法体加载
 
@@ -62,13 +68,13 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 子 agent 加载方法体工具：
 
 ```powershell
-# 加载一条链的前 5 层方法体（认证鉴权 / 业务逻辑用）
-python scripts/chain/load_method_body.py --group-id {groupId} --node-path "method:id1 -> method:id2 -> ..." --max-depth 5
+# 注入类/文件类：前4层+后2层（链 <6 层时全部加载）
+python scripts/chain/load_method_body.py --group-id {groupId} --node-path "..." --max-depth 4 --tail-depth 2
 
-# 加载一条链的所有方法体（注入类用）
-python scripts/chain/load_method_body.py --group-id {groupId} --node-path "method:id1 -> method:id2 -> ..."
+# 认证鉴权/业务逻辑：前 5 层
+python scripts/chain/load_method_body.py --group-id {groupId} --node-path "..." --max-depth 5
 
-# 加载单个方法体
+# 加载单个方法体（PoC agent 用）
 python scripts/chain/load_method_body.py --group-id {groupId} --node-id "method:abc123"
 ```
 
@@ -88,23 +94,28 @@ db = ChainDB("{loop_audit_dir}/chains.db")
 
 all_chains = db.batch_by_priority(limit=100, status="pending")
 
-# 1. 注入类 + 文件类：所有有 sink 的链
-sink_chains = [c for c in all_chains if c["total_sinks"] > 0]
-# 主 agent 判断 sink 是否涉及文件路径 → 决定加载 file-audit 还是 injection-audit skill
-
-# 2. 认证鉴权 + 业务逻辑：每个 endpoint 只取 1 条链，前 5 层
-endpoints_seen = set()
+# 1. 注入类/文件类：每个 endpoint 只取 1 条优先级最高的链
+sink_endpoints = {}
 for c in all_chains:
+    if c["total_sinks"] <= 0:
+        continue
     ep = c["endpoint_fqn"]
-    if ep not in endpoints_seen:
-        endpoints_seen.add(ep)
-        # task(auth-chain-audit, chain=c, max_depth=5)
-        # task(business-logic-audit, chain=c, max_depth=5)
+    if ep not in sink_endpoints:
+        sink_endpoints[ep] = c  # 取优先级最高的（batch 已按 priority DESC 排序）
+# 分发：涉及文件路径 → file-audit，其他 → injection-audit
 
-# 3. 无 sink 的链：跳过注入/文件类，只走认证鉴权 + 业务逻辑
+# 2. 认证鉴权/业务逻辑：只校验前 25% 端点
+all_endpoints = list(dict.fromkeys(c["endpoint_fqn"] for c in all_chains))  # 按优先级去重
+top_25pct = all_endpoints[:max(1, len(all_endpoints) // 4)]
+for ep in top_25pct:
+    # 取该 endpoint 优先级最高的 1 条链
+    # task(auth-chain-audit, chain=c, max_depth=5)
+    # task(business-logic-audit, chain=c, max_depth=5)
 
-# 4. 专家返回结论 → 写回 chains.db
+# 3. 专家返回结论 → 写回 chains.db
 # db.update_status(chain_id, "vuln")  # 或 "safe"
+
+# 4. 主 agent 生成静态报告（汇总所有专家结论）
 ```
 
 **上下文隔离**：
@@ -112,9 +123,60 @@ for c in all_chains:
 - 子 agent 上下文：独立，含方法体（通过 load_method_body.py 加载）
 - 子 agent 返回：结论文本（小，不污染主 agent）
 
-### Phase 4: PoC 验证
+### Phase 3.5: 主 agent 生成静态报告
 
-取 `status=vuln` 的链 → 生成 PoC → 验证 → 写回 chains.db
+主 agent 收集所有专家结论后，生成静态审计报告：
+
+```python
+# 汇总所有专家结论
+analyzed = db.batch_by_priority(limit=100, status="analyzed")
+vuln_chains = db.batch_by_priority(limit=100, status="vuln")
+
+# 生成静态报告 JSON
+report = {
+    "total_chains": db.total_chains(),
+    "analyzed": len(analyzed),
+    "vuln": len(vuln_chains),
+    "safe": len(db.batch_by_priority(limit=100, status="safe")),
+    "vulnerabilities": [
+        {
+            "chain_id": c["chain_id"],
+            "endpoint": c["endpoint_fqn"],
+            "sinks": c["total_sinks"],
+            "chain_path": c["chain_path"],
+        }
+        for c in vuln_chains
+    ],
+}
+# 写入 loop_audit/diag/static_report.json
+```
+
+### Phase 4: PoC 动态验证
+
+**静态报告生成后**，对 `status=vuln` 的链，使用 poc agent 进行动态漏洞验证。
+
+PoC agent 通过以下方式获取代码信息（禁止直接读源文件）：
+1. **Memurai 缓存**：`load_method_body.py` 加载方法体（含 `// #fqn` 注释）
+2. **codegraph SQLite**：查询方法的调用关系、参数类型、类继承关系
+3. **chains.db**：获取 chain_path 和 node_path
+
+```python
+vuln_chains = db.batch_by_priority(limit=100, status="vuln")
+for chain in vuln_chains:
+    # task(poc-verify, chain=chain)
+    # PoC agent:
+    #   1. load_method_body.py 加载方法体 → 理解漏洞上下文
+    #   2. codegraph 查询 → 获取调用参数类型、类关系
+    #   3. 生成 PoC payload
+    #   4. 验证（curl / arthas / SSH）
+    #   5. 写回最终状态: confirmed / denied / inconclusive
+```
+
+**PoC agent 代码信息获取方式**：
+- 方法体：`python scripts/chain/load_method_body.py --group-id {gid} --node-id "method:xxx"`
+- 调用关系：`codegraph SQLite SELECT ... FROM edges WHERE source=?`
+- 参数类型：`codegraph SQLite SELECT ... FROM nodes WHERE id=?`
+- 文件缓存：`memurai GET {groupId}:config:{file}` / `{groupId}:filter:{file}`
 
 ## 必读 Rules
 

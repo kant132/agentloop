@@ -141,7 +141,7 @@ Audit terminates when ALL are true simultaneously:
 - **Do NOT create new project knowledge in shared `types/`** without dedup check (similarity > 0.7 → reuse).
 - **Do NOT modify tool flow/scripts except via a dedicated tool sub-agent** — only the Boss agent authorizes modifications, and they must not overfit to one project.
 
-## Agent Architecture (Two-Layer, Skill-Based)
+## Agent Architecture (Two-Layer, Skill-Based, Accelerated)
 
 ```
 主 agent (Boss) — 调度中心，加载 java-whitebox-loop skill
@@ -154,30 +154,38 @@ Audit terminates when ALL are true simultaneously:
   ├── 专家 agent: Phase 3（通过 task() 委派，subagent 加载对应 skill）
   │     主 agent 从 chains.db 取链，按链特征分发：
   │
-  │     ┌─────────────────────────────────────────────────────────┐
-  │     │ chain 有 sink?                                          │
-  │     │   ├── 涉及文件路径 → file-audit skill (所有有 sink 链)  │
-  │     │   └── 不涉及文件路径 → injection-audit skill (所有有 sink 链) │
-  │     │ chain 无 sink → 不调注入/文件类                          │
-  │     │                                                         │
-  │     │ 每个 endpoint:                                          │
-  │     │   ├── auth-chain-audit (前 5 层, 1 条链)                │
-  │     │   └── business-logic-audit (前 5 层, 1 条链)            │
-  │     └─────────────────────────────────────────────────────────┘
+  │     ┌──────────────────────────────────────────────────────────────────┐
+  │     │ 注入类/文件类（chain 有 sink）:                                    │
+  │     │   每个 endpoint 只取 1 条优先级最高的链（不再所有链都审）              │
+  │     │   涉及文件路径 → file-audit skill                                │
+  │     │   不涉及文件路径 → injection-audit skill                           │
+  │     │   方法体加载: 前4层+后2层（<6层全部）                               │
+  │     │                                                                  │
+  │     │ 认证鉴权/业务逻辑（所有 chain）:                                   │
+  │     │   只校验前 25% 端点（按优先级排序后取前 1/4）                       │
+  │     │   每 endpoint 1 条链，前 5 层                                     │
+  │     │                                                                  │
+  │     │ chain 无 sink → 不调注入/文件类                                    │
+  │     └──────────────────────────────────────────────────────────────────┘
   │
-  └── 验证 agent: Phase 4（PoC）
-        取 status=vuln 的链 → 生成 PoC → 验证 → 写回 chains.db status
+  ├── Phase 3.5: 主 agent 生成静态报告
+  │     汇总所有专家结论 → diag/static_report.json
+  │
+  └── 验证 agent: Phase 4（PoC 动态验证）
+        取 status=vuln 的链 → PoC agent 验证 → 写回 chains.db
+        PoC agent 通过 Memurai 缓存 + codegraph 获取代码信息（禁止直接读源文件）
 ```
+
+**加速策略**：
+- 注入类/文件类：每 endpoint 只审 1 条链（优先级最高），不再所有链都审
+- 认证鉴权/业务逻辑：只校验前 25% 端点
+- 方法体加载：注入类/文件类前4层+后2层，认证鉴权/业务逻辑前5层
+- **所有 agent 禁止直接读源文件**，只通过 `load_method_body.py` 加载缓存
+- PoC agent 通过 Memurai 缓存 + codegraph SQLite 获取代码信息
 
 **关键设计**：
 - **skill 机制**，不是 prompt 机制 — 主 agent 根据需要加载 skill，subagent 加载对应专家 skill
-- **上下文隔离** — 主 agent 只读链元数据（chain_path/node_path/priority/sinks），不加载方法体；子 agent 通过 task() 独立上下文，自己用 `load_method_body.py` 加载方法体
-- **主 agent 不污染** — 只持有链元数据（轻量），方法体只在子 agent 上下文中
-- 不启动独立 opencode 子进程 — 主 agent 直接消费 chains.db + Memurai 数据
-- 专家 agent 通过 task() 委派 — 主 agent 整理好链元数据后发放，子 agent 加载方法体分析
+- **上下文隔离** — 主 agent 只读链元数据（轻量），方法体只在子 agent 上下文中
+- **静态报告先行** — Phase 3 结束后生成静态报告，再对 vuln 链做动态验证
+- **PoC agent 代码信息来源**：Memurai 缓存（方法体）+ codegraph SQLite（调用关系、参数类型）
 - 专家返回结论后主 agent 写回 chains.db — status: pending → analyzed → vuln/safe
-- **注入类**：审计所有有 sink 的链，子 agent 加载 `injection-audit` skill
-- **文件类**：涉及文件路径的链，子 agent 加载 `file-audit` skill
-- **认证鉴权 + 业务逻辑**：每个 endpoint 只调 1 次，只审计前 5 层，只审计 1 条链
-- **无 sink 的链**：不调注入类 agent，只走认证鉴权 + 业务逻辑
-- **方法体加载工具**：`scripts/chain/load_method_body.py` — 子 agent 从 Memurai 按需加载

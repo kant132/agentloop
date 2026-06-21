@@ -5,15 +5,24 @@ load_method_body.py — 子 agent 方法体加载工具
 子 agent 用此脚本从 Memurai 加载调用链上指定节点的方法体。
 方法体已包含 `// #fqn` 注释（标注所有非 groupId 调用）。
 
+加载策略：
+  --max-depth N: 前 N 层
+  --tail-depth M: 后 M 层
+  --max-depth 4 --tail-depth 2: 前4层 + 后2层（链 ≥6 层时）
+  链 <6 层时全部加载
+
 用法:
-    # 加载单个方法体
-    python load_method_body.py --group-id org.owasp.webgoat --node-id "method:abc123"
+    # 加载前4层+后2层（注入类/文件类用）
+    python load_method_body.py --group-id {gid} --node-path "..." --max-depth 4 --tail-depth 2
 
-    # 加载一条链的前 5 层方法体
-    python load_method_body.py --group-id org.owasp.webgoat --node-path "method:abc -> method:def -> method:ghi" --max-depth 5
+    # 加载前5层（认证鉴权/业务逻辑用）
+    python load_method_body.py --group-id {gid} --node-path "..." --max-depth 5
 
-    # 加载一条链的所有方法体
-    python load_method_body.py --group-id org.owasp.webgoat --node-path "method:abc -> method:def"
+    # 加载全部
+    python load_method_body.py --group-id {gid} --node-path "..."
+
+    # 加载单个
+    python load_method_body.py --group-id {gid} --node-id "method:abc123"
 
 输出: JSON 数组，每个元素含 fqn, node_id, body, depth
 """
@@ -22,7 +31,6 @@ import json
 import sys
 from pathlib import Path
 
-# 路径设置
 _HERE = Path(__file__).resolve().parent
 _REPO_ROOT = _HERE.parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "scripts" / "redis"))
@@ -39,7 +47,6 @@ def load_single(memurai: Memurai, group_id: str, node_id: str) -> dict | None:
         return None
     try:
         data = json.loads(raw) if isinstance(raw, str) else raw
-        # INCR 计数（记录方法体被加载的次数）
         count_key = f"{key}:count"
         try:
             memurai._run(["INCR", count_key], check_error=False)
@@ -57,25 +64,51 @@ def load_single(memurai: Memurai, group_id: str, node_id: str) -> dict | None:
         return None
 
 
+def select_node_ids(
+    node_ids: list[str],
+    max_depth: int = 0,
+    tail_depth: int = 0,
+) -> list[tuple[int, str]]:
+    """按策略选择 node_id 子集，返回 (depth, node_id) 列表。
+
+    - max_depth > 0 and tail_depth > 0: 前 max_depth + 后 tail_depth（链 ≥ max_depth+tail_depth 时截断）
+    - 链 < max_depth+tail_depth 时全部加载
+    - max_depth > 0 and tail_depth == 0: 前 max_depth 层
+    - max_depth == 0 and tail_depth == 0: 全部
+    """
+    total = len(node_ids)
+    if max_depth == 0 and tail_depth == 0:
+        return list(enumerate(node_ids))
+
+    threshold = max_depth + tail_depth
+    if total <= threshold:
+        return list(enumerate(node_ids))
+
+    head = list(enumerate(node_ids[:max_depth]))
+    tail_start = total - tail_depth
+    tail = [(i, node_ids[i]) for i in range(tail_start, total)]
+    return head + tail
+
+
 def load_chain(
     memurai: Memurai,
     group_id: str,
     node_path: str,
     max_depth: int = 0,
+    tail_depth: int = 0,
 ) -> list[dict]:
     """加载一条链的方法体。
 
     Args:
         node_path: "method:id1 -> method:id2 -> method:id3"
-        max_depth: 最多加载前 N 层（0 = 全部）
+        max_depth: 前 N 层（0 = 不限）
+        tail_depth: 后 N 层（0 = 不限）
     """
     node_ids = [nid.strip() for nid in node_path.split("->") if nid.strip()]
-
-    if max_depth > 0:
-        node_ids = node_ids[:max_depth]
+    selected = select_node_ids(node_ids, max_depth, tail_depth)
 
     results = []
-    for depth, nid in enumerate(node_ids):
+    for depth, nid in selected:
         body_data = load_single(memurai, group_id, nid)
         if body_data:
             body_data["depth"] = depth
@@ -89,7 +122,8 @@ def main():
     parser.add_argument("--group-id", required=True, help="项目 groupId")
     parser.add_argument("--node-id", help="单个 node_id")
     parser.add_argument("--node-path", help="node_path (method:id1 -> method:id2 -> ...)")
-    parser.add_argument("--max-depth", type=int, default=0, help="最多加载前 N 层（0=全部）")
+    parser.add_argument("--max-depth", type=int, default=0, help="前 N 层（0=全部）")
+    parser.add_argument("--tail-depth", type=int, default=0, help="后 N 层（0=不限，与 --max-depth 配合使用）")
     args = parser.parse_args()
 
     memurai = Memurai()
@@ -101,7 +135,7 @@ def main():
         else:
             print("null")
     elif args.node_path:
-        results = load_chain(memurai, args.group_id, args.node_path, args.max_depth)
+        results = load_chain(memurai, args.group_id, args.node_path, args.max_depth, args.tail_depth)
         print(json.dumps(results, ensure_ascii=False, indent=2))
     else:
         print("ERROR: 需要 --node-id 或 --node-path", file=sys.stderr)
