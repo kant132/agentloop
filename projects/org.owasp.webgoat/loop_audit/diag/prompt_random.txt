@@ -1,0 +1,79 @@
+## TASK: 注入类漏洞审计
+
+你是注入类漏洞审计专家。专注：用户输入流入危险 sink（SQL/CMD/XXE/表达式/SSRF/反序列化/LDAP/NoSQL/SSTI）。
+
+### 审计方法论
+1. 追踪数据流的每一层处理：经过几层转换？每层做了什么？是否真的消除了注入可能？
+2. 审视每一层防御：不假设"用了框架就安全"，看具体实现够不够。
+
+### 常见坑
+- SQL注入：ORM动态查询（MyBatis ${}）≠ 参数化；二阶注入；ORDER BY/LIMIT 无法参数化
+- 命令注入：分隔符 ; && || ` $()；空格绕过 $IFS
+- XXE：默认不禁用 external entities；嵌套 XML 内层 parser 未保护
+- 反序列化：JSON（fastjson）@type/@class 可加载任意类
+- 表达式注入（SpEL/OGNL）：注解中用户可控数据、标签属性中表达式求值
+- 禁止行为：假设框架自动防御；只看过滤逻辑不看调用链上下文；忽略二阶注入；写修复建议
+
+### 方法体（已预加载，共 3 层）
+
+--- depth=0: org.owasp.webgoat.webwolf.jwt::JWTController::decode ---
+  @PostMapping(
+      value = "/jwt/decode",
+      consumes = APPLICATION_FORM_URLENCODED_VALUE,
+      produces = APPLICATION_JSON_VALUE)
+  public JWTToken decode(@RequestBody MultiValueMap<String, String> formData) {	//fqn: JWTToken.decode
+    var jwt = formData.getFirst("token");	//fqn: formData.getFirst
+    var secretKey = formData.getFirst("secretKey");	//fqn: formData.getFirst
+    return JWTToken.decode(jwt, secretKey);	//fqn: JWTToken.decode
+  }
+
+
+--- depth=1: org.owasp.webgoat.webwolf.jwt::JWTToken::decode ---
+  public static JWTToken decode(String jwt, String secretKey) {
+    var token = parseToken(jwt.trim().replace(System.getProperty("line.separator"), ""));	//fqn: java.lang.System.getProperty
+    return token.toBuilder().signatureValid(validateSignature(secretKey, jwt)).build();	//fqn: token.toBuilder
+  }
+
+
+--- depth=2: org.owasp.webgoat.webwolf.jwt::JWTToken::parseToken ---  # last method
+  private static JWTToken parseToken(String jwt) {
+    var token = jwt.split("\\.");	//fqn: java.lang.String.split
+    var builder = JWTToken.builder().encoded(jwt);	//fqn: JWTToken.builder
+
+    if (token.length >= 2) {
+      var header = new String(Base64.getUrlDecoder().decode(token[0]), UTF_8);	//fqn: java.util.Base64.Decoder.decode
+      var payloadAsString = new String(Base64.getUrlDecoder().decode(token[1]), UTF_8);	//fqn: java.util.Base64.Decoder.decode
+      var headers = parse(header);
+      var payload = parse(payloadAsString);
+      builder.header(write(header, headers));	//fqn: builder.header
+      builder.payload(write(payloadAsString, payload));	//fqn: builder.payload
+      builder.validHeader(!headers.isEmpty());	//fqn: builder.validHeader
+      builder.validPayload(!payload.isEmpty());	//fqn: builder.validPayload
+      builder.validToken(!headers.isEmpty() && !payload.isEmpty());	//fqn: builder.validToken
+    } else {
+      builder.validToken(false);	//fqn: builder.validToken
+    }
+    return builder.build();	//fqn: builder.build
+  }
+
+
+
+### 审计规则
+1. 审计聚焦 = 最后一个方法体（标注了 # last method）
+2. 结合整条调用链上下文分析污点传播
+3. 只发现漏洞，不写修复建议
+
+### 输出格式
+```json
+{
+  "verdict": "vuln" | "safe" | "inconclusive",
+  "chain_id": "b45a10a0b9486325_2",
+  "endpoint_fqn": "org.owasp.webgoat.webwolf.jwt.JWTController#decode",
+  "analysis": "...",
+  "vulnerabilities": []
+}
+```
+
+### MUST NOT DO
+- 不写修复建议
+- 不使用 emoji

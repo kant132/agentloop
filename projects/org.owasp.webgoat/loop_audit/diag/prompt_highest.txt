@@ -1,0 +1,88 @@
+## TASK: 注入类漏洞审计
+
+你是注入类漏洞审计专家。专注：用户输入流入危险 sink（SQL/CMD/XXE/表达式/SSRF/反序列化/LDAP/NoSQL/SSTI）。
+
+### 审计方法论
+1. 追踪数据流的每一层处理：经过几层转换？每层做了什么？是否真的消除了注入可能？
+2. 审视每一层防御：不假设"用了框架就安全"，看具体实现够不够。
+
+### 常见坑
+- SQL注入：ORM动态查询（MyBatis ${}）≠ 参数化；二阶注入；ORDER BY/LIMIT 无法参数化
+- 命令注入：分隔符 ; && || ` $()；空格绕过 $IFS
+- XXE：默认不禁用 external entities；嵌套 XML 内层 parser 未保护
+- 反序列化：JSON（fastjson）@type/@class 可加载任意类
+- 表达式注入（SpEL/OGNL）：注解中用户可控数据、标签属性中表达式求值
+- 禁止行为：假设框架自动防御；只看过滤逻辑不看调用链上下文；忽略二阶注入；写修复建议
+
+### 方法体（已预加载，共 2 层）
+
+--- depth=0: org.owasp.webgoat.webwolf.jwt::JWTController::encode ---
+  @PostMapping(
+      value = "/jwt/encode",
+      consumes = APPLICATION_FORM_URLENCODED_VALUE,
+      produces = APPLICATION_JSON_VALUE)
+  public JWTToken encode(@RequestBody MultiValueMap<String, String> formData) {	//fqn: JWTToken.encode
+    var header = formData.getFirst("header");	//fqn: formData.getFirst
+    var payload = formData.getFirst("payload");	//fqn: formData.getFirst
+    var secretKey = formData.getFirst("secretKey");	//fqn: formData.getFirst
+    return JWTToken.encode(header, payload, secretKey);	//fqn: JWTToken.encode
+  }
+
+
+--- depth=1: org.owasp.webgoat.webwolf.jwt::JWTToken::encode ---  # last method
+  public static JWTToken encode(String header, String payloadAsString, String secretKey) {
+    var headers = parse(header);
+    var payload = parse(payloadAsString);
+
+    var builder =
+        JWTToken.builder()	//fqn: JWTToken.builder
+            .header(write(header, headers))
+            .payload(write(payloadAsString, payload))
+            .validHeader(!hasText(header) || !headers.isEmpty())	//fqn: java.util.Map.isEmpty
+            .validToken(true)
+            .validPayload(!hasText(payloadAsString) || !payload.isEmpty());	//fqn: java.util.Map.isEmpty
+
+    JsonWebSignature jws = new JsonWebSignature();
+    jws.setPayload(payloadAsString);	//fqn: jws.setPayload
+    headers.forEach((k, v) -> jws.setHeader(k, v));	//fqn: java.util.Map.forEach
+    if (!headers.isEmpty()) { // otherwise e30 meaning {} will be shown as header	//fqn: java.util.Map.isEmpty
+      builder.encoded(	//fqn: builder.encoded
+          CompactSerializer.serialize(	//fqn: CompactSerializer.serialize
+              new String[] {jws.getHeaders().getEncodedHeader(), jws.getEncodedPayload()}));	//fqn: jws.getHeaders
+    }
+
+    // Only sign when valid header and payload
+    if (!headers.isEmpty() && !payload.isEmpty() && hasText(secretKey)) {	//fqn: java.util.Map.isEmpty
+      jws.setDoKeyValidation(false);	//fqn: jws.setDoKeyValidation
+      jws.setKey(new HmacKey(secretKey.getBytes(UTF_8)));	//fqn: java.lang.String.getBytes
+      try {
+        builder.encoded(jws.getCompactSerialization());	//fqn: builder.encoded
+        builder.signatureValid(true);	//fqn: builder.signatureValid
+      } catch (JoseException e) {
+        // Do nothing
+      }
+    }
+    return builder.build();	//fqn: builder.build
+  }
+
+
+
+### 审计规则
+1. 审计聚焦 = 最后一个方法体（标注了 # last method）
+2. 结合整条调用链上下文分析污点传播
+3. 只发现漏洞，不写修复建议
+
+### 输出格式
+```json
+{
+  "verdict": "vuln" | "safe" | "inconclusive",
+  "chain_id": "c0c62d57c2703446_1",
+  "endpoint_fqn": "org.owasp.webgoat.webwolf.jwt.JWTController#encode",
+  "analysis": "...",
+  "vulnerabilities": []
+}
+```
+
+### MUST NOT DO
+- 不写修复建议
+- 不使用 emoji
