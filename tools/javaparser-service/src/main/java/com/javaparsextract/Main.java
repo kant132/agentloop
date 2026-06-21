@@ -352,12 +352,92 @@ public class Main {
             ResolvedMethodDeclaration resolved = call.resolve();
             return resolved.getQualifiedName() + "(" + argsStr + ")";
         } catch (RuntimeException e) {
-            // 降级：用调用点可见的名字
+            // 降级：尝试从 this.xxx 或 xxx 解析字段类型
             String scope = call.getScope().map(Object::toString).orElse("");
             String name = call.getNameAsString();
+
+            // this.field.method(args) → 找 field 的声明类型
+            if (scope.startsWith("this.")) {
+                String fieldName = scope.substring(5); // 去掉 "this."
+                String fieldType = resolveFieldType(call, fieldName);
+                if (fieldType != null) {
+                    return fieldType + "." + name + "(" + argsStr + ")";
+                }
+            }
+
+            // 降级：用调用点可见的名字
             String prefix = scope.isEmpty() ? name : scope + "." + name;
             return prefix + "(" + argsStr + ")";
         }
+    }
+
+    /**
+     * 从当前类中查找字段声明的类型名，并通过 import 解析为完整 FQN。
+     * 遍历 AST 找到包含 call 的类，在该类中查找 fieldName 的声明，
+     * 然后从 CompilationUnit 的 import 列表中解析短名为完整 FQN。
+     */
+    private static String resolveFieldType(MethodCallExpr call, String fieldName) {
+        // 向上遍历找到包含此调用的 ClassOrInterfaceDeclaration
+        com.github.javaparser.ast.body.ClassOrInterfaceDeclaration cls = null;
+        Node parent = call.getParentNode().orElse(null);
+        while (parent != null) {
+            if (parent instanceof com.github.javaparser.ast.body.ClassOrInterfaceDeclaration) {
+                cls = (com.github.javaparser.ast.body.ClassOrInterfaceDeclaration) parent;
+                break;
+            }
+            parent = parent.getParentNode().orElse(null);
+        }
+        if (cls == null) return null;
+
+        // 在类中查找同名字段
+        String shortTypeName = null;
+        for (com.github.javaparser.ast.body.FieldDeclaration fd : cls.getFields()) {
+            for (com.github.javaparser.ast.body.VariableDeclarator vd : fd.getVariables()) {
+                if (vd.getNameAsString().equals(fieldName)) {
+                    shortTypeName = vd.getType().asString();
+                    break;
+                }
+            }
+            if (shortTypeName != null) break;
+        }
+        if (shortTypeName == null) return null;
+
+        // 如果已经是完整 FQN（含 . 且不以小写开头），直接返回
+        if (shortTypeName.contains(".") && !shortTypeName.matches("^[a-z].*")) {
+            return shortTypeName;
+        }
+
+        // 从 CompilationUnit 的 import 列表解析短名
+        com.github.javaparser.ast.CompilationUnit cu = null;
+        Node p = call;
+        while (p != null) {
+            if (p instanceof com.github.javaparser.ast.CompilationUnit) {
+                cu = (com.github.javaparser.ast.CompilationUnit) p;
+                break;
+            }
+            p = p.getParentNode().orElse(null);
+        }
+        if (cu == null) return shortTypeName;
+
+        // 精确匹配 import：import xxx.yyy.User; → shortTypeName="User" → 返回 "xxx.yyy.User"
+        for (com.github.javaparser.ast.ImportDeclaration imp : cu.getImports()) {
+            String impFqn = imp.getNameAsString();
+            String impShort = impFqn.substring(impFqn.lastIndexOf('.') + 1);
+            if (impShort.equals(shortTypeName)) {
+                return impFqn;
+            }
+        }
+
+        // 通配符 import：import xxx.yyy.*; → 返回 "xxx.yyy.User"
+        for (com.github.javaparser.ast.ImportDeclaration imp : cu.getImports()) {
+            if (imp.isAsterisk()) {
+                String pkg = imp.getNameAsString();
+                return pkg + "." + shortTypeName;
+            }
+        }
+
+        // java.lang 自动导入
+        return shortTypeName;
     }
 
     /**

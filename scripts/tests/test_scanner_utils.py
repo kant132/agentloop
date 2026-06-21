@@ -61,8 +61,8 @@ def test_inject_sink_comment_no_match():
 
 
 def test_inject_sink_comment_with_match():
-    """行中包含外部调用且方法调用带括号,注入 #fqn 注释"""
-    line = '    client.get(url);'
+    """行中包含外部调用且方法调用带括号,在行尾追加 fqn 注释"""
+    line = '    client.get(url);\n'
     third_party_calls = ["com.example.MyClient#get"]
     fqn_sink_set = {"com.example.MyClient#get"}
     result = inject_sink_comment(line, third_party_calls, fqn_sink_set)
@@ -81,7 +81,7 @@ def test_inject_sink_comment_already_commented():
 
 def test_inject_sink_comment_multiple_sinks():
     """多个外部调用匹配到第一个时注入"""
-    line = '    resp = http.get(url);'
+    line = '    resp = http.get(url);\n'
     third_party_calls = ["com.http.HttpClient#get", "com.http.HttpClient#post"]
     fqn_sink_set = {"com.http.HttpClient#get", "com.http.HttpClient#post"}
     result = inject_sink_comment(line, third_party_calls, fqn_sink_set)

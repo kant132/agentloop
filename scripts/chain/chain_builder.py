@@ -564,10 +564,14 @@ def build_chain(
             all_dynamic_sinks.extend(dynamic_sinks)
             total_sinks += len(sinks)
             # 所有非 groupId 调用都标注（不只是 sink）
+            # 过滤掉 this./super. 开头的短名（JAR 无法解析类型时输出，不是 FQN）
             all_external_calls = [
                 c["called_fqn"] for c in method_calls
                 if not c["called_fqn"].startswith(group_id + ".")
                 and not c["called_fqn"].startswith(group_id + "#")
+                and not c["called_fqn"].startswith("this.")
+                and not c["called_fqn"].startswith("super.")
+                and "." in c["called_fqn"]
             ]
 
         # body 注入外部调用注释 (#fqn 格式, 不区分 sink 类型)
