@@ -43,7 +43,7 @@ GID = "{group_id}"
 all_chains = db.batch_by_priority(limit=999, status="pending")
 
 # 注入类/文件类：is_sink=1, priority>0, 按优先级排序
-sink_chains = db.top_sink_chains(status="pending", min_priority=1)
+sink_chains = db.top_sink_chains()
 
 # 认证鉴权/业务逻辑：前 25% 端点
 all_endpoints = list(dict.fromkeys(c["endpoint_fqn"] for c in all_chains))

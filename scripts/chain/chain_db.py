@@ -236,30 +236,12 @@ class ChainDB:
             )
             return [dict(row) for row in cur.fetchall()]
 
-    def top_sink_chains(
-        self,
-        status: str | None = "pending",
-        min_priority: int = 1,
-    ) -> list[dict[str, Any]]:
-        """取 is_sink=1 且 priority>=min_priority 的链，按优先级降序。
-
-        Args:
-            status: 链状态过滤（None = 不限）
-            min_priority: 最低优先级阈值（默认 >0）
-        """
-        conditions = ["is_sink = 1", "priority >= ?"]
-        params: list = [min_priority]
-        if status:
-            conditions.append("status = ?")
-            params.append(status)
-        where = "WHERE " + " AND ".join(conditions)
-
+    def top_sink_chains(self) -> list[dict[str, Any]]:
+        """is_sink=1, priority>0, status=pending, 按优先级降序。"""
         with self._conn() as conn:
-            cur = conn.execute(
-                f"SELECT * FROM chains {where} ORDER BY priority DESC",
-                params,
-            )
-            return [dict(row) for row in cur.fetchall()]
+            return [dict(row) for row in conn.execute(
+                "SELECT * FROM chains WHERE is_sink=1 AND priority>0 AND status='pending' ORDER BY priority DESC"
+            ).fetchall()]
 
     def get_chain(self, chain_id: str) -> dict[str, Any] | None:
         """按 chain_id 取单条。"""
