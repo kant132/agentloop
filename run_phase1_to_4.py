@@ -80,7 +80,7 @@ def main():
     # Phase 0: 项目类型检测 + JADX 反编译 + jar-analyzer 构建
     # ============================================================
     log.info("")
-    log.info(">>> Phase 0: 项目类型检测 + jar-analyzer 构建")
+    log.info(">>> Phase 0: 项目类型检测 + jar-analyzer 构建 + skills 软连接")
     t0 = time.time()
 
     import shutil as _shutil
@@ -89,6 +89,15 @@ def main():
     # 读取 preset 新字段
     jar_analyzer_db = args.jar_analyzer_db or preset.get("jarAnalyzerDb", str(loop_dir / "jar-analyzer.db"))
     target_jar_path = preset.get("targetJarPath", "")
+
+    # skills 软连接同步：项目 skills/ → ~/.agents/skills/
+    log.info("  skills 软连接同步...")
+    try:
+        sys.path.insert(0, str(REPO_ROOT / "scripts"))
+        from sync_project_skills import sync_skills
+        sync_skills(dry_run=False)
+    except Exception as e:
+        log.warning("  skills 软连接同步失败: %s", e)
 
     # 检测项目类型
     src_main_java = proj / "src" / "main" / "java"
