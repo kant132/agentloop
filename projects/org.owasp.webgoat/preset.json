@@ -1,0 +1,27 @@
+{
+  "groupId": "org.owasp.webgoat",
+  "projectName": "WebGoat-2025.3",
+  "projectRoot": "D:\\code\\WebGoat-2025.3",
+  "jarAnalyzerDb": "D:\\agentloop\\projects\\org.owasp.webgoat\\loop_audit\\jar-analyzer.db",
+  "targetJarPath": "D:\\code\\WebGoat-2025.3\\target\\webgoat-2025.3.jar",
+  "loopDir": "D:\\agentloop\\projects\\org.owasp.webgoat\\loop_audit",
+  "epJsonl": "D:\\agentloop\\projects\\org.owasp.webgoat\\external_endpoints\\端点.jsonl",
+  "dockerContainer": "",
+  "appPort": 18080,
+  "appCtxPath": "/WebGoat",
+  "appBaseUrl": "http://localhost:18080",
+  "loginUrl": "http://localhost:18080/WebGoat/login",
+  "registerUrl": "http://localhost:18080/WebGoat/registration",
+  "sessionCookieName": "JSESSIONID",
+  "testUser": "guest",
+  "testPass": "guest",
+  "adminPassword": "NWRhYzZjZDktZDFhZC00ZjUxLTk5YjMtMDhkZTFjNmRhYWEw",
+  "exposurePipeline": true,
+  "knowledgeIndex": {
+    "annotationsDoc": "01-自定义注解清单.md",
+    "frameworkConfigDoc": "02-特殊框架配置.md",
+    "businessExceptionsDoc": "03-业务规则特例.md",
+    "falsePositivesDoc": "04-已知误报模式.md",
+    "keyClassesDoc": "05-关键类索引.md"
+  }
+}

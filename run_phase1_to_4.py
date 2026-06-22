@@ -51,7 +51,6 @@ def main():
     loop_dir.mkdir(parents=True, exist_ok=True)
     exposure_dir = loop_dir / "exposure"
     exposure_dir.mkdir(parents=True, exist_ok=True)
-    db_path = Path(preset["codegraphDb"]) if preset.get("codegraphDb") else None
     jar_analyzer_db = args.jar_analyzer_db or preset.get("jarAnalyzerDb", str(loop_dir / "jar-analyzer.db"))
 
     log.info("=" * 60)
@@ -59,7 +58,6 @@ def main():
     log.info("项目: %s", proj)
     log.info("groupId: %s", gid)
     log.info("jar-analyzer: %s", jar_analyzer_db)
-    log.info("codegraph: %s (Phase 4 PoC only)" % (db_path or "N/A"))
     log.info("loop_dir: %s", loop_dir)
     log.info("limit: %d chains", args.limit)
     log.info("=" * 60)
@@ -114,11 +112,12 @@ def main():
         project_type = "jar-only"
         log.info("  项目类型: jar-only (无源码，需要 JADX 反编译)")
 
-    # JAR-only 项目：JADX 反编译 + codegraph 索引
+    # JAR-only 项目：JADX 反编译（jar-analyzer 直接分析 JAR，不需要 codegraph）
     if project_type == "jar-only":
         jadx_bin = _shutil.which("jadx")
         if not jadx_bin:
-            log.warning("  jadx 未安装，跳过反编译（codegraph-only 模式）")
+            log.error("  jadx 未安装，jar-only 项目无法反编译")
+            sys.exit(2)
         else:
             # 确定 target JAR 路径
             if target_jar_path:
@@ -146,22 +145,6 @@ def main():
                                     (_jadx_result.stderr or "")[:200])
                     else:
                         log.info("  JADX 反编译完成")
-                        # codegraph init + index 反编译后的源码
-                        _cg_init = _sp.run(
-                            ["codegraph", "init", str(sources_dir)],
-                            capture_output=True, text=True, timeout=300,
-                        )
-                        if _cg_init.returncode != 0:
-                            log.warning("  codegraph init 失败: %s",
-                                        (_cg_init.stderr or "")[:200])
-                        _cg_index = _sp.run(
-                            ["codegraph", "index"],
-                            capture_output=True, text=True, timeout=300,
-                            cwd=str(sources_dir),
-                        )
-                        if _cg_index.returncode != 0:
-                            log.warning("  codegraph index 失败: %s",
-                                        (_cg_index.stderr or "")[:200])
                 except _sp.TimeoutExpired:
                     log.warning("  JADX 反编译超时（300s），跳过")
                 except Exception as e:
@@ -221,7 +204,7 @@ def main():
         project_root=proj,
         group_id=gid,
         loop_audit_dir=loop_dir,
-        codegraph_db=db_path,
+        jar_analyzer_db=Path(jar_analyzer_db) if jar_analyzer_db else None,
     )
 
     phase1_summary = {}
@@ -274,7 +257,7 @@ def main():
     t0 = time.time()
 
     from chain_db import ChainDB
-    from chain_builder import build_all_chains_for_endpoint
+    from chain_builder import build_all_chains_for_endpoint_jar_analyzer
 
     # 清空旧链
     chains_db = loop_dir / "chains.db"
@@ -308,16 +291,20 @@ def main():
 
         t1 = time.time()
         try:
-            paths = build_all_chains_for_endpoint(
+            ja_db = Path(jar_analyzer_db) if jar_analyzer_db else None
+            if not ja_db or not ja_db.is_file():
+                log.error("  jar-analyzer.db 不存在: %s，无法构建调用链", ja_db)
+                sys.exit(2)
+            paths = build_all_chains_for_endpoint_jar_analyzer(
                 entry_fqn=fqn,
                 group_id=gid,
                 project_root=proj,
-                db_path=db_path,
+                jar_analyzer_db_path=ja_db,
                 max_depth=20,
                 loop_audit_dir=loop_dir,
                 memurai_client=memurai,
                 ttl=864000,
-                jar_analyzer_db_path=Path(jar_analyzer_db) if jar_analyzer_db else None,
+                jar_path=Path(target_jar_path) if target_jar_path else None,
             )
             elapsed = time.time() - t1
             total_nodes = sum(p.get("total_nodes", 0) for p in paths)
@@ -327,7 +314,7 @@ def main():
             if paths:
                 built_count += 1
         except LookupError as e:
-            log.info("  [skip] %s: codegraph 中找不到", endpoint_label)
+            log.info("  [skip] %s: jar-analyzer 中找不到", endpoint_label)
         except Exception as e:
             log.error("  [chain] %s: %s", endpoint_label, e)
 
@@ -357,7 +344,7 @@ def main():
         log.info("    [%d] %s (priority=%d, sinks=%d)", i + 1, chain["endpoint_fqn"][:50], chain["priority"], chain["total_sinks"])
 
     # ============================================================
-    # Phase 2.5: 链边验证（codegraph 误匹配检测）
+    # Phase 2.5: 链边验证（jar-analyzer 批量验证）
     # ============================================================
     log.info("")
     log.info(">>> Phase 2.5: 链边验证")

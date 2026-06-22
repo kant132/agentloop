@@ -1030,18 +1030,20 @@ def build_all_chains_for_endpoint(
     # 检查入口方法是否有参数
     entry_has_params = True
     if used_jar_analyzer_all:
-        # jar-analyzer 没有 signature, 按 qualified_name 查 codegraph
-        with _open_db(db_path) as conn:
+        # jar-analyzer: 用 method_desc (JVM 描述符) 判断参数
+        # method_desc 格式: ()L... = 无参数, (Ljava/lang/String;)L... = 有参数
+        with sqlite3.connect(str(jar_analyzer_db_path)) as conn:
+            conn.row_factory = sqlite3.Row
             row = conn.execute(
-                "SELECT id, signature FROM nodes WHERE qualified_name = ? LIMIT 1",
-                (entry_fqn,),
+                "SELECT method_desc FROM method_table WHERE CAST(method_id AS TEXT) = ? LIMIT 1",
+                (entry_id,),
             ).fetchone()
         if row:
-            sig = row["signature"] or ""
-            entry_has_params = (
-                "()" not in sig
-                or len(sig) > sig.find(")") + 1 > sig.find("(") + 1
-            )
+            desc = row["method_desc"] or ""
+            # JVM 描述符: () 开头 = 无参数
+            entry_has_params = not desc.startswith("()")
+        else:
+            _log("entry_id %s 在 jar-analyzer method_table 中找不到, 默认 has_params=True", entry_id)
     else:
         with _open_db(db_path) as conn:
             row = conn.execute(

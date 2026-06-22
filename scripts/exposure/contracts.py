@@ -26,14 +26,14 @@ class ExposureContext:
         project_root: 被审计 Java 项目根目录
         group_id:     项目 groupId（如 org.owasp.webgoat）
         loop_audit_dir: 产出目录（preset.loopDir + project_root）
-        codegraph_db: codegraph SQLite 路径（可空）
+        jar_analyzer_db: jar-analyzer SQLite 路径（必选，Phase 1-3 核心工具）
         ssh_target:   SSH 目标（host:port），可空表示离线模式
         commit_hash:  当前 commit，用于缓存 key 隔离
     """
     project_root: Path
     group_id: str
     loop_audit_dir: Path
-    codegraph_db: Path | None = None
+    jar_analyzer_db: Path | None = None
     ssh_target: str | None = None
     commit_hash: str = ""
 

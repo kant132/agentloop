@@ -7,7 +7,7 @@
 1. FileLocator 用 ast-grep 快速定位含路由注解的 .java 文件（不做参数解析）
 2. JavaparserScanner.scan_directory 调用 java -jar javaparser.jar --routes
    精确解析路径拼接 + HTTP method 展开（含 {GET,POST} 数组）
-3. RouteEnricher.enrich_routes 只做 codegraph nodes_id + has_external_param 富化
+3. RouteEnricher.enrich_routes 只做 jar-analyzer method_id + has_external_param 富化
 
 替代旧 astgrep_scanner.parse_output 的正则路径解析（不可靠）。
 """

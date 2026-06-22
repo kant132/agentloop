@@ -4,7 +4,6 @@
   "projectRoot": "{{projectRoot}}",
   "jarAnalyzerDb": "{{loopDir}}/jar-analyzer.db",
   "targetJarPath": "{{targetJarPath}}",
-  "codegraphDb": "",
   "loopDir": "loop_audit",
   "epJsonl": "external_endpoints/端点.jsonl",
   "dockerContainer": "{{dockerContainer}}",

@@ -28,12 +28,12 @@ from .registry import autodiscover, get_all_collectors
 
 
 def _build_ctx(args: argparse.Namespace) -> ExposureContext:
-    codegraph_db = Path(args.codegraph_db) if args.codegraph_db else None
+    jar_analyzer_db = Path(args.jar_analyzer_db) if args.jar_analyzer_db else None
     return ExposureContext(
         project_root=Path(args.project).resolve(),
         group_id=args.group_id,
         loop_audit_dir=Path(args.output).resolve(),
-        codegraph_db=codegraph_db,
+        jar_analyzer_db=jar_analyzer_db,
         ssh_target=args.ssh_target,
         commit_hash=args.commit_hash or "",
     )
@@ -181,7 +181,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_collect = sub.add_parser("collect", help="执行 collector 采集")
     _add_common(p_collect)
     p_collect.add_argument("--asset-type", help="只跑某一个 collector")
-    p_collect.add_argument("--codegraph-db", help="codegraph SQLite 路径")
+    p_collect.add_argument("--jar-analyzer-db", help="jar-analyzer SQLite 路径")
     p_collect.add_argument("--ssh-target", help="SSH 目标 host:port")
     p_collect.add_argument("--commit-hash", default="", help="commit hash（缓存隔离）")
     p_collect.set_defaults(func=cmd_collect)

@@ -100,7 +100,7 @@ def check_jar_analyzer() -> bool:
 
 
 def check_codegraph() -> bool:
-    """Check if codegraph is available (optional, Phase 4 PoC only)."""
+    """Check if codegraph is available (Phase 4 PoC only, not a hard dependency)."""
     path = shutil.which("codegraph")
     if path:
         return _run_version(path)

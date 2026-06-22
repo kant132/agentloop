@@ -41,7 +41,7 @@ class RouteEnricher:
         """富化单条路由。
 
         补字段：fqn（缺失时推导）、http_method、has_external_param、params、
-        nodes_id（无 codegraph 时为 None）。
+        nodes_id（无 jar-analyzer 时为 None）。
         """
         item = dict(raw)
         # fqn: 缺失时由 file + class_fqn 推导（ast-grep 命中未带 fqn 时）
@@ -84,7 +84,7 @@ class RouteEnricher:
 
         javaparser 已提供 full_url（类+方法拼接）和 http_methods（列表，含
         ``{GET,POST}`` 数组展开），enricher 只补：
-        - ``nodes_id`` （codegraph 反查）
+        - ``nodes_id`` （jar-analyzer 反查）
         - ``has_external_param`` （从 full_url 是否含 ``{param}`` 推断）
         - ``fqn`` （统一为 method_fqn）
 
@@ -151,11 +151,8 @@ class RouteEnricher:
     def lookup_nodes_id(
         raw: dict[str, Any], ctx: ExposureContext
     ) -> str | None:
-        """通过 codegraph SQLite 用 file_path LIKE 模糊匹配 + 行号范围查 nodes.id。
-
-        用 LIKE '%包路径末尾4段' 匹配，天然兼容绝对路径和相对路径。
-        """
-        if not ctx.codegraph_db or not ctx.codegraph_db.exists():
+        """通过 jar-analyzer.db 的 method_table 用 class_name + method_name + line_number 查 method_id。"""
+        if not ctx.jar_analyzer_db or not ctx.jar_analyzer_db.exists():
             return None
         import sqlite3
 
@@ -164,26 +161,30 @@ class RouteEnricher:
         if not file_path or annotation_line < 1:
             return None
 
-        # 统一路径分隔符为正斜杠
+        # 从文件路径推导 class_name (JVM internal format)
+        # 如 src/main/java/org/owasp/.../Foo.java → org/owasp/.../Foo
         norm = file_path.replace("\\", "/")
-        # 取路径末尾的包路径段作为 LIKE 匹配键（避免同名文件冲突）
-        parts = norm.split("/")
-        # 取最后 4 段：如 org/owasp/webgoat/xxx/Foo.java
-        key = "/".join(parts[-4:]) if len(parts) >= 4 else norm
-
-        like_pattern = f"%{key}"
+        m = None
+        for pattern in (
+            r"(?:src/main/java|src/test/java)/(.+?)\.java$",
+            r"(?:sources)/(.+?)\.java$",
+        ):
+            import re as _re
+            m = _re.search(pattern, norm)
+            if m:
+                break
+        if not m:
+            return None
+        class_name = m.group(1).replace("/", "/")  # already / format
 
         try:
-            conn = sqlite3.connect(f"file:{ctx.codegraph_db}?mode=ro", uri=True)
+            conn = sqlite3.connect(str(ctx.jar_analyzer_db))
             try:
                 row = conn.execute(
-                    "SELECT id FROM nodes "
-                    "WHERE kind = 'method' "
-                    "  AND file_path LIKE ? "
-                    "  AND start_line <= ? AND end_line >= ? "
-                    "ORDER BY (end_line - start_line) ASC "
-                    "LIMIT 1",
-                    (like_pattern, annotation_line, annotation_line),
+                    "SELECT method_id FROM method_table "
+                    "WHERE class_name = ? AND line_number = ? "
+                    "ORDER BY method_id ASC LIMIT 1",
+                    (class_name, annotation_line),
                 ).fetchone()
                 return str(row[0]) if row else None
             finally:
