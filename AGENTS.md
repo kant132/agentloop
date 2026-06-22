@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Automated Java whitebox security audit orchestrator. Two-layer agent architecture (Boss → Expert agents) that discovers and verifies vulnerabilities in Java source code using codegraph, ast-grep, and Memurai.
+Automated Java whitebox security audit orchestrator. Two-layer agent architecture (Boss → Expert agents) that discovers and verifies vulnerabilities in Java JAR/source code using jar-analyzer, ast-grep, and Memurai. Phase 4 PoC additionally uses codegraph for call-topology queries.
 
 主 agent（Boss）作为调度中心，对收集到的资源进行调度审计，直接发放给各个专家 agent。不再启动独立 opencode 会话，而是作为工具把数据整理好后由主 agent 直接消费。
 
@@ -32,8 +32,11 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 # Phase 1: 暴露面采集
 python -m scripts.exposure.cli collect --project {projectRoot} --group-id {groupId} --output {loopDir} --codegraph-db {codegraphDb}
 
-# Phase 2: 调用链构建（写入 chains.db）
-python scripts/chain/chain_builder.py --project-root {projectRoot} --db {codegraphDb} --group-id {groupId} --entry "{fqn}" --depth 20 --loop-dir {loopDir}
+# Phase 2: 调用链构建（写入 chains.db）— jar-analyzer 模式
+python scripts/chain/chain_builder.py --project-root {projectRoot} --group-id {groupId} --entry "{fqn}" --depth 20 --loop-dir {loopDir} --jar-analyzer-db {jar_analyzer_db}
+
+# Phase 2.5: 链边验证（jar-analyzer 批量验证）
+python scripts/chain/verify_edges.py --jar-analyzer-db {jar_analyzer_db} --chains-db {loopDir}/chains.db
 
 # 查询 chains.db 统计
 python -c "from chain_db import ChainDB; db = ChainDB('{loopDir}/chains.db'); print(db.stats())"
@@ -48,20 +51,22 @@ memurai-cli KEYS "{groupId}:*"  # list keys; session 结束 hook DEL all except 
 
 Before starting any audit:
 1. **Session 结束 hook**: Delete `{groupId}:*` keys from Memurai（保留 `{groupId}:knowledge:*`，并把 `{groupId}:errors:log` 高频错误合并到 `{groupId}:knowledge:errors`）。方法体等缓存**不设 TTL**，只在活跃审计期间有效。
-2. **Verify 3 core tools available**: `codegraph`, `ast-grep`, `Memurai`. If any is missing → exit code 2, no degradation.
-3. **Check preset.json** exists at `projects/{group_id}/preset.json` with valid `projectRoot`, `codegraphDb`, `groupId`.
+2. **Verify 3 core tools available**: `jar-analyzer` (JAR at `tools/javaparser/jar-analyzer-5.22.jar`), `ast-grep`, `Memurai`. If any is missing → exit code 2, no degradation. `codegraph` is optional (Phase 4 PoC only).
+3. **Sync project skills**: Phase 0 creates symlinks from `~/.agents/skills/{name}` → project `skills/{name}` for all project skills.
+4. **Check preset.json** exists at `projects/{group_id}/preset.json` with valid `projectRoot`, `groupId`, `loopDir`, `targetJarPath`, `jarAnalyzerDb`.
 
 ## Tool Selection (Hard Rule — Do Not Mix)
 
 | Task | Tool | Never |
 |------|------|-------|
-| Config file values (xml/yml/properties) | `grep` | codegraph |
-| Class/method relationships, call chains | `codegraph` SQLite (max 20 LEFT JOINs) | ast-grep |
+| Config file values (xml/yml/properties) | `grep` | jar-analyzer |
+| Class/method relationships, call chains (Phase 0-3) | `jar-analyzer.db` SQLite (`method_table`, `method_call_table`, `method_impl_table`) | ast-grep |
+| Call-topology queries (Phase 4 PoC only) | `codegraph` SQLite (max 20 LEFT JOINs) | jar-analyzer |
 | Dangerous function patterns (SQL/RCE/...) | `ast-grep` | grep |
-| Read method bodies | Memurai cache (pre-fetched via JAR + source files) | Direct `Read` of whole files; querying codegraph for method bodies |
+| Read method bodies | Memurai cache (pre-fetched via JAR + source files) | Direct `Read` of whole files; querying jar-analyzer/codegraph for method bodies |
 | Statistics/reports | Python scripts | ad-hoc code |
 
-**Subagents never call codegraph directly** — method bodies are pre-fetched to Memurai before subagent launch. 主 agent 从 chains.db 取 batch，从 Memurai 加载方法体，直接分发给专家 agent。
+**Subagents never call jar-analyzer or codegraph directly** — method bodies are pre-fetched to Memurai before subagent launch. 主 agent 从 chains.db 取 batch，从 Memurai 加载方法体，直接分发给专家 agent。
 
 ## Scope Boundary (Hard Constraint)
 
@@ -120,7 +125,8 @@ Any deviation = incomplete audit (loop cannot terminate).
 | `{agentloop_root}` | Derived from SKILL.md location (2 levels up) |
 | `{group_id}` | `preset.json → groupId` |
 | `{project_root}` | `preset.json → projectRoot` |
-| `{codegraph_db}` | `preset.json → codegraphDb` |
+| `{codegraph_db}` | `preset.json → codegraphDb` (Phase 4 PoC only) |
+| `{jar_analyzer_db}` | `preset.json → jarAnalyzerDb` |
 | `{loop_audit_dir}` | `preset.json → loopDir` + `projectRoot` |
 
 ## Convergence Criteria (4-AND)
@@ -133,13 +139,14 @@ Audit terminates when ALL are true simultaneously:
 
 ## Common Pitfalls
 
-- **Do NOT `Read` entire Java files** for method bodies — method bodies are pre-fetched to Memurai via `tools/javaparser/java-method-call-extractor-1.0.0.jar` + source files during chain build. AI only `GET`s from cache; codegraph is for call-topology only, never method bodies.
+- **Do NOT `Read` entire Java files** for method bodies — method bodies are pre-fetched to Memurai via `tools/javaparser/java-method-call-extractor-1.0.0.jar` + source files during chain build. AI only `GET`s from cache; jar-analyzer is for call-topology only, never method bodies.
 - **Do NOT suggest fixes** — this tool discovers vulnerabilities, never remediates.
 - **Do NOT use `pip install redis`** — use native `memurai-cli.exe` at `C:\Program Files\Memurai\`.
 - **Do NOT skip Phase 0** — stale cache from prior rounds pollutes results.
 - **Do NOT write narrative content in English** — reports and summaries must be Chinese.
 - **Do NOT create new project knowledge in shared `types/`** without dedup check (similarity > 0.7 → reuse).
 - **Do NOT modify tool flow/scripts except via a dedicated tool sub-agent** — only the Boss agent authorizes modifications, and they must not overfit to one project.
+- **Do NOT use codegraph for Phase 0-3** — jar-analyzer is the primary tool for class/method relationships and call chains. codegraph is reserved for Phase 4 PoC call-topology queries only.
 
 ## Agent Architecture (Two-Layer, Skill-Based, Accelerated)
 
@@ -147,7 +154,7 @@ Audit terminates when ALL are true simultaneously:
 主 agent (Boss) — 调度中心，加载 java-whitebox-loop skill
   │
   ├── 脚本工具: Phase 0-2（确定性工作，不需要 AI）
-  │     ├── Phase 0: check_core_tools.py + Memurai cleanup
+  │     ├── Phase 0: check_core_tools.py + Memurai cleanup + skills 软连接同步
   │     ├── Phase 1: exposure/cli.py collect（9 collectors → exposure/*.json）
   │     └── Phase 2: chain_builder.py → chains.db + Memurai 方法体缓存
   │

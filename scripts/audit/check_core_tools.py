@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Startup guard: verify codegraph, ast-grep, memurai are available before daemon starts.
+Startup guard: verify jar-analyzer, ast-grep, memurai are available before daemon starts.
 
-Per requirement #17 from 原子需求拆解.md:
-"三个核心工具（codegraph/memurai/ast-grep）任一不可用则退出，不降级"
+Per requirement AR-01 from 原子需求-v2.md:
+"三个核心工具（jar-analyzer/ast-grep/Memurai）任一不可用则退出，不降级"
+codegraph is optional (Phase 4 PoC only).
 
 Phase 0 还包括：把项目 skills 目录链接到 opencode 的 user skills 目录。
 """
@@ -26,8 +27,8 @@ _PROJECT_SKILLS_DIR = Path(__file__).resolve().parent.parent.parent / "skills"
 _USER_SKILLS_DIR = Path(os.path.expanduser("~")) / ".agents" / "skills"
 
 _INSTALL_HINTS: Dict[str, str] = {
-    "codegraph": "npm install -g @colbymchenry/codegraph",
-    "ast-grep": "npm install -g ast-grep",
+    "jar_analyzer": "Ensure tools/javaparser/jar-analyzer-5.22.jar exists and Java runtime is available",
+    "ast_grep": "npm install -g ast-grep",
     "memurai":  "Download from https://www.memurai.com/install and run the installer",
 }
 
@@ -48,14 +49,6 @@ def _run_version(path: str, timeout: int = TIMEOUT_SECS) -> bool:
 
     output = (result.stdout or "") + (result.stderr or "")
     return bool(re.search(r"\d+\.\d+", output))
-
-
-def check_codegraph() -> bool:
-    """Check if codegraph is available via which or --version."""
-    path = shutil.which("codegraph")
-    if path:
-        return _run_version(path)
-    return False
 
 
 def check_ast_grep() -> bool:
@@ -83,14 +76,14 @@ def check_memurai() -> bool:
         return False
 
 
-# jar-analyzer 路径（可选工具，非硬依赖）
+# jar-analyzer 路径（核心工具，Phase 0-3 硬依赖）
 JAR_ANALYZER_PATH = Path(r"D:\agentloop\tools\javaparser\jar-analyzer-5.22.jar")
 
 
 def check_jar_analyzer() -> bool:
     """Check if jar-analyzer JAR exists and Java runtime is available.
     
-    Optional tool — pipeline continues on failure, falls back to codegraph-only.
+    Core tool — Phase 0-3 hard dependency. Pipeline exits if missing.
     """
     if not JAR_ANALYZER_PATH.exists():
         return False
@@ -104,6 +97,14 @@ def check_jar_analyzer() -> bool:
         return result.returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return False
+
+
+def check_codegraph() -> bool:
+    """Check if codegraph is available (optional, Phase 4 PoC only)."""
+    path = shutil.which("codegraph")
+    if path:
+        return _run_version(path)
+    return False
 
 
 def check_skills_linked() -> bool:
@@ -149,25 +150,28 @@ def check_skills_linked() -> bool:
 
 def check_core_tools(exit_on_missing: bool = True) -> Dict[str, bool]:
     """
-    Verify codegraph, ast-grep, memurai are available + skills linked.
+    Verify jar-analyzer, ast-grep, memurai are available + skills linked.
 
-    Returns: {"codegraph": bool, "ast_grep": bool, "memurai": bool, "skills": bool, "all_ok": bool}
+    Returns: {"jar_analyzer": bool, "ast_grep": bool, "memurai": bool, "skills": bool, "codegraph": bool, "all_ok": bool}
 
-    If exit_on_missing=True and any check fails, prints clear error and exits with code 2.
+    Core tools (jar-analyzer, ast-grep, memurai, skills) — hard dependency, exit 2 if missing.
+    codegraph — optional (Phase 4 PoC only), reported but not blocking.
+
+    If exit_on_missing=True and any core check fails, prints clear error and exits with code 2.
     If False, just returns the dict.
     """
     results = {
-        "codegraph": check_codegraph(),
-        "ast_grep":  check_ast_grep(),
-        "memurai":   check_memurai(),
-        "skills":    check_skills_linked(),
+        "jar_analyzer": check_jar_analyzer(),
+        "ast_grep":     check_ast_grep(),
+        "memurai":      check_memurai(),
+        "skills":       check_skills_linked(),
     }
     results["all_ok"] = all(results.values())
 
-    # jar-analyzer: optional tool, not part of hard dependency check
-    results["jar_analyzer"] = check_jar_analyzer()
+    # codegraph: optional tool (Phase 4 PoC only), not part of hard dependency check
+    results["codegraph"] = check_codegraph()
 
-    missing = [k for k, v in results.items() if k not in ("all_ok", "jar_analyzer") and not v]
+    missing = [k for k, v in results.items() if k not in ("all_ok", "codegraph") and not v]
 
     if missing:
         print("=== Core Tool Check FAILED ===")
@@ -178,14 +182,14 @@ def check_core_tools(exit_on_missing: bool = True) -> Dict[str, bool]:
 
     if results["all_ok"]:
         print("=== Core Tool Check OK ===")
-        print("  codegraph    OK")
-        print("  ast-grep     OK")
-        print("  memurai      OK")
-        print("  skills       OK")
-        print(f"  jar-analyzer {'OK' if results['jar_analyzer'] else 'SKIP (optional)'}")
+        print(f"  jar-analyzer  OK")
+        print("  ast-grep      OK")
+        print("  memurai       OK")
+        print("  skills        OK")
+        print(f"  codegraph     {'OK' if results['codegraph'] else 'SKIP (optional, Phase 4 PoC only)'}")
 
     if exit_on_missing and not results["all_ok"]:
-        print("Exiting with code 2 (per requirement #17: no degradation).")
+        print("Exiting with code 2 (per AR-01: no degradation).")
         sys.exit(2)
 
     return results
@@ -193,7 +197,7 @@ def check_core_tools(exit_on_missing: bool = True) -> Dict[str, bool]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Startup guard: verify core tools (codegraph, ast-grep, memurai)."
+        description="Startup guard: verify core tools (jar-analyzer, ast-grep, memurai)."
     )
     parser.add_argument(
         "--no-exit",

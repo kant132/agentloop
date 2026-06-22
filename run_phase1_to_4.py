@@ -47,17 +47,19 @@ def main():
 
     gid = preset["groupId"]
     proj = Path(preset["projectRoot"])
-    db_path = Path(preset["codegraphDb"])
     loop_dir = Path(preset.get("loopDir", str(proj / "loop_audit")))
     loop_dir.mkdir(parents=True, exist_ok=True)
     exposure_dir = loop_dir / "exposure"
     exposure_dir.mkdir(parents=True, exist_ok=True)
+    db_path = Path(preset["codegraphDb"]) if preset.get("codegraphDb") else None
+    jar_analyzer_db = args.jar_analyzer_db or preset.get("jarAnalyzerDb", str(loop_dir / "jar-analyzer.db"))
 
     log.info("=" * 60)
     log.info("Phase 1→4 完整流程启动")
     log.info("项目: %s", proj)
     log.info("groupId: %s", gid)
-    log.info("codegraph: %s", db_path)
+    log.info("jar-analyzer: %s", jar_analyzer_db)
+    log.info("codegraph: %s (Phase 4 PoC only)" % (db_path or "N/A"))
     log.info("loop_dir: %s", loop_dir)
     log.info("limit: %d chains", args.limit)
     log.info("=" * 60)

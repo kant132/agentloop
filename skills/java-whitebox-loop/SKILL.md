@@ -22,16 +22,16 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 - `chains.db` — 调用链 SQLite（chain_path + node_path + priority + status + total_sinks + node_count）
 - Memurai: `{groupId}:method:{node_id}` — 方法体缓存（含 `//fqn:` 注释）
 
-### Phase 2.5: 链边验证（codegraph 误匹配检测）
+### Phase 2.5: 链边验证（jar-analyzer 批量验证）
 
 ```powershell
-python {agentloop_root}/scripts/chain/verify_edges.py
+python {agentloop_root}/scripts/chain/verify_edges.py --jar-analyzer-db {jar_analyzer_db} --chains-db {loop_audit_dir}/chains.db
 ```
 
-codegraph 按方法名匹配调用边，存在系统性误匹配（如 `java.util.Queue#add` 匹配到 `WebWolfTraceRepository::add`）。此步骤：
-1. 从 Memurai 批量取方法体，提取 `//fqn:` 注释
-2. 对比 codegraph edges 的 target FQN 是否在 source body 的 `//fqn:` 中出现
-3. 不匹配则标记链为 `status='broken'`
+jar-analyzer 模式下，链的 node_id 是 jar-analyzer 的 method_id，边信息来自 `method_call_table`（已在链构建时使用）。此步骤：
+1. 对每条 chain 的每对连续节点 `(node[i], node[i+1])`，检查 `method_call_table` 或 `method_impl_table` 中是否存在对应边
+2. 边缺失则标记链为 `status='broken'`，并丢弃所有相同前缀的后续链
+3. 批量验证，耗时 <1s（2422 条链）
 
 **Phase 3 选链时自动排除 broken 链**（`status='pending'` 过滤）。
 
@@ -356,7 +356,7 @@ for chain in vuln_chains:
 
 **PoC agent 代码信息来源**（禁止直接读源文件）：
 - 方法体：`load_method_body.py --node-id "method:xxx"`
-- 调用关系：`codegraph SQLite SELECT FROM edges`
+- 调用关系：`codegraph SQLite SELECT FROM edges`（**Phase 4 PoC 专用**，Phase 0-3 用 jar-analyzer）
 - 参数类型：`codegraph SQLite SELECT FROM nodes`
 - 配置文件：`Memurai GET {groupId}:config:{file}`
 
