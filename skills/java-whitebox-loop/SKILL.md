@@ -12,7 +12,11 @@ description: "Java 白盒审计顶层入口。主 agent 作为调度中心，按
 ### Phase 0-2: 脚本执行（确定性工作）
 
 ```powershell
-python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --limit 100 --phase 2
+# 方式1: 只给 JAR 包, 自动生成 preset + route
+python {agentloop_root}/run_phase1_to_4.py --jar D:/path/to/app.jar --phase 2
+
+# 方式2: 已有 preset.json
+python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --phase 2
 ```
 
 **注意：`--phase 2` 只执行 Phase 1+2，不执行 Phase 3/4**（Phase 3/4 需要 `task()` 全局函数，只能在 agent 会话里执行，不能在 subprocess 里调用）。

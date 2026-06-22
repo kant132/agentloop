@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """
-run_phase1_to_4.py — 完整执行 Phase 1 → 2 → 3 → 4，只跑前 3 条链。
+run_phase1_to_4.py — 完整执行 Phase 0 → 1 → 2 → 2.5 → 3 → 3.5 → 4。
 
 用法:
-    python run_phase1_to_4.py --preset projects/org.owasp.webgoat/preset.json
+    # 方式1: 只给 JAR 包, 自动生成 preset + route
+    python run_phase1_to_4.py --jar D:/path/to/app.jar
+
+    # 方式2: 已有 preset.json
+    python run_phase1_to_4.py --preset projects/{groupId}/preset.json
+
+    # 只跑到 Phase 2 (不含 AI 分析):
+    python run_phase1_to_4.py --jar D:/path/to/app.jar --phase 2
 
 关键节点加日志，输出到 stderr。
 """
@@ -35,11 +42,21 @@ log = logging.getLogger("phase1to4")
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="完整执行 Phase 1→4")
-    parser.add_argument("--preset", required=True, help="preset.json 路径")
-    parser.add_argument("--limit", type=int, default=3, help="只跑前 N 条链 (默认 3)")
-    parser.add_argument("--phase", type=int, default=4, help="执行到哪个 Phase (1/2/4, 4=全流程)")
+    parser.add_argument("--jar", help="JAR 包路径 (自动生成 preset.json + route.json)")
+    parser.add_argument("--preset", help="preset.json 路径 (与 --jar 二选一)")
+    parser.add_argument("--phase", type=int, default=4, help="执行到哪个 Phase (0/1/2/3/4, 4=全流程)")
     parser.add_argument("--jar-analyzer-db", help="jar-analyzer.db 路径 (覆盖 preset 中的 jarAnalyzerDb)")
     args = parser.parse_args()
+
+    # --jar 模式: 自动生成 preset.json + route.json
+    if args.jar:
+        sys.path.insert(0, str(REPO_ROOT / "scripts"))
+        from auto_preset import generate_preset
+        preset = generate_preset(Path(args.jar).resolve())
+        preset_path = Path(preset["loopDir"]).parent / "preset.json"
+        args.preset = str(preset_path)
+    elif not args.preset:
+        parser.error("--jar 或 --preset 至少需要一个")
 
     # 加载 preset
     with open(args.preset, encoding="utf-8") as f:
@@ -59,7 +76,6 @@ def main():
     log.info("groupId: %s", gid)
     log.info("jar-analyzer: %s", jar_analyzer_db)
     log.info("loop_dir: %s", loop_dir)
-    log.info("limit: %d chains", args.limit)
     log.info("=" * 60)
 
     # 连接 Memurai
@@ -273,13 +289,11 @@ def main():
 
     route_data = json.loads(route_file.read_text(encoding="utf-8"))
     routes = route_data.get("items", [])
-    log.info("  共 %d 个路由端点，取前 %d 个", len(routes), args.limit)
+    log.info("  共 %d 个路由端点", len(routes))
 
     built_count = 0
     tried = 0
     for i, route in enumerate(routes):
-        if built_count >= args.limit:
-            break
         fqn = route.get("fqn", "")
         if not fqn or fqn == "null":
             continue
@@ -495,8 +509,35 @@ def main():
         return 0
 
     # ============================================================
-    # Phase 4: 动态利用（HTTP PoC 对运行中的 WebGoat 发请求）
-    # 注意: Phase 4 也需要 task() 上下文, subprocess 调用时用 --phase 2
+    # Phase 3.5: codegraph 构建 (Phase 4 PoC 专用, Phase 1-3 不需要)
+    # ============================================================
+    log.info("")
+    log.info(">>> Phase 3.5: codegraph 构建 (Phase 4 PoC 专用)")
+    t0 = time.time()
+    _cg_bin = _shutil.which("codegraph")
+    if _cg_bin:
+        # 用反编译后的源码或项目源码构建 codegraph
+        _cg_source = None
+        if (proj / "src" / "main" / "java").is_dir():
+            _cg_source = proj
+        elif (proj / "sources").is_dir():
+            _cg_source = proj / "sources"
+        if _cg_source:
+            log.info("  codegraph init + index: %s", _cg_source)
+            _sp.run(["codegraph", "init", str(_cg_source)],
+                    capture_output=True, text=True, timeout=300)
+            _sp.run(["codegraph", "index"],
+                    capture_output=True, text=True, timeout=300,
+                    cwd=str(_cg_source))
+            log.info("  codegraph 构建完成")
+        else:
+            log.warning("  未找到源码目录, 跳过 codegraph 构建 (Phase 4 PoC 将无法查调用拓扑)")
+    else:
+        log.warning("  codegraph CLI 不可用, 跳过 (Phase 4 PoC 将无法查调用拓扑)")
+    log.info("  Phase 3.5 完成: %.1fs", time.time() - t0)
+
+    # ============================================================
+    # Phase 4: 动态利用（HTTP PoC 对运行中的应用发请求）
     # ============================================================
     log.info("")
     log.info(">>> Phase 4: 动态利用 (HTTP PoC)")

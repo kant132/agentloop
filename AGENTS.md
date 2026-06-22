@@ -22,15 +22,18 @@ Automated Java whitebox security audit orchestrator. Two-layer agent architectur
 ## Key Commands
 
 ```powershell
-# Phase 0-2: 脚本执行（确定性工作，产 chains.db + Memurai 缓存）
-python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --limit 100
+# 方式1: 只给 JAR 包，自动生成 preset + route，跑 Phase 0-2
+python {agentloop_root}/run_phase1_to_4.py --jar D:/path/to/app.jar --phase 2
+
+# 方式2: 已有 preset.json
+python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --phase 2
 
 # Phase 3-4: 主 agent 直接消费（不启动 opencode 子进程）
 # 主 agent 加载 java-whitebox-loop skill，从 chains.db 取 batch，分析+验证
 
 # 单独执行各阶段：
-# Phase 1: 暴露面采集
-python -m scripts.exposure.cli collect --project {projectRoot} --group-id {groupId} --output {loopDir} --codegraph-db {codegraphDb}
+# Phase 0+1: 自动从 JAR 生成 preset.json + route.json + 暴露面采集
+python {agentloop_root}/scripts/auto_preset.py --jar D:/path/to/app.jar
 
 # Phase 2: 调用链构建（写入 chains.db）— jar-analyzer 模式
 python scripts/chain/chain_builder.py --project-root {projectRoot} --group-id {groupId} --entry "{fqn}" --depth 20 --loop-dir {loopDir} --jar-analyzer-db {jar_analyzer_db}
@@ -154,9 +157,10 @@ Audit terminates when ALL are true simultaneously:
 主 agent (Boss) — 调度中心，加载 java-whitebox-loop skill
   │
   ├── 脚本工具: Phase 0-2（确定性工作，不需要 AI）
-  │     ├── Phase 0: check_core_tools.py + Memurai cleanup + skills 软连接同步
+  │     ├── Phase 0: check_core_tools.py + Memurai cleanup + skills 软连接同步 + auto_preset (JAR→preset+route)
   │     ├── Phase 1: exposure/cli.py collect（9 collectors → exposure/*.json）
-  │     └── Phase 2: chain_builder.py → chains.db + Memurai 方法体缓存
+  │     ├── Phase 2: chain_builder.py → chains.db + Memurai 方法体缓存
+  │     └── Phase 2.5: verify_edges.py → 链边批量验证
   │
   ├── 专家 agent: Phase 3（通过 task() 委派，subagent 加载对应 skill）
   │     主 agent 从 chains.db 取链，按链特征分发：
@@ -180,6 +184,9 @@ Audit terminates when ALL are true simultaneously:
   │
   ├── Phase 3.5: 主 agent 生成静态报告
   │     汇总所有 agent_results → diag/static_report.json
+  │
+  ├── Phase 3.5: codegraph 构建（Phase 4 PoC 专用，Phase 1-3 不需要）
+  │     └── codegraph init + index → codegraph.db
   │
   └── 验证 agent: Phase 4（PoC 动态验证）
         取 agent_results 中 verdict=vuln & poc_status=pending 的链
