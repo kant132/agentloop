@@ -10,7 +10,7 @@
   },
   "errors": [],
   "degraded": false,
-  "collected_at": "2026-06-21T15:18:46.518420+00:00",
+  "collected_at": "2026-06-22T02:07:08.265907+00:00",
   "items": [
     {
       "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\UserInterceptor.java",

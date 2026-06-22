@@ -16,7 +16,7 @@
   },
   "errors": [],
   "degraded": false,
-  "collected_at": "2026-06-21T15:18:47.513160+00:00",
+  "collected_at": "2026-06-22T02:07:09.529199+00:00",
   "items": [
     {
       "class_fqn": "org.owasp.webgoat.container.HammerHead",
@@ -440,6 +440,22 @@
       "fqn": "org.owasp.webgoat.lessons.cryptography.EncodingAssignment#completed"
     },
     {
+      "class_fqn": "org.owasp.webgoat.lessons.cryptography.SecureDefaultsAssignment",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.cryptography.SecureDefaultsAssignment#completed",
+      "method_name": "completed",
+      "full_url": "/crypto/secure/defaults",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/cryptography/SecureDefaultsAssignment.java",
+      "start_line": 27,
+      "nodes_id": "method:9d8553770ec7a6a8d105c6f278897836",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.cryptography.SecureDefaultsAssignment#completed"
+    },
+    {
       "class_fqn": "org.owasp.webgoat.lessons.cryptography.HashingAssignment",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.cryptography.HashingAssignment#getMd5",
@@ -498,22 +514,6 @@
       "nodes_id": "method:519a72df6f9ef8d57f9c7f1de5bf2aec",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.lessons.cryptography.HashingAssignment#completed"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.cryptography.SecureDefaultsAssignment",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.cryptography.SecureDefaultsAssignment#completed",
-      "method_name": "completed",
-      "full_url": "/crypto/secure/defaults",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/cryptography/SecureDefaultsAssignment.java",
-      "start_line": 27,
-      "nodes_id": "method:9d8553770ec7a6a8d105c6f278897836",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.cryptography.SecureDefaultsAssignment#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.cryptography.XOREncodingAssignment",
@@ -618,38 +618,6 @@
       "fqn": "org.owasp.webgoat.lessons.csrf.CSRFGetFlag#invoke"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews#retrieveReviews",
-      "method_name": "retrieveReviews",
-      "full_url": "/csrf/review",
-      "http_methods": [
-        "GET"
-      ],
-      "annotation": "GetMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/csrf/ForgedReviews.java",
-      "start_line": 53,
-      "nodes_id": "method:5306544cebb8ebe740b463be9abf0ed2",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews#retrieveReviews"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews#createNewReview",
-      "method_name": "createNewReview",
-      "full_url": "/csrf/review",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/csrf/ForgedReviews.java",
-      "start_line": 70,
-      "nodes_id": "method:fda03bf8175833677c95f9af0013cada",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews#createNewReview"
-    },
-    {
       "class_fqn": "org.owasp.webgoat.lessons.csrf.CSRFFeedback",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.csrf.CSRFFeedback#completed",
@@ -682,6 +650,38 @@
       "fqn": "org.owasp.webgoat.lessons.csrf.CSRFFeedback#flag"
     },
     {
+      "class_fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews#retrieveReviews",
+      "method_name": "retrieveReviews",
+      "full_url": "/csrf/review",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "GetMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/csrf/ForgedReviews.java",
+      "start_line": 53,
+      "nodes_id": "method:5306544cebb8ebe740b463be9abf0ed2",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews#retrieveReviews"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews#createNewReview",
+      "method_name": "createNewReview",
+      "full_url": "/csrf/review",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/csrf/ForgedReviews.java",
+      "start_line": 70,
+      "nodes_id": "method:fda03bf8175833677c95f9af0013cada",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.csrf.ForgedReviews#createNewReview"
+    },
+    {
       "class_fqn": "org.owasp.webgoat.lessons.hijacksession.HijackSessionAssignment",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.hijacksession.HijackSessionAssignment#login",
@@ -698,20 +698,20 @@
       "fqn": "org.owasp.webgoat.lessons.hijacksession.HijackSessionAssignment#login"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.deserialization.InsecureDeserializationTask",
+      "class_fqn": "org.owasp.webgoat.lessons.httpbasics.HttpBasicsLesson",
       "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.deserialization.InsecureDeserializationTask#completed",
+      "method_fqn": "org.owasp.webgoat.lessons.httpbasics.HttpBasicsLesson#completed",
       "method_name": "completed",
-      "full_url": "/InsecureDeserialization/task",
+      "full_url": "/HttpBasics/attack1",
       "http_methods": [
         "POST"
       ],
       "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/deserialization/InsecureDeserializationTask.java",
-      "start_line": 32,
-      "nodes_id": "method:253e011847c10eba5014e603cfa180d1",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/httpbasics/HttpBasicsLesson.java",
+      "start_line": 22,
+      "nodes_id": "method:23da2ce5062ec6eae611c854dfd2c074",
       "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.deserialization.InsecureDeserializationTask#completed"
+      "fqn": "org.owasp.webgoat.lessons.httpbasics.HttpBasicsLesson#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.htmltampering.HtmlTamperingTask",
@@ -728,22 +728,6 @@
       "nodes_id": "method:1ebf69b2e31bd160e1ea9456e7a85840",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.lessons.htmltampering.HtmlTamperingTask#completed"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.httpbasics.HttpBasicsLesson",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.httpbasics.HttpBasicsLesson#completed",
-      "method_name": "completed",
-      "full_url": "/HttpBasics/attack1",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/httpbasics/HttpBasicsLesson.java",
-      "start_line": 22,
-      "nodes_id": "method:23da2ce5062ec6eae611c854dfd2c074",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.httpbasics.HttpBasicsLesson#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.httpbasics.HttpBasicsQuiz",
@@ -779,6 +763,22 @@
       "fqn": "org.owasp.webgoat.lessons.httpproxies.HttpBasicsInterceptRequest#completed"
     },
     {
+      "class_fqn": "org.owasp.webgoat.lessons.deserialization.InsecureDeserializationTask",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.deserialization.InsecureDeserializationTask#completed",
+      "method_name": "completed",
+      "full_url": "/InsecureDeserialization/task",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/deserialization/InsecureDeserializationTask.java",
+      "start_line": 32,
+      "nodes_id": "method:253e011847c10eba5014e603cfa180d1",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.deserialization.InsecureDeserializationTask#completed"
+    },
+    {
       "class_fqn": "org.owasp.webgoat.lessons.idor.IDORDiffAttributes",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.idor.IDORDiffAttributes#completed",
@@ -793,6 +793,22 @@
       "nodes_id": "method:8542022d5f871604473913312324f899",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.lessons.idor.IDORDiffAttributes#completed"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.idor.IDORViewOtherProfile",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.idor.IDORViewOtherProfile#completed",
+      "method_name": "completed",
+      "full_url": "/IDOR/profile/{userId}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "GetMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/idor/IDORViewOtherProfile.java",
+      "start_line": 39,
+      "nodes_id": "method:68ee4db39f265ad1d762fd9dbca442b8",
+      "has_external_param": true,
+      "fqn": "org.owasp.webgoat.lessons.idor.IDORViewOtherProfile#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.idor.IDORLogin",
@@ -825,22 +841,6 @@
       "nodes_id": "method:8af20cdc61fa8e31675309527436cdec",
       "has_external_param": true,
       "fqn": "org.owasp.webgoat.lessons.idor.IDORViewOwnProfile#invoke"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.idor.IDORViewOtherProfile",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.idor.IDORViewOtherProfile#completed",
-      "method_name": "completed",
-      "full_url": "/IDOR/profile/{userId}",
-      "http_methods": [
-        "GET"
-      ],
-      "annotation": "GetMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/idor/IDORViewOtherProfile.java",
-      "start_line": 39,
-      "nodes_id": "method:68ee4db39f265ad1d762fd9dbca442b8",
-      "has_external_param": true,
-      "fqn": "org.owasp.webgoat.lessons.idor.IDORViewOtherProfile#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.idor.IDOREditOtherProfile",
@@ -993,36 +993,20 @@
       "fqn": "org.owasp.webgoat.lessons.jwt.JWTSecretKeyEndpoint#login"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack",
+      "class_fqn": "org.owasp.webgoat.lessons.logging.LogBleedingTask",
       "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack#completed",
+      "method_fqn": "org.owasp.webgoat.lessons.logging.LogBleedingTask#completed",
       "method_name": "completed",
-      "full_url": "/lesson-template/sample-attack",
+      "full_url": "/LogSpoofing/log-bleeding",
       "http_methods": [
         "POST"
       ],
       "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/lessontemplate/SampleAttack.java",
-      "start_line": 35,
-      "nodes_id": "method:6891d303bdc54e1cfcf2dbe2528db118",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/logging/LogBleedingTask.java",
+      "start_line": 36,
+      "nodes_id": "method:e9400f61cdd198096f47761eac7e3e57",
       "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack#completed"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack#getItemsInBasket",
-      "method_name": "getItemsInBasket",
-      "full_url": "/lesson-template/shop/{user}",
-      "http_methods": [
-        "GET"
-      ],
-      "annotation": "GetMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/lessontemplate/SampleAttack.java",
-      "start_line": 64,
-      "nodes_id": "method:c241db577f82537bd4cb6993c90fbfff",
-      "has_external_param": true,
-      "fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack#getItemsInBasket"
+      "fqn": "org.owasp.webgoat.lessons.logging.LogBleedingTask#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.jwt.JWTRefreshEndpoint",
@@ -1073,20 +1057,36 @@
       "fqn": "org.owasp.webgoat.lessons.jwt.JWTRefreshEndpoint#newToken"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.logging.LogBleedingTask",
+      "class_fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack",
       "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.logging.LogBleedingTask#completed",
+      "method_fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack#completed",
       "method_name": "completed",
-      "full_url": "/LogSpoofing/log-bleeding",
+      "full_url": "/lesson-template/sample-attack",
       "http_methods": [
         "POST"
       ],
       "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/logging/LogBleedingTask.java",
-      "start_line": 36,
-      "nodes_id": "method:e9400f61cdd198096f47761eac7e3e57",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/lessontemplate/SampleAttack.java",
+      "start_line": 35,
+      "nodes_id": "method:6891d303bdc54e1cfcf2dbe2528db118",
       "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.logging.LogBleedingTask#completed"
+      "fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack#completed"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack#getItemsInBasket",
+      "method_name": "getItemsInBasket",
+      "full_url": "/lesson-template/shop/{user}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "GetMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/lessontemplate/SampleAttack.java",
+      "start_line": 64,
+      "nodes_id": "method:c241db577f82537bd4cb6993c90fbfff",
+      "has_external_param": true,
+      "fqn": "org.owasp.webgoat.lessons.lessontemplate.SampleAttack#getItemsInBasket"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.logging.LogSpoofingTask",
@@ -1441,22 +1441,6 @@
       "fqn": "org.owasp.webgoat.lessons.pathtraversal.ProfileUploadFix#getProfilePicture"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.securepasswords.SecurePasswordsAssignment",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.securepasswords.SecurePasswordsAssignment#completed",
-      "method_name": "completed",
-      "full_url": "/SecurePasswords/assignment",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/securepasswords/SecurePasswordsAssignment.java",
-      "start_line": 25,
-      "nodes_id": "method:315a479ea885efe2aadc00556c231101",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.securepasswords.SecurePasswordsAssignment#completed"
-    },
-    {
       "class_fqn": "org.owasp.webgoat.lessons.pathtraversal.ProfileZipSlip",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.pathtraversal.ProfileZipSlip#uploadFileHandler",
@@ -1505,6 +1489,22 @@
       "fqn": "org.owasp.webgoat.lessons.pathtraversal.ProfileZipSlip#getProfileImage"
     },
     {
+      "class_fqn": "org.owasp.webgoat.lessons.securepasswords.SecurePasswordsAssignment",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.securepasswords.SecurePasswordsAssignment#completed",
+      "method_name": "completed",
+      "full_url": "/SecurePasswords/assignment",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/securepasswords/SecurePasswordsAssignment.java",
+      "start_line": 25,
+      "nodes_id": "method:315a479ea885efe2aadc00556c231101",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.securepasswords.SecurePasswordsAssignment#completed"
+    },
+    {
       "class_fqn": "org.owasp.webgoat.lessons.spoofcookie.SpoofCookieAssignment",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.spoofcookie.SpoofCookieAssignment#login",
@@ -1537,38 +1537,6 @@
       "fqn": "org.owasp.webgoat.lessons.spoofcookie.SpoofCookieAssignment#cleanup"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask1",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask1#completed",
-      "method_name": "completed",
-      "full_url": "/SSRF/task1",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/ssrf/SSRFTask1.java",
-      "start_line": 22,
-      "nodes_id": "method:7d092492e990d1bf2478ee54922e20a1",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask1#completed"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask2",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask2#completed",
-      "method_name": "completed",
-      "full_url": "/SSRF/task2",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/ssrf/SSRFTask2.java",
-      "start_line": 27,
-      "nodes_id": "method:e004b56591f75a3ca9f8fbe431cd4aa5",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask2#completed"
-    },
-    {
       "class_fqn": "org.owasp.webgoat.lessons.pathtraversal.ProfileUploadRetrieval",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.pathtraversal.ProfileUploadRetrieval#execute",
@@ -1599,6 +1567,38 @@
       "nodes_id": "method:08371851fe09b63c267b5d35e80b9b08",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.lessons.pathtraversal.ProfileUploadRetrieval#getProfilePicture"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask1",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask1#completed",
+      "method_name": "completed",
+      "full_url": "/SSRF/task1",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/ssrf/SSRFTask1.java",
+      "start_line": 22,
+      "nodes_id": "method:7d092492e990d1bf2478ee54922e20a1",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask1#completed"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask2",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask2#completed",
+      "method_name": "completed",
+      "full_url": "/SSRF/task2",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/ssrf/SSRFTask2.java",
+      "start_line": 27,
+      "nodes_id": "method:e004b56591f75a3ca9f8fbe431cd4aa5",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.ssrf.SSRFTask2#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.vulnerablecomponents.VulnerableComponentsLesson",
@@ -1649,22 +1649,6 @@
       "fqn": "org.owasp.webgoat.lessons.webwolfintroduction.LandingAssignment#openPasswordReset"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson1",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson1#completed",
-      "method_name": "completed",
-      "full_url": "/CrossSiteScripting/attack1",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson1.java",
-      "start_line": 20,
-      "nodes_id": "method:b679f5e79e8f7709f3b4cded5e8518ee",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson1#completed"
-    },
-    {
       "class_fqn": "org.owasp.webgoat.lessons.webwolfintroduction.MailAssignment",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.webwolfintroduction.MailAssignment#sendEmail",
@@ -1697,36 +1681,20 @@
       "fqn": "org.owasp.webgoat.lessons.webwolfintroduction.MailAssignment#completed"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson5a",
+      "class_fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson1",
       "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson5a#completed",
+      "method_fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson1#completed",
       "method_name": "completed",
-      "full_url": "/CrossSiteScripting/attack5a",
-      "http_methods": [
-        "GET"
-      ],
-      "annotation": "GetMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson5a.java",
-      "start_line": 42,
-      "nodes_id": "method:a479711d1aac6954449ab8021e4021e0",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson5a#completed"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.xss.DOMCrossSiteScripting",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.xss.DOMCrossSiteScripting#completed",
-      "method_name": "completed",
-      "full_url": "/CrossSiteScripting/phone-home-xss",
+      "full_url": "/CrossSiteScripting/attack1",
       "http_methods": [
         "POST"
       ],
       "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/xss/DOMCrossSiteScripting.java",
-      "start_line": 29,
-      "nodes_id": "method:6c86773aa935520107aeb1b0c770d4b9",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson1.java",
+      "start_line": 20,
+      "nodes_id": "method:b679f5e79e8f7709f3b4cded5e8518ee",
       "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.xss.DOMCrossSiteScripting#completed"
+      "fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson1#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson6a",
@@ -1775,6 +1743,38 @@
       "nodes_id": "method:4c3a393a7f3824b5ffda1a0ed4f293f7",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingQuiz#getResults"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.xss.DOMCrossSiteScripting",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.xss.DOMCrossSiteScripting#completed",
+      "method_name": "completed",
+      "full_url": "/CrossSiteScripting/phone-home-xss",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/xss/DOMCrossSiteScripting.java",
+      "start_line": 29,
+      "nodes_id": "method:6c86773aa935520107aeb1b0c770d4b9",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.xss.DOMCrossSiteScripting#completed"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson5a",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson5a#completed",
+      "method_name": "completed",
+      "full_url": "/CrossSiteScripting/attack5a",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "GetMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson5a.java",
+      "start_line": 42,
+      "nodes_id": "method:a479711d1aac6954449ab8021e4021e0",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.xss.CrossSiteScriptingLesson5a#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.xss.DOMCrossSiteScriptingVerifier",
@@ -2049,22 +2049,6 @@
       "fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson3#completed"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson10",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson10#completed",
-      "method_name": "completed",
-      "full_url": "/SqlInjection/attack10",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson10.java",
-      "start_line": 41,
-      "nodes_id": "method:addaaffde7786acff794668fdf9a8860",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson10#completed"
-    },
-    {
       "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson4",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson4#completed",
@@ -2079,6 +2063,22 @@
       "nodes_id": "method:e38d97d0005d42e032393dd51195b6ce",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson4#completed"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson10",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson10#completed",
+      "method_name": "completed",
+      "full_url": "/SqlInjection/attack10",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson10.java",
+      "start_line": 41,
+      "nodes_id": "method:addaaffde7786acff794668fdf9a8860",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson10#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson5",
@@ -2145,6 +2145,22 @@
       "fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson8#completed"
     },
     {
+      "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10a",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10a#completed",
+      "method_name": "completed",
+      "full_url": "/SqlInjectionMitigations/attack10a",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlInjectionLesson10a.java",
+      "start_line": 29,
+      "nodes_id": "method:21dd421fe277a2e611a182bc164d5ddd",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10a#completed"
+    },
+    {
       "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.Servers",
       "class_base_path": "SqlInjectionMitigations/servers",
       "method_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.Servers#sort",
@@ -2177,22 +2193,6 @@
       "fqn": "org.owasp.webgoat.lessons.sqlinjection.introduction.SqlInjectionLesson9#completed"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10a",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10a#completed",
-      "method_name": "completed",
-      "full_url": "/SqlInjectionMitigations/attack10a",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlInjectionLesson10a.java",
-      "start_line": 29,
-      "nodes_id": "method:21dd421fe277a2e611a182bc164d5ddd",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10a#completed"
-    },
-    {
       "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson13",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson13#completed",
@@ -2207,6 +2207,22 @@
       "nodes_id": "method:094f4e5ada78fca7688a51f3f582a3f3",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson13#completed"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10b",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10b#completed",
+      "method_name": "completed",
+      "full_url": "/SqlInjectionMitigations/attack10b",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlInjectionLesson10b.java",
+      "start_line": 42,
+      "nodes_id": "method:2c4a6b5ced2cbf2a562c38d3502341b2",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10b#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlOnlyInputValidation",
@@ -2239,22 +2255,6 @@
       "nodes_id": "method:1c51a59ef169e85148df22ae0f57605f",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlOnlyInputValidationOnKeywords#attack"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10b",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10b#completed",
-      "method_name": "completed",
-      "full_url": "/SqlInjectionMitigations/attack10b",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlInjectionLesson10b.java",
-      "start_line": 42,
-      "nodes_id": "method:2c4a6b5ced2cbf2a562c38d3502341b2",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.sqlinjection.mitigation.SqlInjectionLesson10b#completed"
     },
     {
       "class_fqn": "org.owasp.webgoat.lessons.jwt.claimmisuse.JWTHeaderJKUEndpoint",
@@ -2370,54 +2370,6 @@
       "fqn": "org.owasp.webgoat.lessons.challenges.challenge5.Assignment5#login"
     },
     {
-      "class_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#resetPassword",
-      "method_name": "resetPassword",
-      "full_url": "/challenge/7/reset-password/{link}",
-      "http_methods": [
-        "GET"
-      ],
-      "annotation": "GetMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java",
-      "start_line": 64,
-      "nodes_id": "method:06e912095211728f7b39391b22f34e29",
-      "has_external_param": true,
-      "fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#resetPassword"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#sendPasswordResetLink",
-      "method_name": "sendPasswordResetLink",
-      "full_url": "/challenge/7",
-      "http_methods": [
-        "POST"
-      ],
-      "annotation": "PostMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java",
-      "start_line": 78,
-      "nodes_id": "method:237e5edc8ad10e94e0397a6d0329adbb",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#sendPasswordResetLink"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#git",
-      "method_name": "git",
-      "full_url": "/challenge/7/.git",
-      "http_methods": [
-        "GET"
-      ],
-      "annotation": "GetMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java",
-      "start_line": 104,
-      "nodes_id": "method:aaf1924f7a233ae0bde3dc21cec73e64",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#git"
-    },
-    {
       "class_fqn": "org.owasp.webgoat.lessons.challenges.challenge8.Assignment8",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.lessons.challenges.challenge8.Assignment8#vote",
@@ -2480,6 +2432,54 @@
       "nodes_id": "method:1e5d1feef1a64e417235ac03b52c3c1b",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.lessons.challenges.challenge8.Assignment8#notUsed"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#resetPassword",
+      "method_name": "resetPassword",
+      "full_url": "/challenge/7/reset-password/{link}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "GetMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java",
+      "start_line": 64,
+      "nodes_id": "method:06e912095211728f7b39391b22f34e29",
+      "has_external_param": true,
+      "fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#resetPassword"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#sendPasswordResetLink",
+      "method_name": "sendPasswordResetLink",
+      "full_url": "/challenge/7",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java",
+      "start_line": 78,
+      "nodes_id": "method:237e5edc8ad10e94e0397a6d0329adbb",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#sendPasswordResetLink"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#git",
+      "method_name": "git",
+      "full_url": "/challenge/7/.git",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "GetMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java",
+      "start_line": 104,
+      "nodes_id": "method:aaf1924f7a233ae0bde3dc21cec73e64",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.lessons.challenges.challenge7.Assignment7#git"
     },
     {
       "class_fqn": "org.owasp.webgoat.container.controller.StartLesson",
@@ -2622,6 +2622,38 @@
       "fqn": "org.owasp.webgoat.container.service.LessonInfoService#getLessonInfo"
     },
     {
+      "class_fqn": "org.owasp.webgoat.container.service.LessonProgressService",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.container.service.LessonProgressService#lessonOverview",
+      "method_name": "lessonOverview",
+      "full_url": "/service/lessonoverview.mvc/{lesson}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "GetMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/container/service/LessonProgressService.java",
+      "start_line": 39,
+      "nodes_id": "method:d38235179b494c1deb9a2d6b5c0ed01e",
+      "has_external_param": true,
+      "fqn": "org.owasp.webgoat.container.service.LessonProgressService#lessonOverview"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.container.service.RestartLessonService",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.container.service.RestartLessonService#restartLesson",
+      "method_name": "restartLesson",
+      "full_url": "/service/restartlesson.mvc/{lesson}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "GetMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/container/service/RestartLessonService.java",
+      "start_line": 35,
+      "nodes_id": "method:2acc0e7597940cab2b0fa987eec38884",
+      "has_external_param": true,
+      "fqn": "org.owasp.webgoat.container.service.RestartLessonService#restartLesson"
+    },
+    {
       "class_fqn": "org.owasp.webgoat.container.service.SessionService",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.container.service.SessionService#applySecurity",
@@ -2644,38 +2676,6 @@
       "fqn": "org.owasp.webgoat.container.service.SessionService#applySecurity"
     },
     {
-      "class_fqn": "org.owasp.webgoat.container.service.RestartLessonService",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.container.service.RestartLessonService#restartLesson",
-      "method_name": "restartLesson",
-      "full_url": "/service/restartlesson.mvc/{lesson}",
-      "http_methods": [
-        "GET"
-      ],
-      "annotation": "GetMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/container/service/RestartLessonService.java",
-      "start_line": 35,
-      "nodes_id": "method:2acc0e7597940cab2b0fa987eec38884",
-      "has_external_param": true,
-      "fqn": "org.owasp.webgoat.container.service.RestartLessonService#restartLesson"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.container.service.LessonProgressService",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.container.service.LessonProgressService#lessonOverview",
-      "method_name": "lessonOverview",
-      "full_url": "/service/lessonoverview.mvc/{lesson}",
-      "http_methods": [
-        "GET"
-      ],
-      "annotation": "GetMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/container/service/LessonProgressService.java",
-      "start_line": 39,
-      "nodes_id": "method:d38235179b494c1deb9a2d6b5c0ed01e",
-      "has_external_param": true,
-      "fqn": "org.owasp.webgoat.container.service.LessonProgressService#lessonOverview"
-    },
-    {
       "class_fqn": "org.owasp.webgoat.container.service.LessonMenuService",
       "class_base_path": "",
       "method_fqn": "org.owasp.webgoat.container.service.LessonMenuService#showLeftNav",
@@ -2696,6 +2696,22 @@
       "nodes_id": "method:d36834f8c32c3302dcffb98739e2a181",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.container.service.LessonMenuService#showLeftNav"
+    },
+    {
+      "class_fqn": "org.owasp.webgoat.container.users.Scoreboard",
+      "class_base_path": "",
+      "method_fqn": "org.owasp.webgoat.container.users.Scoreboard#getRankings",
+      "method_name": "getRankings",
+      "full_url": "/scoreboard-data",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "GetMapping",
+      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/container/users/Scoreboard.java",
+      "start_line": 40,
+      "nodes_id": "method:83020863c33231ddd7673c9d9d581a11",
+      "has_external_param": false,
+      "fqn": "org.owasp.webgoat.container.users.Scoreboard#getRankings"
     },
     {
       "class_fqn": "org.owasp.webgoat.container.users.RegistrationController",
@@ -2744,22 +2760,6 @@
       "nodes_id": "method:733c85df5bb6059014aa13fd96357c4a",
       "has_external_param": false,
       "fqn": "org.owasp.webgoat.container.users.RegistrationController#registrationOAUTH"
-    },
-    {
-      "class_fqn": "org.owasp.webgoat.container.users.Scoreboard",
-      "class_base_path": "",
-      "method_fqn": "org.owasp.webgoat.container.users.Scoreboard#getRankings",
-      "method_name": "getRankings",
-      "full_url": "/scoreboard-data",
-      "http_methods": [
-        "GET"
-      ],
-      "annotation": "GetMapping",
-      "file": "D:/code/WebGoat-2025.3/src/main/java/org/owasp/webgoat/container/users/Scoreboard.java",
-      "start_line": 40,
-      "nodes_id": "method:83020863c33231ddd7673c9d9d581a11",
-      "has_external_param": false,
-      "fqn": "org.owasp.webgoat.container.users.Scoreboard#getRankings"
     }
   ]
 }

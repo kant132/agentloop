@@ -2,16 +2,16 @@
   "asset_type": "waf",
   "source": "file scan (nginx.conf/web.xml/Spring-Security/pom.xml)",
   "stats": {
-    "total_files": 3,
+    "total_files": 4,
     "by_type": {
       "spring_security": 2,
-      "pom_security_dep": 1
+      "pom_security_dep": 2
     },
-    "cached": 3
+    "cached": 4
   },
   "errors": [],
   "degraded": false,
-  "collected_at": "2026-06-21T15:18:47.942008+00:00",
+  "collected_at": "2026-06-22T02:07:10.136520+00:00",
   "items": [
     {
       "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\WebSecurityConfig.java",
@@ -30,6 +30,12 @@
       "type": "pom_security_dep",
       "size_bytes": 30631,
       "sha256": "b50e2a0a135f35f4ab119502a385849c295d5b11aebcc645d24db2ff5affaaa1"
+    },
+    {
+      "file": "jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "type": "pom_security_dep",
+      "size_bytes": 30948,
+      "sha256": "38032f8f30488731def8aa45258156778652b47aeff4fd9d3087157cec7dd8f0"
     }
   ]
 }

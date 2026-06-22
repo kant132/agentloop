@@ -2,17 +2,17 @@
   "asset_type": "config",
   "source": "config file scan",
   "stats": {
-    "total_files": 16,
+    "total_files": 20,
     "by_type": {
-      "properties": 4,
-      "xml": 12
+      "properties": 6,
+      "xml": 14
     },
-    "secrets_detected": 5,
-    "cached": 16
+    "secrets_detected": 8,
+    "cached": 20
   },
   "errors": [],
   "degraded": false,
-  "collected_at": "2026-06-21T15:18:44.927918+00:00",
+  "collected_at": "2026-06-22T02:07:07.625974+00:00",
   "items": [
     {
       "file": "src\\test\\resources\\application-webgoat-test.properties",
@@ -40,6 +40,20 @@
       "file_type": "properties",
       "size_bytes": 2066,
       "sha256": "87960ed4557a4ae7f09a4dac4c9c5215c8aedc4c1ee0361f1915dc47d96a6028",
+      "contains_secret": true
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "file_type": "properties",
+      "size_bytes": 3390,
+      "sha256": "4ccda3e05b4a1da3ce04044af11f2172d03c53db51555e1c36190aef8383f08d",
+      "contains_secret": true
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webwolf.properties",
+      "file_type": "properties",
+      "size_bytes": 2055,
+      "sha256": "8d9df6a4e3a9d6438b5c60ecb7c662ddd8428ab73ddb4171c9a4ea7c34e4f017",
       "contains_secret": true
     },
     {
@@ -80,8 +94,8 @@
     {
       "file": ".idea\\workspace.xml",
       "file_type": "xml",
-      "size_bytes": 3277,
-      "sha256": "ade924d2ef182a7febe39db0ac4f0ff2d5723b9664d079e40bc91377db30d46f",
+      "size_bytes": 3278,
+      "sha256": "2130a50f48c488dd3d50817ca104eabe5762c133ed4609d36f0e323726037d2d",
       "contains_secret": true
     },
     {
@@ -93,6 +107,20 @@
     },
     {
       "file": "src\\main\\resources\\lessons\\employees.xml",
+      "file_type": "xml",
+      "size_bytes": 9177,
+      "sha256": "9c9e03601bc3518d433b0ccf720fef35a9d5d9105dda5de7a30a9aa3d75918a7",
+      "contains_secret": false
+    },
+    {
+      "file": "jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "file_type": "xml",
+      "size_bytes": 30948,
+      "sha256": "38032f8f30488731def8aa45258156778652b47aeff4fd9d3087157cec7dd8f0",
+      "contains_secret": true
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\lessons\\employees.xml",
       "file_type": "xml",
       "size_bytes": 9177,
       "sha256": "9c9e03601bc3518d433b0ccf720fef35a9d5d9105dda5de7a30a9aa3d75918a7",

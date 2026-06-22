@@ -2,10 +2,10 @@
   "asset_type": "sensitive_info",
   "source": "regex pattern scan",
   "stats": {
-    "total": 66,
+    "total": 106,
     "by_type": {
-      "password": 26,
-      "email": 28,
+      "password": 46,
+      "email": 48,
       "private_key": 2,
       "api_key": 2,
       "internal_ip": 8
@@ -13,7 +13,7 @@
   },
   "errors": [],
   "degraded": false,
-  "collected_at": "2026-06-21T15:18:47.701879+00:00",
+  "collected_at": "2026-06-22T02:07:09.797383+00:00",
   "items": [
     {
       "file": ".mvn\\wrapper\\MavenWrapperDownloader.java",
@@ -23,6 +23,186 @@
       "value_preview": "Syst****",
       "entropy": 3.32,
       "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 14,
+      "column": 22,
+      "type": "password",
+      "value_preview": "${WE****",
+      "entropy": 4.5,
+      "severity": "high"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 39,
+      "column": 15,
+      "type": "email",
+      "value_preview": "webg****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 40,
+      "column": 19,
+      "type": "email",
+      "value_preview": "owas****",
+      "entropy": 3.7,
+      "severity": "low"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 41,
+      "column": 26,
+      "type": "email",
+      "value_preview": "webg****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 42,
+      "column": 46,
+      "type": "email",
+      "value_preview": "webg****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 42,
+      "column": 64,
+      "type": "email",
+      "value_preview": "webg****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages.properties",
+      "line": 8,
+      "column": 1,
+      "type": "password",
+      "value_preview": "Pass****",
+      "entropy": 2.75,
+      "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages.properties",
+      "line": 12,
+      "column": 18,
+      "type": "password",
+      "value_preview": "Inva****",
+      "entropy": 2.81,
+      "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages.properties",
+      "line": 17,
+      "column": 16,
+      "type": "password",
+      "value_preview": "Pass****",
+      "entropy": 2.75,
+      "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages_de.properties",
+      "line": 11,
+      "column": 1,
+      "type": "password",
+      "value_preview": "Pass****",
+      "entropy": 2.75,
+      "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages_nl.properties",
+      "line": 8,
+      "column": 1,
+      "type": "password",
+      "value_preview": "Wach****",
+      "entropy": 3.12,
+      "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages_nl.properties",
+      "line": 12,
+      "column": 18,
+      "type": "password",
+      "value_preview": "Onge****",
+      "entropy": 2.73,
+      "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages_nl.properties",
+      "line": 17,
+      "column": 16,
+      "type": "password",
+      "value_preview": "Wach****",
+      "entropy": 3.12,
+      "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\lessons\\securepasswords\\i18n\\WebGoatLabels.properties",
+      "line": 4,
+      "column": 6,
+      "type": "password",
+      "value_preview": "Show****",
+      "entropy": 2.0,
+      "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\lessons\\securepasswords\\i18n\\WebGoatLabels_nl.properties",
+      "line": 4,
+      "column": 6,
+      "type": "password",
+      "value_preview": "Toon****",
+      "entropy": 1.5,
+      "severity": "medium"
+    },
+    {
+      "file": "jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 35,
+      "column": 14,
+      "type": "email",
+      "value_preview": "nann****",
+      "entropy": 3.4,
+      "severity": "low"
+    },
+    {
+      "file": "jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 42,
+      "column": 14,
+      "type": "email",
+      "value_preview": "rene****",
+      "entropy": 3.97,
+      "severity": "low"
+    },
+    {
+      "file": "jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 47,
+      "column": 14,
+      "type": "email",
+      "value_preview": "ange****",
+      "entropy": 3.32,
+      "severity": "low"
+    },
+    {
+      "file": "jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 52,
+      "column": 25,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 53,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
     },
     {
       "file": "pom.xml",
@@ -607,6 +787,186 @@
       "type": "internal_ip",
       "value_preview": "secu****",
       "entropy": 3.03,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 14,
+      "column": 22,
+      "type": "password",
+      "value_preview": "${WE****",
+      "entropy": 4.5,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 39,
+      "column": 15,
+      "type": "email",
+      "value_preview": "webg****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 40,
+      "column": 19,
+      "type": "email",
+      "value_preview": "owas****",
+      "entropy": 3.7,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 41,
+      "column": 26,
+      "type": "email",
+      "value_preview": "webg****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 42,
+      "column": 46,
+      "type": "email",
+      "value_preview": "webg****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "line": 42,
+      "column": 64,
+      "type": "email",
+      "value_preview": "webg****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages.properties",
+      "line": 8,
+      "column": 1,
+      "type": "password",
+      "value_preview": "Pass****",
+      "entropy": 2.75,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages.properties",
+      "line": 12,
+      "column": 18,
+      "type": "password",
+      "value_preview": "Inva****",
+      "entropy": 2.81,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages.properties",
+      "line": 17,
+      "column": 16,
+      "type": "password",
+      "value_preview": "Pass****",
+      "entropy": 2.75,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages_de.properties",
+      "line": 11,
+      "column": 1,
+      "type": "password",
+      "value_preview": "Pass****",
+      "entropy": 2.75,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages_nl.properties",
+      "line": 8,
+      "column": 1,
+      "type": "password",
+      "value_preview": "Wach****",
+      "entropy": 3.12,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages_nl.properties",
+      "line": 12,
+      "column": 18,
+      "type": "password",
+      "value_preview": "Onge****",
+      "entropy": 2.73,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\i18n\\messages_nl.properties",
+      "line": 17,
+      "column": 16,
+      "type": "password",
+      "value_preview": "Wach****",
+      "entropy": 3.12,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\lessons\\securepasswords\\i18n\\WebGoatLabels.properties",
+      "line": 4,
+      "column": 6,
+      "type": "password",
+      "value_preview": "Show****",
+      "entropy": 2.0,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\lessons\\securepasswords\\i18n\\WebGoatLabels_nl.properties",
+      "line": 4,
+      "column": 6,
+      "type": "password",
+      "value_preview": "Toon****",
+      "entropy": 1.5,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 35,
+      "column": 14,
+      "type": "email",
+      "value_preview": "nann****",
+      "entropy": 3.4,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 42,
+      "column": 14,
+      "type": "email",
+      "value_preview": "rene****",
+      "entropy": 3.97,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 47,
+      "column": 14,
+      "type": "email",
+      "value_preview": "ange****",
+      "entropy": 3.32,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 52,
+      "column": 25,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "line": 53,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
       "severity": "low"
     }
   ]

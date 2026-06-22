@@ -1002,7 +1002,7 @@ def build_all_chains_for_endpoint(
     # jar-analyzer CTE also provides a 'path' column, parse unique paths from it
     ja_all_rows: List[Dict[str, Any]] = []
     if used_jar_analyzer_all:
-        ja_all_rows = _jac.extract_recursive_with_impl(  # type: ignore[union-attr]
+        ja_all_rows = _jac.extract_recursive_jar_analyzer(  # type: ignore[union-attr]
             str(jar_analyzer_db_path), entry_id, max_depth,
         )
         if not ja_all_rows:
@@ -1430,11 +1430,25 @@ def build_chain_jar_analyzer(
     total_sinks = 0
     all_dynamic_sinks: List[Dict[str, Any]] = []
     seen_node_ids: set[str] = set()
+    seen_signatures: set[str] = set()  # 用于去重 (class_name, method_name, method_desc)
 
     for r in raw_rows:
         nid = r["id"]
         if nid in seen_node_ids:
             continue
+        
+        meta = method_meta_map.get(nid, {})
+        cn = r.get("class_name", meta.get("class_name", ""))
+        mn = r.get("method_name", meta.get("method_name", ""))
+        md = r.get("method_desc", meta.get("method_desc", ""))
+        
+        # 去重: 基于 (class_name, method_name, method_desc) 而不是 method_id
+        signature = f"{cn}::{mn}::{md}" if cn and mn and md else ""
+        if signature and signature in seen_signatures:
+            continue
+        if signature:
+            seen_signatures.add(signature)
+        
         seen_node_ids.add(nid)
 
         meta = method_meta_map.get(nid, {})

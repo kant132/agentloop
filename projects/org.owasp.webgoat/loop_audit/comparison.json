@@ -1,0 +1,119 @@
+{
+  "codegraph": {
+    "methods": 1207,
+    "calls": 8786,
+    "routes": 180
+  },
+  "jar_analyzer": {
+    "methods": 2003,
+    "calls": 5895,
+    "spring_endpoints": 187
+  },
+  "edge_comparison": {
+    "cg_edges_checked": 8786,
+    "cg_edges_in_jar": 473,
+    "cg_edges_not_in_jar": 8313,
+    "mismatch_rate": 0.946,
+    "java_edges_checked": 1873,
+    "java_edges_in_jar": 473,
+    "java_edges_not_in_jar": 1400,
+    "java_mismatch_rate": 0.747,
+    "false_positive_examples": [
+      {
+        "source": "MavenWrapperDownloader::main",
+        "target": "MavenWrapperDownloader::downloadFileFromURL",
+        "jar_source_class": "MavenWrapperDownloader",
+        "jar_source_method": "main",
+        "jar_target_class": "MavenWrapperDownloader",
+        "jar_target_method": "downloadFileFromURL",
+        "note": "codegraph edge not found in jar-analyzer"
+      },
+      {
+        "source": "org.owasp.webgoat.integration::AccessControlIntegrationTest::testLesson",
+        "target": "org.owasp.webgoat.integration::IntegrationTest::startLesson",
+        "jar_source_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_source_method": "testLesson",
+        "jar_target_class": "org/owasp/webgoat/integration/IntegrationTest",
+        "jar_target_method": "startLesson",
+        "note": "codegraph edge not found in jar-analyzer"
+      },
+      {
+        "source": "org.owasp.webgoat.integration::AccessControlIntegrationTest::testLesson",
+        "target": "org.owasp.webgoat.integration::AccessControlIntegrationTest::assignment1",
+        "jar_source_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_source_method": "testLesson",
+        "jar_target_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_target_method": "assignment1",
+        "note": "codegraph edge not found in jar-analyzer"
+      },
+      {
+        "source": "org.owasp.webgoat.integration::AccessControlIntegrationTest::testLesson",
+        "target": "org.owasp.webgoat.integration::AccessControlIntegrationTest::assignment2",
+        "jar_source_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_source_method": "testLesson",
+        "jar_target_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_target_method": "assignment2",
+        "note": "codegraph edge not found in jar-analyzer"
+      },
+      {
+        "source": "org.owasp.webgoat.integration::AccessControlIntegrationTest::testLesson",
+        "target": "org.owasp.webgoat.integration::AccessControlIntegrationTest::assignment3",
+        "jar_source_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_source_method": "testLesson",
+        "jar_target_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_target_method": "assignment3",
+        "note": "codegraph edge not found in jar-analyzer"
+      },
+      {
+        "source": "org.owasp.webgoat.integration::AccessControlIntegrationTest::testLesson",
+        "target": "org.owasp.webgoat.integration::IntegrationTest::checkResults",
+        "jar_source_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_source_method": "testLesson",
+        "jar_target_class": "org/owasp/webgoat/integration/IntegrationTest",
+        "jar_target_method": "checkResults",
+        "note": "codegraph edge not found in jar-analyzer"
+      },
+      {
+        "source": "org.owasp.webgoat.integration::AccessControlIntegrationTest::assignment3",
+        "target": "org.owasp.webgoat.integration::IntegrationTest::checkAssignment",
+        "jar_source_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_source_method": "assignment3",
+        "jar_target_class": "org/owasp/webgoat/integration/IntegrationTest",
+        "jar_target_method": "checkAssignment",
+        "note": "codegraph edge not found in jar-analyzer"
+      },
+      {
+        "source": "org.owasp.webgoat.integration::AccessControlIntegrationTest::assignment2",
+        "target": "org.owasp.webgoat.integration::IntegrationTest::checkAssignment",
+        "jar_source_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_source_method": "assignment2",
+        "jar_target_class": "org/owasp/webgoat/integration/IntegrationTest",
+        "jar_target_method": "checkAssignment",
+        "note": "codegraph edge not found in jar-analyzer"
+      },
+      {
+        "source": "org.owasp.webgoat.integration::AccessControlIntegrationTest::assignment1",
+        "target": "org.owasp.webgoat.integration::IntegrationTest::checkAssignment",
+        "jar_source_class": "org/owasp/webgoat/integration/AccessControlIntegrationTest",
+        "jar_source_method": "assignment1",
+        "jar_target_class": "org/owasp/webgoat/integration/IntegrationTest",
+        "jar_target_method": "checkAssignment",
+        "note": "codegraph edge not found in jar-analyzer"
+      },
+      {
+        "source": "org.owasp.webgoat.integration::ChallengeIntegrationTest::testChallenge1",
+        "target": "org.owasp.webgoat.integration::IntegrationTest::startLesson",
+        "jar_source_class": "org/owasp/webgoat/integration/ChallengeIntegrationTest",
+        "jar_source_method": "testChallenge1",
+        "jar_target_class": "org/owasp/webgoat/integration/IntegrationTest",
+        "jar_target_method": "startLesson",
+        "note": "codegraph edge not found in jar-analyzer"
+      }
+    ]
+  },
+  "reverse_comparison": {
+    "jar_edges_checked": 5895,
+    "jar_edges_in_cg": 367,
+    "jar_edges_not_in_cg": 5528
+  }
+}
