@@ -124,30 +124,39 @@ def load_chain(
 def main():
     parser = argparse.ArgumentParser(description="从 Memurai 加载方法体")
     parser.add_argument("--group-id", required=True, help="项目 groupId")
-    parser.add_argument("--chain-id", help="chain_id（从 chains.db 自动读取 node_path，取最后一个 node）")
+    parser.add_argument("--chain-id", help="chain_id（从 jar-analyzer.db chains 表自动读取 node_path，取最后一个 node）")
     parser.add_argument("--node-id", help="单个 node_id")
     parser.add_argument("--node-path", help="node_path (method:id1 -> method:id2 -> ...)")
     parser.add_argument("--max-depth", type=int, default=4, help="前 N 层（默认 4）")
     parser.add_argument("--tail-depth", type=int, default=2, help="后 N 层（默认 2，链<6层时全部加载）")
-    parser.add_argument("--loop-dir", default="", help="loop_audit 目录（含 chains.db，与 --chain-id 配合使用）")
+    parser.add_argument("--jar-analyzer-db", default="", help="jar-analyzer.db 路径（含 chains 表，与 --chain-id 配合使用）")
+    parser.add_argument("--loop-dir", default="", help="loop_audit 目录（回退: 查找 chains.db）")
     args = parser.parse_args()
 
     memurai = Memurai()
 
-    # --chain-id: 从 chains.db 自动取 node_path 最后一个 node
+    # --chain-id: 从 jar-analyzer.db chains 表自动取 node_path 最后一个 node
     if args.chain_id:
-        loop_dir = Path(args.loop_dir) if args.loop_dir else Path.cwd()
-        chain_db_path = loop_dir / "chains.db"
-        if not chain_db_path.exists():
-            # 尝试常见位置
+        chain_db_path = None
+        # 优先使用 --jar-analyzer-db
+        if args.jar_analyzer_db:
+            p = Path(args.jar_analyzer_db)
+            if p.is_file():
+                chain_db_path = p
+        # 回退: loop_dir / chains.db 或常见位置
+        if chain_db_path is None:
+            loop_dir = Path(args.loop_dir) if args.loop_dir else Path.cwd()
             for guess in [
+                loop_dir / "chains.db",
+                Path.cwd() / "projects" / args.group_id / "loop_audit" / "jar-analyzer.db",
+                Path(__file__).resolve().parent.parent.parent / "projects" / args.group_id / "loop_audit" / "jar-analyzer.db",
                 Path.cwd() / "projects" / args.group_id / "loop_audit" / "chains.db",
                 Path(__file__).resolve().parent.parent.parent / "projects" / args.group_id / "loop_audit" / "chains.db",
             ]:
                 if guess.exists():
                     chain_db_path = guess
                     break
-        if chain_db_path.exists():
+        if chain_db_path and chain_db_path.exists():
             import sqlite3
             conn = sqlite3.connect(str(chain_db_path))
             row = conn.execute(

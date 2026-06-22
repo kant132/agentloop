@@ -29,20 +29,20 @@ python {agentloop_root}/run_phase1_to_4.py --jar D:/path/to/app.jar --phase 2
 python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.json --phase 2
 
 # Phase 3-4: 主 agent 直接消费（不启动 opencode 子进程）
-# 主 agent 加载 java-whitebox-loop skill，从 chains.db 取 batch，分析+验证
+# 主 agent 加载 java-whitebox-loop skill，从 jar-analyzer.db chains 表取 batch，分析+验证
 
 # 单独执行各阶段：
 # Phase 0+1: 自动从 JAR 生成 preset.json + route.json + 暴露面采集
 python {agentloop_root}/scripts/auto_preset.py --jar D:/path/to/app.jar
 
-# Phase 2: 调用链构建（写入 chains.db）— jar-analyzer 模式
+# Phase 2: 调用链构建（写入 jar-analyzer.db chains 表）— jar-analyzer 模式
 python scripts/chain/chain_builder.py --project-root {projectRoot} --group-id {groupId} --entry "{fqn}" --depth 20 --loop-dir {loopDir} --jar-analyzer-db {jar_analyzer_db}
 
 # Phase 2.5: 链边验证（jar-analyzer 批量验证）
-python scripts/chain/verify_edges.py --jar-analyzer-db {jar_analyzer_db} --chains-db {loopDir}/chains.db
+python scripts/chain/verify_edges.py --jar-analyzer-db {jar_analyzer_db}
 
-# 查询 chains.db 统计
-python -c "from chain_db import ChainDB; db = ChainDB('{loopDir}/chains.db'); print(db.stats())"
+# 查询 chains 统计
+python -c "from chain_db import ChainDB; db = ChainDB('{jar_analyzer_db}'); print(db.stats())"
 
 # Memurai (Redis-compatible) — NOT pip redis, uses native CLI
 # Path: C:\Program Files\Memurai\memurai-cli.exe
@@ -69,7 +69,7 @@ Before starting any audit:
 | Read method bodies | Memurai cache (pre-fetched via JAR + source files) | Direct `Read` of whole files; querying jar-analyzer/codegraph for method bodies |
 | Statistics/reports | Python scripts | ad-hoc code |
 
-**Subagents never call jar-analyzer or codegraph directly** — method bodies are pre-fetched to Memurai before subagent launch. 主 agent 从 chains.db 取 batch，从 Memurai 加载方法体，直接分发给专家 agent。
+**Subagents never call jar-analyzer or codegraph directly** — method bodies are pre-fetched to Memurai before subagent launch. 主 agent 从 jar-analyzer.db chains 表取 batch，从 Memurai 加载方法体，直接分发给专家 agent。
 
 ## Scope Boundary (Hard Constraint)
 
@@ -94,7 +94,7 @@ Any deviation = incomplete audit (loop cannot terminate).
 | Directory | Purpose |
 |-----------|---------|
 | `skills/` | OpenCode skill definitions (java-whitebox-loop, injection-audit, poc-verify, etc.) |
-| `scripts/ast/` | Attack surface scanner, AST finders, annotation enrichment |
+| `scripts/ast_scan/` | Attack surface scanner, AST finders, annotation enrichment |
 | `scripts/chain/` | Call chain builder, chain_db.py (SQLite), method extractor, sink registry |
 | `scripts/audit/` | PoC monitor, coverage verifiers, self-evolution (cross-agent-50r.py deprecated) |
 | `scripts/redis/` | Memurai client wrapper, batch prefetch, stats |
@@ -159,11 +159,11 @@ Audit terminates when ALL are true simultaneously:
   ├── 脚本工具: Phase 0-2（确定性工作，不需要 AI）
   │     ├── Phase 0: check_core_tools.py + Memurai cleanup + skills 软连接同步 + auto_preset (JAR→preset+route)
   │     ├── Phase 1: exposure/cli.py collect（9 collectors → exposure/*.json）
-  │     ├── Phase 2: chain_builder.py → chains.db + Memurai 方法体缓存
+  │     ├── Phase 2: chain_builder.py → jar-analyzer.db chains 表 + Memurai 方法体缓存
   │     └── Phase 2.5: verify_edges.py → 链边批量验证
   │
   ├── 专家 agent: Phase 3（通过 task() 委派，subagent 加载对应 skill）
-  │     主 agent 从 chains.db 取链，按链特征分发：
+  │     主 agent 从 jar-analyzer.db chains 表取链，按链特征分发：
   │
   │     ┌──────────────────────────────────────────────────────────────────┐
   │     │ 注入类/文件类（chain 有 sink）:                                    │
@@ -196,7 +196,7 @@ Audit terminates when ALL are true simultaneously:
         PoC agent 通过 Memurai 缓存 + codegraph SQLite 获取代码信息（禁止直接读源文件）
 ```
 
-**agent_results JSON 列**（chains.db 新增列）:
+**agent_results JSON 列**（jar-analyzer.db chains 表）:
 ```json
 {
   "injection": {"verdict": "vuln", "vulnerabilities": [{"type": "...", "root_cause": "...", "poc_status": "pending"}]},

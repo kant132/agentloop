@@ -20,7 +20,7 @@ scripts/
 | 脚本 | 行数 | 调用方式 | 角色 |
 |------|------|---------|------|
 | `audit/cross-agent-50r.py` | 332 | `python scripts/audit/cross-agent-50r.py --preset {preset.json}` | **主守护进程** — 50轮循环编排 |
-| `ast/attack_surface_scanner.py` | 1269 | `python scripts/ast/attack_surface_scanner.py --preset {preset.json}` | Phase 1 攻击面扫描 |
+| `ast_scan/attack_surface_scanner.py` | 1269 | `python scripts/ast_scan/attack_surface_scanner.py --preset {preset.json}` | Phase 1 攻击面扫描 |
 | `chain/chain_builder.py` | 902 | `python scripts/chain/chain_builder.py --preset {preset.json} --endpoint {ep}` | Phase 2 调用链构建 |
 | `redis/redis-batch-prefetch.py` | 157 | 被chain_builder调用 | 方法体批量预取到Memurai |
 

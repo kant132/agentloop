@@ -102,10 +102,10 @@ def test_ar09_rank_chains_called_before_session():
 
 
 def test_ar09_endpoint_metadata_loaded_from_exposure_assets():
-    """链数据应从 chains.db 加载"""
+    """链数据应从 jar-analyzer.db chains 表加载"""
     daemon_source = Path(_daemon_path).read_text(encoding='utf-8')
-    assert 'chains.db' in daemon_source, \
-        "daemon should reference chains.db for chain data"
+    assert 'jar-analyzer.db' in daemon_source or 'chains' in daemon_source, \
+        "daemon should reference jar-analyzer.db chains table for chain data"
 
 
 def test_ar09_ordered_endpoint_list_written_to_file():

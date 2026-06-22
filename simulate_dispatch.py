@@ -36,7 +36,7 @@ def main():
     gid = args.group_id
 
     from chain_db import ChainDB
-    db = ChainDB(loop_dir / "chains.db")
+    db = ChainDB(loop_dir / "jar-analyzer.db")
 
     # 1. 取链元数据
     all_chains = db.batch_by_priority(limit=3, status="pending")
@@ -120,7 +120,7 @@ def main():
             verdict = "safe"
         log.info("    模拟结论: %s", verdict)
 
-        # 更新 chains.db 状态
+        # 更新 jar-analyzer.db chains 表状态
         db.update_status(chain_id, "analyzed")
         log.info("    status: pending → analyzed")
 
@@ -129,7 +129,7 @@ def main():
     log.info("中间状态检查:")
 
     stats = db.stats()
-    log.info("  chains.db stats: %s", json.dumps(stats, ensure_ascii=False))
+    log.info("  jar-analyzer.db chains stats: %s", json.dumps(stats, ensure_ascii=False))
 
     # 检查 Memurai 计数
     count_keys = []
@@ -156,11 +156,11 @@ def main():
     log.info("")
     log.info("设计对齐检查:")
     checks = [
-        ("chains.db 有 chain_path 列", all(c.get("chain_path") for c in all_chains)),
-        ("chains.db 有 node_path 列", all(c.get("node_path") for c in all_chains)),
-        ("chains.db 有 priority 列", all(c.get("priority") is not None for c in all_chains)),
-        ("chains.db 有 total_sinks 列", all(c.get("total_sinks") is not None for c in all_chains)),
-        ("chains.db 有 status 列", all(c.get("status") for c in all_chains)),
+    ("chains 表有 chain_path 列", all(c.get("chain_path") for c in all_chains)),
+    ("chains 表有 node_path 列", all(c.get("node_path") for c in all_chains)),
+    ("chains 表有 priority 列", all(c.get("priority") is not None for c in all_chains)),
+    ("chains 表有 total_sinks 列", all(c.get("total_sinks") is not None for c in all_chains)),
+    ("chains 表有 status 列", all(c.get("status") for c in all_chains)),
         ("无 sink 链跳过注入类", len(no_sink_chains) > 0 or len(all_chains) == len(sink_chains)),
         ("认证鉴权按 endpoint 去重", len(auth_biz_chains) <= len(endpoints_seen)),
         ("方法体有 #fqn 注释", has_annotation if 'has_annotation' in dir() else False),

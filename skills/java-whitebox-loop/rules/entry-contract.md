@@ -50,8 +50,8 @@ python {agentloop_root}/scripts/audit/cross-agent-50r.py \
 
 | 脚本 | 路径 | Phase |
 |------|------|-------|
-| `attack_surface_scanner.py` | `{agentloop_root}/scripts/ast/` | A |
-| `annotated-source-enricher.py` | `{agentloop_root}/scripts/ast/` | B |
+| `attack_surface_scanner.py` | `{agentloop_root}/scripts/ast_scan/` | A |
+| `annotated-source-enricher.py` | `{agentloop_root}/scripts/ast_scan/` | B |
 | `chain_builder.py` | `{agentloop_root}/scripts/chain/` | C |
 | `method_calls_extractor.py` | `{agentloop_root}/scripts/chain/` | C |
 | `poc-monitor.py` | `{agentloop_root}/scripts/audit/` | C (后台守护) |

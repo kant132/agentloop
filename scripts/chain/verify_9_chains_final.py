@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts" / "chain"))
 
-CHAINS_DB = ROOT / "projects" / "org.owasp.webgoat" / "loop_audit" / "chains.db"
+CHAINS_DB = ROOT / "projects" / "org.owasp.webgoat" / "loop_audit" / "jar-analyzer.db"
 JAR_DB = ROOT / "projects" / "org.owasp.webgoat" / "loop_audit" / "jar-analyzer.db"
 PROJECT_ROOT = Path("D:/code/WebGoat-2025.3")
 

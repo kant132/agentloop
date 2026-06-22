@@ -471,7 +471,7 @@ def main() -> int:
             logging.warning("Auth class caching failed: %s", e)
 
         # Load chains from SQLite, batch by priority (100 per batch)
-        chains_db_path = ld / "chains.db"
+        chains_db_path = ld / "jar-analyzer.db"
         if chains_db_path.exists():
             try:
                 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "chain"))
@@ -494,7 +494,7 @@ def main() -> int:
             except Exception as e:
                 logging.warning("Chains DB load failed: %s", e)
         else:
-            logging.info("No chains.db found, chain building not yet done")
+            logging.info("No jar-analyzer.db found, chain building not yet done")
 
         if check_convergence(dd):
             logging.info("Converged — breaking after R%d", n-1); break

@@ -23,13 +23,13 @@ python {agentloop_root}/run_phase1_to_4.py --preset projects/{group_id}/preset.j
 
 产出：
 - `exposure/*.json` — 9 类资产
-- `chains.db` — 调用链 SQLite（chain_path + node_path + priority + status + total_sinks + node_count）
+- `jar-analyzer.db` chains 表 — 调用链数据（chain_path + node_path + priority + status + total_sinks + node_count）
 - Memurai: `{groupId}:method:{node_id}` — 方法体缓存（含 `//fqn:` 注释）
 
 ### Phase 2.5: 链边验证（jar-analyzer 批量验证）
 
 ```powershell
-python {agentloop_root}/scripts/chain/verify_edges.py --jar-analyzer-db {jar_analyzer_db} --chains-db {loop_audit_dir}/chains.db
+python {agentloop_root}/scripts/chain/verify_edges.py --jar-analyzer-db {jar_analyzer_db}
 ```
 
 jar-analyzer 模式下，链的 node_id 是 jar-analyzer 的 method_id，边信息来自 `method_call_table`（已在链构建时使用）。此步骤：
@@ -43,7 +43,7 @@ jar-analyzer 模式下，链的 node_id 是 jar-analyzer 的 method_id，边信�
 
 **禁止自己写临时脚本。** 用以下固定步骤执行，代码已写好，直接调用。
 
-#### 步骤 1: 选链（从 chains.db 读取，按分发规则筛选）
+#### 步骤 1: 选链（从 jar-analyzer.db chains 表读取，按分发规则筛选）
 
 ```python
 import sys, json
@@ -53,7 +53,7 @@ from chain_db import ChainDB
 from memurai_client import Memurai
 from load_method_body import load_chain
 
-db = ChainDB(r"{loop_audit_dir}/chains.db")
+db = ChainDB(r"{jar_analyzer_db}")
 m = Memurai()
 GID = "{group_id}"
 
@@ -102,7 +102,7 @@ prompt = prompt.replace("{method_bodies}", method_bodies)
 result = task(category="deep", description=f"Phase3 {chain['chain_id']}", prompt=prompt)
 ```
 
-#### 步骤 5: 写回 chains.db
+#### 步骤 5: 写回 jar-analyzer.db chains 表
 
 ```python
 import re, json
@@ -165,7 +165,7 @@ db.update_status(chain["chain_id"], "safe" if data["verdict"]=="safe" else "vuln
 
 ```python
 from chain_db import ChainDB
-db = ChainDB("{loop_audit_dir}/chains.db")
+db = ChainDB("{jar_analyzer_db}")
 all_chains = db.batch_by_priority(limit=100, status="pending")
 
 # 1. 注入类/文件类：每 endpoint 1 条链，优先级最高
@@ -197,7 +197,7 @@ top_25 = all_endpoints[:max(1, len(all_endpoints) // 4)]
 from chain_db import ChainDB
 from memurai_client import Memurai
 
-db = ChainDB("{loop_audit_dir}/chains.db")
+db = ChainDB("{jar_analyzer_db}")
 m = Memurai()
 GID = "{group_id}"
 

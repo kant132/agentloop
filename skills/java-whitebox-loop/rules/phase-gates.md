@@ -5,7 +5,7 @@ Reference only by `java-whitebox-loop/SKILL.md`. Do NOT refer to older DEPRECATE
 ## Phase A — Endpoint Enumeration
 
 ### Entry Conditions
-- `scripts/ast/attack_surface_scanner.py` exists
+- `scripts/ast_scan/attack_surface_scanner.py` exists
 - `codegraph.db` already indexed at `$CODEGRAPH_DB`
 - `projects/_template/07-Sink表.json` accessible
 

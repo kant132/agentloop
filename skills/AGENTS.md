@@ -10,7 +10,7 @@ OpenCode skill 定义。每个子目录以 SKILL.md 为唯一入口。
   ├── 脚本工具: Phase 0-2（确定性工作，不需要 AI）
   │     ├── Phase 0: check_core_tools.py + Memurai cleanup
   │     ├── Phase 1: exposure/cli.py collect（9 collectors）
-  │     └── Phase 2: chain_builder.py → chains.db + Memurai 方法体缓存
+  │     └── Phase 2: chain_builder.py → jar-analyzer.db chains 表 + Memurai 方法体缓存
   │
   ├── 专家 agent: Phase 3（AI 分析，通过 task() 委派）
   │     ├── injection-audit      → SQL/CMD/XXE/SpEL/LDAP/反序列化
@@ -31,7 +31,7 @@ OpenCode skill 定义。每个子目录以 SKILL.md 为唯一入口。
 
 **关键变化**：
 - 去掉 endpoint-supervisor（主管层），Boss 直接对接专家
-- 不启动独立 opencode 子进程，主 agent 直接消费 chains.db + Memurai 数据
+- 不启动独立 opencode 子进程，主 agent 直接消费 jar-analyzer.db chains 表 + Memurai 数据
 - 专家 agent 通过 task() 委派，主 agent 整理好数据后发放
 
 ## Skill 清单

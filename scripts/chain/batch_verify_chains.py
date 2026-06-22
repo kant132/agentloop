@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""batch_verify_chains.py — 批量验证所有链边正确性。
+"""batch_verify_chains.py — 批量验证所有链边正确性 (已废弃，使用 verify_edges.py)。
 
 核心逻辑:
-1. 对 chains.db 中每条 chain，逐对检查 (nodes[i], nodes[i+1]) 是否在 method_call_table 或 method_impl_table 中存在边
+1. 对 jar-analyzer.db chains 表中每条 chain，逐对检查 (nodes[i], nodes[i+1]) 是否在 method_call_table 或 method_impl_table 中存在边
 2. 若某条边不存在，标记该 chain 为 broken，并丢弃所有以此 chain 前缀开始的后续 chain
 3. 输出统计报告
 
-Usage:
-    python scripts/chain/batch_verify_chains.py \\
-        --chains-db projects/org.owasp.webgoat/loop_audit/chains.db \\
-        --jar-analyzer-db projects/org.owasp.webgoat/loop_audit/jar-analyzer.db
+推荐使用: python scripts/chain/verify_edges.py --jar-analyzer-db {db}
 """
 from __future__ import annotations
 

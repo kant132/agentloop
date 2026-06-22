@@ -24,7 +24,7 @@ except ImportError:
 
 
 # --- Default jar directory ---
-# Resolved relative to this file: scripts/ast/ -> ../../tools/javaparser
+# Resolved relative to this file: scripts/ast_scan/ -> ../../tools/javaparser
 _HERE = Path(__file__).resolve().parent
 DEFAULT_JAR_DIR = _HERE.parent.parent / "tools" / "javaparser"
 

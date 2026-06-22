@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-"""chain_db.py — 调用链 SQLite 存储。
+"""chain_db.py — 调用链 SQLite 存储（chains 表，嵌入 jar-analyzer.db）。
 
-单表设计：所有调用链数据存一张表，按优先级批量加载。
+单表设计：chains 表创建在 jar-analyzer.db 中，与 method_table/method_call_table 共存。
+按优先级批量加载。
 
 Schema:
     CREATE TABLE chains (
@@ -32,7 +33,7 @@ agent_results JSON 结构:
     }
 
 用法:
-    db = ChainDB("chains.db")
+    db = ChainDB("jar-analyzer.db")  # chains 表在 jar-analyzer.db 中
     db.insert_chain(chain_id, endpoint_fqn, priority, ...)
     batch = db.batch_by_priority(limit=100, offset=0)
     db.update_status(chain_id, "analyzed")

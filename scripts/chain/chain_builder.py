@@ -124,8 +124,8 @@ _cfw = _load_module_from_file(
     _HERE / "chain_file_writer.py",
 )
 
-# scripts/ast/scanner_utils.py — 通过 sys.path 走普通 import
-_ast_dir = _REPO_ROOT / "scripts" / "ast"
+# scripts/ast_scan/scanner_utils.py — 通过 sys.path 走普通 import
+_ast_dir = _REPO_ROOT / "scripts" / "ast_scan"
 if str(_ast_dir) not in sys.path:
     sys.path.insert(0, str(_ast_dir))
 if str(_REPO_ROOT) not in sys.path:
@@ -134,11 +134,11 @@ try:
     import scanner_utils as _su  # type: ignore
 except ImportError:
     try:
-        from scripts.ast import scanner_utils as _su  # type: ignore
+        from scripts.ast_scan import scanner_utils as _su  # type: ignore
     except ImportError as _e:
         raise ImportError(
             f"无法 import scanner_utils (paths tried: scanner_utils, "
-            f"scripts.ast.scanner_utils, {_ast_dir}): {_e}"
+            f"scripts.ast_scan.scanner_utils, {_ast_dir}): {_e}"
         )
 
 
@@ -845,7 +845,8 @@ def build_chain(
     if loop_audit_dir is not None:
         try:
             from chain_db import ChainDB
-            db = ChainDB(loop_audit_dir / "chains.db")
+            _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else (loop_audit_dir / "chains.db")
+            db = ChainDB(_chain_db_path)
             # 构建 chain_path: fqn(sink num: N) -> fqn(sink num: N) -> ...
             chain_path_parts = []
             node_path_parts = []
@@ -877,7 +878,7 @@ def build_chain(
                 is_sink=last_sinks > 0,
                 node_count=len(chain_nodes),
             )
-            result["chain_db"] = str(loop_audit_dir / "chains.db")
+            result["chain_db"] = str(_chain_db_path)
             result["last_sinks_priority"] = priority
         except Exception as e:  # noqa: BLE001
             _log("chain_db write failed: %s", e)
@@ -1249,7 +1250,8 @@ def build_all_chains_for_endpoint(
     if loop_audit_dir is not None and results:
         try:
             from chain_db import ChainDB
-            db = ChainDB(loop_audit_dir / "chains.db")
+            _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else (loop_audit_dir / "chains.db")
+            db = ChainDB(_chain_db_path)
             chains_to_insert = []
             for r in results:
                 chain_path_parts = []
@@ -1279,7 +1281,7 @@ def build_all_chains_for_endpoint(
                 })
             db.insert_chains_batch(chains_to_insert)
             for r in results:
-                r["chain_db"] = str(loop_audit_dir / "chains.db")
+                r["chain_db"] = str(_chain_db_path)
         except Exception as e:  # noqa: BLE001
             _log("chain_db write failed: %s", e)
             for r in results:
@@ -1553,7 +1555,8 @@ def build_chain_jar_analyzer(
     if loop_audit_dir is not None:
         try:
             from chain_db import ChainDB
-            db = ChainDB(loop_audit_dir / "chains.db")
+            _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else (loop_audit_dir / "chains.db")
+            db = ChainDB(_chain_db_path)
             chain_path_parts = []
             node_path_parts = []
             for n in chain_nodes:
@@ -1581,7 +1584,7 @@ def build_chain_jar_analyzer(
                 is_sink=last_sinks > 0,
                 node_count=len(chain_nodes),
             )
-            result["chain_db"] = str(loop_audit_dir / "chains.db")
+            result["chain_db"] = str(_chain_db_path)
             result["last_sinks_priority"] = priority
         except Exception as e:  # noqa: BLE001
             _log("chain_db write failed: %s", e)
@@ -1835,7 +1838,8 @@ def build_all_chains_for_endpoint_jar_analyzer(
     if loop_audit_dir is not None and results:
         try:
             from chain_db import ChainDB
-            db = ChainDB(loop_audit_dir / "chains.db")
+            _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else (loop_audit_dir / "chains.db")
+            db = ChainDB(_chain_db_path)
             chains_to_insert = []
             for r in results:
                 chain_path_parts = []
@@ -1864,7 +1868,7 @@ def build_all_chains_for_endpoint_jar_analyzer(
                 })
             db.insert_chains_batch(chains_to_insert)
             for r in results:
-                r["chain_db"] = str(loop_audit_dir / "chains.db")
+                r["chain_db"] = str(_chain_db_path)
         except Exception as e:  # noqa: BLE001
             _log("chain_db write failed: %s", e)
             for r in results:

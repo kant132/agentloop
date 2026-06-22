@@ -10,7 +10,7 @@ from memurai_client import Memurai
 
 GID = "org.owasp.webgoat"
 LOOP = Path("projects/org.owasp.webgoat/loop_audit")
-db = ChainDB(LOOP / "chains.db")
+db = ChainDB(LOOP / "jar-analyzer.db")
 m = Memurai()
 
 c = db.get_chain("b45a10a0b9486325")

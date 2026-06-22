@@ -29,7 +29,7 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "chain"))
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "redis"))
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "audit"))
-sys.path.insert(0, str(REPO_ROOT / "scripts" / "ast"))
+sys.path.insert(0, str(REPO_ROOT / "scripts" / "ast_scan"))
 
 logging.basicConfig(
     level=logging.INFO,
@@ -167,14 +167,14 @@ def main():
                     log.warning("  JADX 反编译异常: %s", e)
 
     # 所有项目：jar-analyzer 构建（可选，失败不阻断）
-    jar_analyzer_jar = REPO_ROOT / "tools" / "javaparser" / "jar-analyzer-5.22.jar"
+    jar_analyzer_jar = REPO_ROOT / "tools" / "jar-analyzer-engine" / "target" / "jar-analyzer-engine-1.2.0-jar-with-dependencies.jar"
     if target_jar_path and jar_analyzer_jar.exists():
         target_jar = Path(target_jar_path)
         if target_jar.exists():
             log.info("  jar-analyzer 构建: %s", target_jar)
             try:
                 _ja_result = _sp.run(
-                    ["java", "-jar", str(jar_analyzer_jar), "build", "-j", str(target_jar)],
+                    ["java", "-jar", str(jar_analyzer_jar), "--jar", str(target_jar)],
                     capture_output=True, text=True, timeout=300,
                 )
                 if _ja_result.returncode != 0:
@@ -269,17 +269,16 @@ def main():
     # Phase 2: 调用链构建 + SQLite 存储
     # ============================================================
     log.info("")
-    log.info(">>> Phase 2: 调用链构建 (写入 chains.db)")
+    log.info(">>> Phase 2: 调用链构建 (写入 jar-analyzer.db chains 表)")
     t0 = time.time()
 
     from chain_db import ChainDB
     from chain_builder import build_all_chains_for_endpoint_jar_analyzer
 
-    # 清空旧链
-    chains_db = loop_dir / "chains.db"
-    db = ChainDB(chains_db)
+    # 清空旧链 (chains 表在 jar-analyzer.db 中)
+    db = ChainDB(jar_analyzer_db)
     db.clear_all()
-    log.info("  清空旧 chains.db")
+    log.info("  清空旧 chains 表 (jar-analyzer.db)")
 
     # 从 route.json 取前 N 个端点
     route_file = exposure_dir / "route.json"
@@ -504,7 +503,7 @@ def main():
         log.info("=" * 60)
         log.info("Phase 1→%d 完成", args.phase)
         log.info("  链统计: %s", json.dumps(final_stats, ensure_ascii=False))
-        log.info("  chains.db: %s", chains_db)
+        log.info("  jar-analyzer.db: %s", jar_analyzer_db)
         log.info("=" * 60)
         return 0
 
@@ -622,7 +621,7 @@ def main():
     log.info("  Phase 3 分析: %d analyzed", analyzed)
     log.info("  Phase 4 PoC: %s", json.dumps(poc_results, ensure_ascii=False))
     log.info("  收敛: coverage=%.1f%% (需 ≥95%%)", coverage * 100)
-    log.info("  chains.db: %s", chains_db)
+    log.info("  jar-analyzer.db: %s", jar_analyzer_db)
     log.info("=" * 60)
     return 0
 

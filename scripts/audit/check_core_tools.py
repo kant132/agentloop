@@ -27,7 +27,7 @@ _PROJECT_SKILLS_DIR = Path(__file__).resolve().parent.parent.parent / "skills"
 _USER_SKILLS_DIR = Path(os.path.expanduser("~")) / ".agents" / "skills"
 
 _INSTALL_HINTS: Dict[str, str] = {
-    "jar_analyzer": "Ensure tools/javaparser/jar-analyzer-5.22.jar exists and Java runtime is available",
+    "jar_analyzer": "Ensure tools/jar-analyzer-engine/target/jar-analyzer-engine-1.2.0-jar-with-dependencies.jar exists and Java runtime is available",
     "ast_grep": "npm install -g ast-grep",
     "memurai":  "Download from https://www.memurai.com/install and run the installer",
 }
@@ -77,7 +77,7 @@ def check_memurai() -> bool:
 
 
 # jar-analyzer 路径（核心工具，Phase 0-3 硬依赖）
-JAR_ANALYZER_PATH = Path(r"D:\agentloop\tools\javaparser\jar-analyzer-5.22.jar")
+JAR_ANALYZER_PATH = Path(r"D:\agentloop\tools\jar-analyzer-engine\target\jar-analyzer-engine-1.2.0-jar-with-dependencies.jar")
 
 
 def check_jar_analyzer() -> bool:
