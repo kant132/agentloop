@@ -84,14 +84,15 @@ def infer_group_id(jar_db_path: Path) -> str:
     return pkgs.most_common(1)[0][0]
 
 
-def extract_routes(jar_db_path: Path, group_id: str) -> list[dict[str, Any]]:
+def extract_routes(jar_db_path: Path, group_id: str, project_root: Path | None = None) -> list[dict[str, Any]]:
     """从 jar-analyzer.db 提取路由端点（Spring MVC + CXF/JAX-RS/JAX-WS）。
 
     返回 route.json 格式的 items 列表。
 
     数据源：
     1. spring_method_table — jar-analyzer 自动识别的 Spring MVC 端点
-    2. anno_table — 查 JAX-RS (@Path/@GET/@POST) 和 JAX-WS (@WebService/@WebMethod) 注解
+    2. javaparser-service — 有源码时精确提取 @Path 路径值 (含 JaxRsFramework + JaxWsFramework)
+    3. anno_table — 无源码时回退方案，查 JAX-RS/JAX-WS 注解 (路径不精确)
     """
     import sqlite3
     conn = sqlite3.connect(str(jar_db_path))
@@ -153,12 +154,13 @@ def extract_routes(jar_db_path: Path, group_id: str) -> list[dict[str, Any]]:
             "source": "spring_mvc",
         })
 
-    # ── 2. JAX-RS (RESTful, @Path + @GET/@POST/@PUT/@DELETE) ──────
-    routes.extend(_extract_jaxrs_routes(conn, seen_fqns))
-
-    # ── 3. JAX-WS (SOAP, @WebService + @WebMethod) ────────────────
-    routes.extend(_extract_jaxws_routes(conn, seen_fqns))
-
+    # ── 2. CXF/JAX-RS/JAX-WS (有源码→javaparser-service, 无源码→anno_table) ──
+    cxf_routes = _extract_cxf_routes(jar_db_path, project_root, group_id)
+    for r in cxf_routes:
+        fqn = r.get("method_fqn", "")
+        if fqn and fqn not in seen_fqns:
+            seen_fqns.add(fqn)
+            routes.append(r)
     conn.close()
     return routes
 
@@ -178,18 +180,73 @@ _JAXRS_HTTP_ANNOTATIONS: dict[str, str] = {
 }
 
 
-def _extract_jaxrs_routes(
-    conn: "sqlite3.Connection",
-    seen_fqns: set[str],
+def _extract_cxf_routes(
+    jar_db_path: Path,
+    project_root: Path | None,
+    group_id: str,
 ) -> list[dict[str, Any]]:
-    """从 anno_table 查 JAX-RS 端点 (@Path 类 + @GET/@POST 方法)。
+    """提取 CXF/JAX-RS/JAX-WS 端点。
 
-    anno_table 不存注解参数值 (如 @Path("/users") 的 "/users")，
-    所以 path 只能从类名/方法名推断，精确路径留给 Phase 3 读源码。
+    优先级:
+    1. 有源码 → javaparser-service RouteExtractor --routes (精确路径, 含 JaxWsFramework)
+    2. 无源码 → jar-analyzer.db anno_table (路径不精确)
     """
+    # 1. config_scanner: 扫描配置文件
+    cxf_url_prefix = "/services"
+    if project_root and project_root.is_dir():
+        try:
+            from scripts.exposure.collectors.cxf.config_scanner import scan_config
+            cfg = scan_config(project_root)
+            pattern = cfg.get("cxf_servlet_url_pattern", "")
+            if pattern:
+                cxf_url_prefix = pattern.replace("/*", "").rstrip("/") or "/services"
+        except Exception:
+            pass
+
+    # 2. 有源码 → javaparser-service
+    source_root = None
+    if project_root:
+        for candidate in [project_root / "src" / "main" / "java", project_root / "sources"]:
+            if candidate.is_dir():
+                source_root = candidate
+                break
+
+    javaparser_jar = ROOT / "tools" / "javaparser" / "java-method-call-extractor-1.0.0.jar"
+
+    if source_root and javaparser_jar.exists():
+        import subprocess as _sp
+        try:
+            result = _sp.run(
+                ["java", "-jar", str(javaparser_jar), "--routes", str(source_root), "--group-id", group_id],
+                capture_output=True, text=True, timeout=300, encoding="utf-8", errors="replace",
+            )
+            if result.returncode == 0 and result.stdout:
+                import json as _json
+                data = _json.loads(result.stdout)
+                if isinstance(data, list):
+                    return data
+        except Exception:
+            pass
+
+    # 3. 无源码 → jar-analyzer.db anno_table 回退
+    return _extract_cxf_from_anno_table(jar_db_path, group_id, cxf_url_prefix)
+
+
+def _extract_cxf_from_anno_table(
+    jar_db_path: Path,
+    group_id: str,
+    cxf_url_prefix: str,
+) -> list[dict[str, Any]]:
+    """从 jar-analyzer.db anno_table 提取 CXF 端点 (无源码回退方案)。
+
+    anno_table 不存注解参数值, 路径只能从类名/方法名推断。
+    """
+    import sqlite3
+    conn = sqlite3.connect(str(jar_db_path))
+    conn.row_factory = sqlite3.Row
     routes: list[dict[str, Any]] = []
 
-    # 找带 @Path 注解的类 (类级别注解, method_name IS NULL)
+    # JAX-RS: @Path 类 + @GET/@POST 方法
     path_classes: set[str] = set()
     for row in conn.execute(
         "SELECT DISTINCT class_name FROM anno_table "
@@ -197,31 +254,21 @@ def _extract_jaxrs_routes(
     ).fetchall():
         path_classes.add(row["class_name"])
 
-    if not path_classes:
-        return routes
-
-    # 对每个 @Path 类，查方法级 HTTP 注解
-    placeholders = ",".join("?" * len(path_classes))
     for cls_name in path_classes:
-        # 查这个类的所有方法级注解
-        method_annos: dict[str, list[str]] = {}  # method_name → [anno_name, ...]
+        method_annos: dict[str, list[str]] = {}
         for row in conn.execute(
             "SELECT method_name, anno_name FROM anno_table "
-            f"WHERE class_name = ? AND method_name IS NOT NULL "
-            "AND (anno_name LIKE '%ws/rs/GET%' "
-            "  OR anno_name LIKE '%ws/rs/POST%' "
-            "  OR anno_name LIKE '%ws/rs/PUT%' "
-            "  OR anno_name LIKE '%ws/rs/DELETE%' "
+            "WHERE class_name = ? AND method_name IS NOT NULL "
+            "AND (anno_name LIKE '%ws/rs/GET%' OR anno_name LIKE '%ws/rs/POST%' "
+            "  OR anno_name LIKE '%ws/rs/PUT%' OR anno_name LIKE '%ws/rs/DELETE%' "
             "  OR anno_name LIKE '%ws/rs/PATCH%')",
             (cls_name,)
         ).fetchall():
             method_annos.setdefault(row["method_name"], []).append(row["anno_name"])
 
         if not method_annos:
-            # @Path 类但没有 HTTP method 注解 → 可能所有 public 方法都是端点
-            # 从 method_table 查 public 方法
             for row in conn.execute(
-                "SELECT method_name, method_desc FROM method_table "
+                "SELECT method_name FROM method_table "
                 "WHERE class_name = ? AND method_name NOT IN ('<init>', '<clinit>')",
                 (cls_name,)
             ).fetchall():
@@ -232,11 +279,6 @@ def _extract_jaxrs_routes(
 
         for mn, annos in method_annos.items():
             fqn = f"{class_fqn}#{mn}"
-            if fqn in seen_fqns:
-                continue
-            seen_fqns.add(fqn)
-
-            # 推断 HTTP method
             http_methods: list[str] = []
             for anno in annos:
                 for anno_key, http_method in _JAXRS_HTTP_ANNOTATIONS.items():
@@ -246,7 +288,6 @@ def _extract_jaxrs_routes(
             if not http_methods:
                 http_methods = ["ANY"]
 
-            # 查 method_desc
             mt_row = conn.execute(
                 "SELECT method_desc, line_number FROM method_table "
                 "WHERE class_name = ? AND method_name = ? LIMIT 1",
@@ -257,35 +298,18 @@ def _extract_jaxrs_routes(
             line_number = mt_row["line_number"] if mt_row else 0
 
             routes.append({
-                "fqn": fqn,
-                "method_fqn": fqn,
-                "class_fqn": class_fqn,
+                "fqn": fqn, "method_fqn": fqn, "class_fqn": class_fqn,
                 "method_name": mn,
                 "http_method": http_methods[0],
                 "http_methods": http_methods,
-                "full_url": f"/{class_short}/{mn}",  # 推断路径，精确路径需读源码
+                "full_url": f"/{class_short}/{mn}",
                 "has_external_param": has_params,
                 "start_line": line_number or 0,
-                "file": "",
-                "nodes_id": "",
+                "file": "", "nodes_id": "",
                 "source": "jax-rs",
             })
 
-    return routes
-
-
-def _extract_jaxws_routes(
-    conn: sqlite3.Connection,
-    seen_fqns: set[str],
-) -> list[dict[str, Any]]:
-    """从 anno_table 查 JAX-WS 端点 (@WebService 类 + @WebMethod 方法)。
-
-    JAX-WS 是 SOAP 协议，端点路径由 CXF servlet 配置决定
-    (通常 /services/{className})，方法名作为 SOAP 操作名。
-    """
-    routes: list[dict[str, Any]] = []
-
-    # 找带 @WebService 注解的类
+    # JAX-WS: @WebService 类 + @WebMethod 方法
     ws_classes: set[str] = set()
     for row in conn.execute(
         "SELECT DISTINCT class_name FROM anno_table "
@@ -293,12 +317,7 @@ def _extract_jaxws_routes(
     ).fetchall():
         ws_classes.add(row["class_name"])
 
-    if not ws_classes:
-        return routes
-
     for cls_name in ws_classes:
-        # @WebService 类的所有 public 方法都是 SOAP 端点
-        # 优先找带 @WebMethod 注解的方法，没有则取所有 public 方法
         web_methods: set[str] = set()
         for row in conn.execute(
             "SELECT DISTINCT method_name FROM anno_table "
@@ -308,7 +327,6 @@ def _extract_jaxws_routes(
         ).fetchall():
             web_methods.add(row["method_name"])
 
-        # 如果没有 @WebMethod，取所有 public 非 init 方法
         if not web_methods:
             for row in conn.execute(
                 "SELECT method_name FROM method_table "
@@ -325,10 +343,6 @@ def _extract_jaxws_routes(
 
         for mn in sorted(web_methods):
             fqn = f"{class_fqn}#{mn}"
-            if fqn in seen_fqns:
-                continue
-            seen_fqns.add(fqn)
-
             mt_row = conn.execute(
                 "SELECT method_desc, line_number FROM method_table "
                 "WHERE class_name = ? AND method_name = ? LIMIT 1",
@@ -339,20 +353,18 @@ def _extract_jaxws_routes(
             line_number = mt_row["line_number"] if mt_row else 0
 
             routes.append({
-                "fqn": fqn,
-                "method_fqn": fqn,
-                "class_fqn": class_fqn,
+                "fqn": fqn, "method_fqn": fqn, "class_fqn": class_fqn,
                 "method_name": mn,
-                "http_method": "POST",  # SOAP 默认 POST
+                "http_method": "POST",
                 "http_methods": ["POST"],
-                "full_url": f"/services/{class_short}",  # CXF 默认 servlet 前缀
+                "full_url": f"{cxf_url_prefix}/{class_short}",
                 "has_external_param": has_params,
                 "start_line": line_number or 0,
-                "file": "",
-                "nodes_id": "",
+                "file": "", "nodes_id": "",
                 "source": "jax-ws",
             })
 
+    conn.close()
     return routes
 
 
@@ -390,7 +402,7 @@ def generate_preset(
     print(f"  output_dir: {output_dir}")
 
     # 3. 提取路由
-    routes = extract_routes(output_db if output_db.exists() else (ROOT / "jar-analyzer.db"), group_id)
+    routes = extract_routes(output_db if output_db.exists() else (ROOT / "jar-analyzer.db"), group_id, Path(jar_path.parent.parent))
     print(f"  routes: {len(routes)}")
 
     # 4. 写 route.json

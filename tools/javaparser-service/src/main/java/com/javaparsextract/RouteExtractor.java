@@ -37,7 +37,7 @@ public class RouteExtractor {
         this.wsFramework = new SpringWebSocketFramework();
         this.rsocketFramework = new SpringRSocketFramework();
         this.handlers = List.of(
-                new SpringMvcFramework(), new JaxRsFramework(),
+                new SpringMvcFramework(), new JaxRsFramework(), new JaxWsFramework(),
                 new SpringGraphQLFramework(), new SpringActuatorFramework(),
                 servletFramework, wsFramework, rsocketFramework);
     }
@@ -66,7 +66,16 @@ public class RouteExtractor {
         String filePath = javaFile.toString().replace('\\', '/');
 
         for (ClassOrInterfaceDeclaration cls : cu.findAll(ClassOrInterfaceDeclaration.class)) {
-            if (cls.isInterface()) continue;
+            // JAX-WS endpointInterface: 接口中的方法是 SOAP 端点
+            // 其他框架: 跳过接口
+            boolean isWsInterface = false;
+            for (AnnotationExpr ann : cls.getAnnotations()) {
+                if ("WebService".equals(AnnotationUtils.getShortAnnotationName(ann))) {
+                    isWsInterface = true;
+                    break;
+                }
+            }
+            if (cls.isInterface() && !isWsInterface) continue;
             String fqn = pkg.isEmpty() ? cls.getNameAsString() : pkg + "." + cls.getNameAsString();
 
             if (servletFramework != null && servletFramework.isController(cls)) {
@@ -121,13 +130,14 @@ public class RouteExtractor {
     private int priority(String name) {
         // Lower priority = tried first
         if ("jaxrs".equals(name)) return 0;
-        if ("spring-actuator".equals(name)) return 1;
-        if ("servlet".equals(name)) return 2;
-        if ("spring-graphql".equals(name)) return 3;
-        if ("spring-websocket".equals(name)) return 4;
-        if ("spring-rsocket".equals(name)) return 5;
-        if ("spring-mvc".equals(name)) return 6; // Fallback — @Controller alone is ambiguous
-        return 7;
+        if ("jaxws".equals(name)) return 1;
+        if ("spring-actuator".equals(name)) return 2;
+        if ("servlet".equals(name)) return 3;
+        if ("spring-graphql".equals(name)) return 4;
+        if ("spring-websocket".equals(name)) return 5;
+        if ("spring-rsocket".equals(name)) return 6;
+        if ("spring-mvc".equals(name)) return 7; // Fallback — @Controller alone is ambiguous
+        return 8;
     }
 
     private List<Map<String, Object>> extractRoutesFromClass(
