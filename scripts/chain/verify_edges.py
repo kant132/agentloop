@@ -66,51 +66,180 @@ def _cg_qn_to_jar_parts(qualified_name: str) -> Tuple[str, str]:
 
 # ============================================================ jar-analyzer mode
 
+def _load_method_table(
+    jar_conn: sqlite3.Connection,
+) -> Tuple[Dict[str, str], Dict[str, str]]:
+    """Load method_table: method_id -> (class_name, method_name)."""
+    id_to_class: Dict[str, str] = {}
+    id_to_method: Dict[str, str] = {}
+    for row in jar_conn.execute(
+        "SELECT method_id, class_name, method_name FROM method_table"
+    ).fetchall():
+        mid = str(row["method_id"])
+        id_to_class[mid] = row["class_name"]
+        id_to_method[mid] = row["method_name"]
+    return id_to_class, id_to_method
+
+
+def _build_edge_sets(
+    jar_conn: sqlite3.Connection,
+) -> Tuple[Set[Tuple[str, str, str, str]], Set[Tuple[str, str, str, str]]]:
+    """Build edge sets from method_call_table and method_impl_table."""
+    call_edges: Set[Tuple[str, str, str, str]] = set()
+    for row in jar_conn.execute(
+        "SELECT caller_class_name, caller_method_name, "
+        "callee_class_name, callee_method_name FROM method_call_table"
+    ).fetchall():
+        call_edges.add((
+            row["caller_class_name"],
+            row["caller_method_name"],
+            row["callee_class_name"],
+            row["callee_method_name"],
+        ))
+
+    impl_edges: Set[Tuple[str, str, str, str]] = set()
+    for row in jar_conn.execute(
+        "SELECT class_name, method_name, impl_class_name, method_name FROM method_impl_table"
+    ).fetchall():
+        impl_edges.add((
+            row["class_name"],
+            row["method_name"],
+            row["impl_class_name"],
+            row["method_name"],
+        ))
+    return call_edges, impl_edges
+
+
 def verify_with_jar_analyzer(
     chains_db_path: Path,
     jar_analyzer_db_path: Path,
     group_id: str,
 ) -> Dict[str, Any]:
-    """用 jar-analyzer.db 作为 ground truth, 所有链标记 high_confidence (jar-analyzer 边是精确的)。
+    """用 jar-analyzer.db 作为 ground truth, 逐边验证链的正确性。
 
-    jar-analyzer 模式下, 链的 node_id 是 jar-analyzer 的 method_id,
-    边信息来自 method_call_table (已在链构建时使用), 不需要和codegraph 比较。
+    对每条链的每对连续节点 (i, i+1)，检查 method_call_table 或 method_impl_table
+    中是否存在对应的边。若边缺失则标记为 broken，并丢弃所有以此前缀开始的后续链。
     """
+    import time
+    t0 = time.time()
+
+    # Load jar-analyzer data
+    print("加载 method_table...")
+    jar_conn = sqlite3.connect(str(jar_analyzer_db_path))
+    jar_conn.row_factory = sqlite3.Row
+    id_to_class, id_to_method = _load_method_table(jar_conn)
+    print(f"  {len(id_to_class)} 个方法")
+
+    print("加载边信息...")
+    call_edges, impl_edges = _build_edge_sets(jar_conn)
+    print(f"  {len(call_edges)} 条调用边, {len(impl_edges)} 条实现边")
+    jar_conn.close()
+
     # Load chains
     chains_conn = sqlite3.connect(str(chains_db_path))
     chains_conn.row_factory = sqlite3.Row
-    chains = chains_conn.execute(
-        "SELECT chain_id, node_path FROM chains WHERE status='pending'"
+    all_chains = chains_conn.execute(
+        "SELECT chain_id, node_path, endpoint_fqn, node_count "
+        "FROM chains WHERE status='pending' ORDER BY node_count DESC"
     ).fetchall()
 
-    if not chains:
+    total_chains = len(all_chains)
+    if total_chains == 0:
         print("无 pending 链，无需验证")
         chains_conn.close()
         return {"total_chains": 0, "low_confidence": 0, "high_confidence": 0}
 
-    # Import ChainDB for writing mismatch_score
-    sys.path.insert(0, str(ROOT / "scripts" / "chain"))
-    from chain_db import ChainDB
+    print(f"正在验证 {total_chains} 条链...")
+    broken_chains: List[str] = []
+    broken_prefixes: Set[str] = set()
+    ok_chains = 0
+    total_edges_checked = 0
+    broken_edges_count = 0
 
-    db = ChainDB(chains_db_path)
-
-    # jar-analyzer 是 ground truth, 所有链 mismatch_score=0 (高置信)
-    total_chains = len(chains)
-    for chain in chains:
+    for idx, chain in enumerate(all_chains):
         chain_id = chain["chain_id"]
-        db.update_mismatch_score(chain_id, 0.0)
+        node_path = chain["node_path"]
+        nodes = [n.strip() for n in node_path.split(" -> ")]
 
+        # Check prefix
+        matched_prefix: Optional[str] = None
+        for bp in broken_prefixes:
+            bp_parts = bp.split(" -> ")
+            if len(nodes) >= len(bp_parts) and nodes[:len(bp_parts)] == bp_parts:
+                matched_prefix = bp
+                break
+
+        if matched_prefix is not None:
+            broken_chains.append(chain_id)
+            chains_conn.execute(
+                "UPDATE chains SET status='broken', mismatch_score=1.0 WHERE chain_id=?",
+                (chain_id,),
+            )
+            continue
+
+        # Verify edges
+        chain_broken = False
+        broken_at = 0
+        for j in range(len(nodes) - 1):
+            total_edges_checked += 1
+            src_id = nodes[j]
+            tgt_id = nodes[j + 1]
+            src_class = id_to_class.get(src_id, "")
+            src_method = id_to_method.get(src_id, "")
+            tgt_class = id_to_class.get(tgt_id, "")
+            tgt_method = id_to_method.get(tgt_id, "")
+
+            if not src_class or not tgt_class:
+                broken_edges_count += 1
+                chain_broken = True
+                broken_at = j
+                break
+
+            edge_key = (src_class, src_method, tgt_class, tgt_method)
+            if edge_key in call_edges or edge_key in impl_edges:
+                continue
+
+            broken_edges_count += 1
+            chain_broken = True
+            broken_at = j
+            print(f"  BROKEN: {chain_id} [{j}->{j+1}] "
+                  f"{src_class}::{src_method} -> {tgt_class}::{tgt_method}")
+            break
+
+        if chain_broken:
+            broken_chains.append(chain_id)
+            prefix_len = min(broken_at + 2, len(nodes))
+            broken_prefix = " -> ".join(nodes[:prefix_len])
+            broken_prefixes.add(broken_prefix)
+            chains_conn.execute(
+                "UPDATE chains SET status='broken', mismatch_score=1.0 WHERE chain_id=?",
+                (chain_id,),
+            )
+        else:
+            ok_chains += 1
+
+        if (idx + 1) % 500 == 0:
+            chains_conn.commit()
+            print(f"  进度: {idx + 1}/{total_chains}, OK={ok_chains}, Broken={len(broken_chains)}")
+
+    chains_conn.commit()
     chains_conn.close()
+    elapsed = time.time() - t0
 
-    print(f"\n=== jar-analyzer 置信度验证结果 ===")
-    print(f"总链: {total_chains}")
-    print(f"全部标记为高置信 (mismatch_score=0, jar-analyzer 是 ground truth)")
+    print(f"\n=== jar-analyzer 边验证结果 ===")
+    print(f"总链: {total_chains}, 通过: {ok_chains}, 断裂: {len(broken_chains)}")
+    print(f"总边: {total_edges_checked}, 断裂边: {broken_edges_count}")
+    print(f"断裂前缀: {len(broken_prefixes)}")
+    print(f"耗时: {elapsed:.1f}s")
 
     return {
         "total_chains": total_chains,
-        "low_confidence": 0,
-        "high_confidence": total_chains,
-        "mismatch_examples": [],
+        "broken": len(broken_chains),
+        "ok": ok_chains,
+        "total_edges": total_edges_checked,
+        "broken_edges": broken_edges_count,
+        "broken_prefixes": len(broken_prefixes),
+        "elapsed_seconds": round(elapsed, 1),
     }
 
 
@@ -309,16 +438,25 @@ def main(argv: Optional[List[str]] = None) -> int:
         if cg_from_preset:
             codegraph_db = Path(cg_from_preset)
 
-    # Choose mode
+    # Auto-detect jar-analyzer.db from preset if not provided
     jar_analyzer_db = args.jar_analyzer_db
+    if not jar_analyzer_db or not jar_analyzer_db.is_file():
+        ja_from_preset = preset.get("jarAnalyzerDb", "")
+        if ja_from_preset:
+            jar_analyzer_db = Path(ja_from_preset)
+        if not jar_analyzer_db or not jar_analyzer_db.is_file():
+            loop_dir = Path(preset.get("loopDir", ""))
+            if loop_dir:
+                candidate = loop_dir / "jar-analyzer.db"
+                if candidate.is_file():
+                    jar_analyzer_db = candidate
+
+    # Choose mode
     if jar_analyzer_db and jar_analyzer_db.is_file():
-        print(f"模式: jar-analyzer 置信度评分 (jar-analyzer.db = {jar_analyzer_db})")
+        print(f"模式: jar-analyzer 边验证 (jar-analyzer.db = {jar_analyzer_db})")
         result = verify_with_jar_analyzer(chains_db, jar_analyzer_db, group_id)
     else:
-        if not jar_analyzer_db:
-            print("模式: //fqn: 注释验证 (未提供 --jar-analyzer-db)")
-        else:
-            print(f"模式: //fqn: 注释验证 (jar-analyzer.db 不存在: {jar_analyzer_db})")
+        print("模式: //fqn: 注释验证 (jar-analyzer.db 不可用)")
 
         # Need codegraph for legacy mode
         if not codegraph_db or not codegraph_db.is_file():

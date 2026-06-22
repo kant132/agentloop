@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--preset", required=True, help="preset.json 路径")
     parser.add_argument("--limit", type=int, default=3, help="只跑前 N 条链 (默认 3)")
     parser.add_argument("--phase", type=int, default=4, help="执行到哪个 Phase (1/2/4, 4=全流程)")
+    parser.add_argument("--jar-analyzer-db", help="jar-analyzer.db 路径 (覆盖 preset 中的 jarAnalyzerDb)")
     args = parser.parse_args()
 
     # 加载 preset
@@ -86,7 +87,7 @@ def main():
     import subprocess as _sp
 
     # 读取 preset 新字段
-    jar_analyzer_db = preset.get("jarAnalyzerDb", str(loop_dir / "jar-analyzer.db"))
+    jar_analyzer_db = args.jar_analyzer_db or preset.get("jarAnalyzerDb", str(loop_dir / "jar-analyzer.db"))
     target_jar_path = preset.get("targetJarPath", "")
 
     # 检测项目类型
@@ -266,11 +267,9 @@ def main():
 
     # 清空旧链
     chains_db = loop_dir / "chains.db"
-    if chains_db.exists():
-        chains_db.unlink()
-        log.info("  清空旧 chains.db")
-
     db = ChainDB(chains_db)
+    db.clear_all()
+    log.info("  清空旧 chains.db")
 
     # 从 route.json 取前 N 个端点
     route_file = exposure_dir / "route.json"
@@ -307,6 +306,7 @@ def main():
                 loop_audit_dir=loop_dir,
                 memurai_client=memurai,
                 ttl=864000,
+                jar_analyzer_db_path=Path(jar_analyzer_db) if jar_analyzer_db else None,
             )
             elapsed = time.time() - t1
             total_nodes = sum(p.get("total_nodes", 0) for p in paths)
@@ -326,21 +326,12 @@ def main():
     chain_stats = db.stats()
     log.info("  Phase 2 完成: %.1fs", time.time() - t0)
     log.info("  链统计: %s", json.dumps(chain_stats, ensure_ascii=False))
-
-    # 打印前 3 条链（按优先级）
-    batch = db.batch_by_priority(limit=3)
-    log.info("  --- 按优先级排序的前 3 条链 ---")
-    for j, chain in enumerate(batch):
-        log.info("  [%d] priority=%d sinks=%d status=%s",
-                 j + 1, chain["priority"], chain["total_sinks"], chain["status"])
-        log.info("      chain_path: %s", chain["chain_path"][:120] + "..." if len(chain["chain_path"]) > 120 else chain["chain_path"])
-        log.info("      node_path:  %s", chain["node_path"][:120] + "..." if len(chain["node_path"]) > 120 else chain["node_path"])
-
+    
     # Phase 2 调用链摘要（人类验证用）
     chain_stats = db.stats()
-    top3_longest = db.top_by_node_count(limit=3)
-    top3_priority = db.batch_by_priority(limit=3)
-    last3 = db.bottom_by_priority(limit=3)
+    top3_longest = db.top_by_node_count(3)
+    top3_priority = db.batch_by_priority(3)
+    last3 = db.bottom_by_priority(3)
     log.info("  === Phase 2 调用链摘要 ===")
     log.info("  总链数: %d", chain_stats["total_chains"])
     log.info("  端点数: %d", chain_stats["total_endpoints"])
@@ -363,8 +354,11 @@ def main():
     import subprocess as _sp
     _verify_script = REPO_ROOT / "scripts" / "chain" / "verify_edges.py"
     if _verify_script.exists():
+        _verify_cmd = [sys.executable, str(_verify_script)]
+        if jar_analyzer_db:
+            _verify_cmd.extend(["--jar-analyzer-db", str(jar_analyzer_db)])
         _verify_result = _sp.run(
-            [sys.executable, str(_verify_script)],
+            _verify_cmd,
             capture_output=True, text=True, timeout=300,
         )
         for line in _verify_result.stdout.splitlines():
