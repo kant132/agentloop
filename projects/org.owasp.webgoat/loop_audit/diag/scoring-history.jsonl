@@ -1,5 +1,0 @@
-{"round": 1, "score": 65.0, "coverage": 0.65, "poc_rate": 0.3, "reconcile_pass": 7, "compliance": 0.8, "timestamp": "2026-06-15T01:13:46.419521+00:00"}
-{"round": 2, "score": 75.0, "coverage": 0.75, "poc_rate": 0.5, "reconcile_pass": 8, "compliance": 0.85, "timestamp": "2026-06-15T01:13:46.612353+00:00"}
-{"round": 3, "score": 82.0, "coverage": 0.82, "poc_rate": 0.7, "reconcile_pass": 9, "compliance": 0.9, "timestamp": "2026-06-15T01:13:57.745023+00:00"}
-{"round": 4, "score": 88.0, "coverage": 0.88, "poc_rate": 0.85, "reconcile_pass": 10, "compliance": 0.95, "timestamp": "2026-06-15T01:13:57.958553+00:00"}
-{"round": 5, "score": 89.5, "coverage": 0.91, "poc_rate": 0.88, "reconcile_pass": 10, "compliance": 0.97, "timestamp": "2026-06-15T01:14:07.901272+00:00"}
