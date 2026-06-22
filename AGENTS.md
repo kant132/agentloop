@@ -54,7 +54,7 @@ memurai-cli KEYS "{groupId}:*"  # list keys; session 结束 hook DEL all except 
 
 Before starting any audit:
 1. **Session 结束 hook**: Delete `{groupId}:*` keys from Memurai（保留 `{groupId}:knowledge:*`，并把 `{groupId}:errors:log` 高频错误合并到 `{groupId}:knowledge:errors`）。方法体等缓存**不设 TTL**，只在活跃审计期间有效。
-2. **Verify 3 core tools available**: `jar-analyzer` (JAR at `tools/javaparser/jar-analyzer-5.22.jar`), `ast-grep`, `Memurai`. If any is missing → exit code 2, no degradation. Phase 1-3 do NOT use codegraph.
+2. **Verify 3 core tools available**: `jar-analyzer` (JAR at `tools/jar-analyzer-engine/target/jar-analyzer-engine-1.2.0-jar-with-dependencies.jar`), `ast-grep`, `Memurai`. If any is missing → exit code 2, no degradation. Phase 1-3 do NOT use codegraph.
 3. **Sync project skills**: Phase 0 creates symlinks from `~/.agents/skills/{name}` → project `skills/{name}` for all project skills.
 4. **Check preset.json** exists at `projects/{group_id}/preset.json` with valid `projectRoot`, `groupId`, `loopDir`, `targetJarPath`, `jarAnalyzerDb`.
 

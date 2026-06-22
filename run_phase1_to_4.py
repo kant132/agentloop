@@ -167,14 +167,14 @@ def main():
                     log.warning("  JADX 反编译异常: %s", e)
 
     # 所有项目：jar-analyzer 构建（可选，失败不阻断）
-    jar_analyzer_jar = REPO_ROOT / "tools" / "javaparser" / "jar-analyzer-5.22.jar"
+    jar_analyzer_jar = REPO_ROOT / "tools" / "jar-analyzer-engine" / "target" / "jar-analyzer-engine-1.2.0-jar-with-dependencies.jar"
     if target_jar_path and jar_analyzer_jar.exists():
         target_jar = Path(target_jar_path)
         if target_jar.exists():
             log.info("  jar-analyzer 构建: %s", target_jar)
             try:
                 _ja_result = _sp.run(
-                    ["java", "-jar", str(jar_analyzer_jar), "build", "-j", str(target_jar)],
+                    ["java", "-jar", str(jar_analyzer_jar), "--jar", str(target_jar)],
                     capture_output=True, text=True, timeout=300,
                 )
                 if _ja_result.returncode != 0:

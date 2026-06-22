@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent  # D:\agentloop
-JAR_ANALYZER_JAR = ROOT / "tools" / "javaparser" / "jar-analyzer-5.22.jar"
+JAR_ANALYZER_JAR = ROOT / "tools" / "jar-analyzer-engine" / "target" / "jar-analyzer-engine-1.2.0-jar-with-dependencies.jar"
 
 
 def build_jar_analyzer_db(jar_path: Path, output_db: Path) -> bool:
@@ -33,7 +33,7 @@ def build_jar_analyzer_db(jar_path: Path, output_db: Path) -> bool:
         return False
     print(f"  构建 jar-analyzer.db: {jar_path.name} ...")
     result = subprocess.run(
-        ["java", "-jar", str(JAR_ANALYZER_JAR), "build", "-j", str(jar_path)],
+        ["java", "-jar", str(JAR_ANALYZER_JAR), "--jar", str(jar_path)],
         capture_output=True, text=True, timeout=600,
         cwd=str(output_db.parent),  # 直接在目标目录构建
     )
