@@ -1723,15 +1723,8 @@ def build_all_chains_for_endpoint_jar_analyzer(
                 seen_java_files.add(str(java_p))
                 chain_java_files.append(java_p)
 
-    file_calls_cache, fetch_failures = _batch_fetch_file_calls(
-        chain_java_files, source_root, group_id, jar_path, log=True,
-    )
-
-    def _get_file_calls(file_path: Path) -> List[Dict[str, Any]]:
-        return _get_file_calls_with_cache(
-            file_path, file_calls_cache, source_root,
-            group_id, jar_path, fetch_failures,
-        )
+    # sink 识别改用 jar-analyzer.db method_call_table 直接查非 groupId 调用
+    # 不再依赖 java-method-call-extractor.jar
 
     sig_hash = _sig_hash_for_entry(entry_id)
     cache_key = f"{group_id}:audit:chain:{sig_hash}"
@@ -1741,7 +1734,6 @@ def build_all_chains_for_endpoint_jar_analyzer(
         node_ids = p["nodes"]
         chain_nodes: List[ChainNode] = []
         total_sinks = 0
-        all_dynamic_sinks: List[Dict[str, Any]] = []
         cycle_in_path = False
         seen: set[str] = set()
 
@@ -1775,29 +1767,35 @@ def build_all_chains_for_endpoint_jar_analyzer(
             if java_file_p is not None and java_file_p.is_file() and start_line > 0:
                 body = _read_method_body(java_file_p, start_line, end_line)
 
-            # sinks
+            # sinks: 直接从 jar-analyzer.db 的 method_call_table 查非 groupId 调用
             sinks: List[str] = []
             ext_calls: List[str] = []
-            if java_file_p is not None and java_file_p.is_file() and start_line > 0:
-                all_calls = _get_file_calls(java_file_p)
-                jar_start = start_line - 1
-                method_calls = [
-                    c for c in all_calls
-                    if int(c.get("method_start_line") or -1) == jar_start
-                ]
-                all_called_fqns = [c["called_fqn"] for c in method_calls]
-                dynamic_sinks = _sr.identify_dynamic_sinks(group_id, all_called_fqns)
-                sinks = [s["fqn"] for s in dynamic_sinks]
-                all_dynamic_sinks.extend(dynamic_sinks)
+            if cn and mn:
+                # 查 method_call_table 中该方法的 callee
+                with sqlite3.connect(str(jar_analyzer_db_path)) as _conn:
+                    _conn.row_factory = sqlite3.Row
+                    _callee_rows = _conn.execute(
+                        "SELECT DISTINCT callee_class_name, callee_method_name, callee_method_desc "
+                        "FROM method_call_table "
+                        "WHERE caller_class_name = ? AND caller_method_name = ? AND caller_method_desc = ?",
+                        (cn, mn, meta.get("method_desc", ""))
+                    ).fetchall()
+                for _cr in _callee_rows:
+                    _callee_cn = _cr["callee_class_name"] or ""
+                    _callee_mn = _cr["callee_method_name"] or ""
+                    _callee_fqn = f"{_callee_cn.replace('/', '.')}.{_callee_mn}" if _callee_cn else _callee_mn
+                    # 非 groupId 调用 = sink 候选
+                    _gid_dot = group_id + "."
+                    _gid_slash = group_id.replace(".", "/") + "/"
+                    if (_callee_cn and
+                        not _callee_cn.startswith(_gid_slash) and
+                        not _callee_fqn.startswith(_gid_dot) and
+                        not _callee_fqn.startswith("this.") and
+                        not _callee_fqn.startswith("super.") and
+                        "." in _callee_fqn):
+                        sinks.append(_callee_fqn)
+                        ext_calls.append(_callee_fqn)
                 total_sinks += len(sinks)
-                ext_calls = [
-                    c["called_fqn"] for c in method_calls
-                    if not c["called_fqn"].startswith(group_id + ".")
-                    and not c["called_fqn"].startswith(group_id + "#")
-                    and not c["called_fqn"].startswith("this.")
-                    and not c["called_fqn"].startswith("super.")
-                    and "." in c["called_fqn"]
-                ]
 
             annotated_body = _annotate_body_with_sinks(body or "", ext_calls) if body else None
 
@@ -1827,9 +1825,8 @@ def build_all_chains_for_endpoint_jar_analyzer(
             "total_nodes": len(chain_nodes),
             "total_edges": total_edges,
             "total_sinks": total_sinks,
-            "sink_categories": {s["fqn"]: s["category"] for s in all_dynamic_sinks},
-            "preset_sink_count": _sr.match_preset_sinks([_chain_node_to_dict(n) for n in chain_nodes]),
-            "file_calls_cache_size": len(file_calls_cache),
+            "sink_categories": {},
+            "preset_sink_count": 0,
             "cte_source": "jar-analyzer",
         }
         results.append(result)
