@@ -295,6 +295,54 @@ def _resolve_file_path(
     return None
 
 
+def _extend_body_start(lines: list[str], start_line: int) -> int:
+    """向前扫描，把方法签名和注解行包含进 body。
+
+    start_line 是 ASM LineNumberTable 的首行（方法体内部第一条指令）。
+    方法签名在 start_line 之前，注解在签名之前。
+
+    Returns: 扩展后的 start_line (1-based)
+    """
+    if start_line <= 1:
+        return start_line
+    # 向前最多扫描 30 行
+    scan_start = max(0, start_line - 31)  # 0-based
+    actual_start = start_line - 1  # 0-based, 默认不变
+
+    # 从 start_line-2 向前扫描，找到方法签名行和注解行
+    found_sig = False
+    for i in range(start_line - 2, scan_start - 1, -1):
+        line = lines[i].strip()
+        if not line:
+            # 空行：如果还没找到签名，继续；如果已找到签名和注解，停止
+            if found_sig:
+                break
+            continue
+        if line.startswith("@"):
+            # 注解行
+            actual_start = i
+            found_sig = True
+        elif line.startswith("}") or line.startswith(");"):
+            # 上一段代码结束
+            break
+        elif "(" in line and (line.startswith("public ") or
+                              line.startswith("private ") or
+                              line.startswith("protected ") or
+                              line.startswith("static ")):
+            # 方法签名行
+            actual_start = i
+            found_sig = True
+        elif found_sig:
+            # 签名后面的行（可能是续行）
+            if line.startswith("@"):
+                actual_start = i
+            else:
+                break
+        # else: 其他行，继续向前扫描
+
+    return actual_start + 1  # 转回 1-based
+
+
 def _read_method_body(
     file_path: Path,
     start_line: int,
@@ -357,10 +405,12 @@ def _read_method_body(
                     end = i + 1
                     break
             if found_open and brace_depth <= 0:
-                return "".join(lines[start_line - 1:end]), "source"
+                extended_start = _extend_body_start(lines, start_line)
+                return "".join(lines[extended_start - 1:end]), "source"
             # 部分闭合：返回已读内容
             if found_open:
-                return "".join(lines[start_line - 1:]), "partial"
+                extended_start = _extend_body_start(lines, start_line)
+                return "".join(lines[extended_start - 1:]), "partial"
             return None, "read_fail"
         except OSError:
             return None, "read_fail"
@@ -381,7 +431,8 @@ def _read_method_body(
             _log("end_line %d > file lines %d for %s, clamping to %d",
                  end_line, len(lines), file_path, len(lines))
             end_line = len(lines)
-        return "".join(lines[start_line - 1: end_line]), "source"
+        extended_start = _extend_body_start(lines, start_line)
+        return "".join(lines[extended_start - 1: end_line]), "source"
     except OSError as e:
         _log("read body fail: %s [%d-%d]: %s", file_path, start_line, end_line, e)
         return None, "read_fail"
