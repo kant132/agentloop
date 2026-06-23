@@ -20,7 +20,7 @@ Pipeline
    e. ``is_sink=True`` 视为 sink(默认策略: 非 groupId 命名空间)
    f. 调 ``scanner_utils.inject_sink_comment`` 把 ``// sink: <FQN>`` 注入 body
 4. 整链算 total_nodes / total_edges / total_sinks / cycle_detected
-5. ``Memurai.set(key, json, ex=ttl)`` 写 ``{groupId}:audit:chain:{sigHash}`` 缓存 (可选)
+5. 方法体预取到 Memurai (可选, 调用链数据从 jar-analyzer.db chains 表取)
 
 API
 ---
@@ -535,7 +535,7 @@ def build_chain(
         CTE 递归深度上限, 默认 20。
     memurai_client:
         可选。``scripts.redis.memurai_client.Memurai`` 实例。
-        提供时, 把整链结果以 ``{groupId}:audit:chain:{sigHash}`` 为 key 写入缓存。
+        提供时, 把方法体预取到 Memurai (调用链数据从 jar-analyzer.db chains 表取)。
     ttl:
         缓存过期秒数, 默认 86400 (24h, 与设计文档一致)。
     jar_path:
@@ -884,7 +884,8 @@ def build_chain(
             _log("chain_db write failed: %s", e)
             result["chain_db_error"] = str(e)
 
-    # 6b. redis-batch-prefetch: 批量预取方法体到 Memurai (可选, 在写链缓存之前)
+    # 6b. redis-batch-prefetch: 批量预取方法体到 Memurai (可选)
+    # 调用链数据从 jar-analyzer.db chains 表取，不缓存到 Memurai
     if memurai_client is not None:
         chain_for_prefetch = [
             {
@@ -896,32 +897,18 @@ def build_chain(
                 "depth": n.depth,
                 "node_id": n.node_id,
             }
-            for n in chain_nodes
+            for n in chain_nodes if n.body is not None
         ]
-        try:
-            prefetch_result = _rbp.prefetch_chain(
-                memurai_client, chain_for_prefetch, group_id,
-                sig_hash, method_ttl=ttl, prefetch_ttl=3600,
-            )
-            result["prefetch_stats"] = prefetch_result
-        except Exception as e:  # noqa: BLE001
-            _log("redis-batch-prefetch failed: %s", e)
-            result["prefetch_error"] = str(e)
-
-    # 7. Memurai 缓存 (可选)
-    if memurai_client is not None:
-        cache_key = f"{group_id}:audit:chain:{sig_hash}"
-        try:
-            ok = memurai_client.set_json(
-                cache_key, result, ex=ttl,
-            )
-            result["cache_key"] = cache_key
-            result["cache_written"] = bool(ok)
-        except Exception as e:  # noqa: BLE001
-            _log("Memurai 写缓存失败 (%s): %s", cache_key, e)
-            result["cache_key"] = cache_key
-            result["cache_written"] = False
-            result["cache_error"] = str(e)
+        if chain_for_prefetch:
+            try:
+                prefetch_result = _rbp.prefetch_chain(
+                    memurai_client, chain_for_prefetch, group_id,
+                    sig_hash, method_ttl=ttl, prefetch_ttl=3600,
+                )
+                result["prefetch_stats"] = prefetch_result
+            except Exception as e:  # noqa: BLE001
+                _log("redis-batch-prefetch failed: %s", e)
+                result["prefetch_error"] = str(e)
 
     return result
 
@@ -1141,7 +1128,6 @@ def build_all_chains_for_endpoint(
         )
 
     sig_hash = _sig_hash_for_entry(entry_id)
-    cache_key = f"{group_id}:audit:chain:{sig_hash}"
     results: List[Dict[str, Any]] = []
 
     for path_idx, p in enumerate(paths):
@@ -1287,50 +1273,39 @@ def build_all_chains_for_endpoint(
             for r in results:
                 r["chain_db_error"] = str(e)
 
-    # Prefetch: 批量预取所有变体的方法体到 Memurai (可选, 在写链缓存之前)
+    # Prefetch: 批量预取所有变体的方法体到 Memurai (可选)
+    # 调用链数据从 jar-analyzer.db chains 表取，不缓存到 Memurai
     if memurai_client is not None and results:
         all_chain_nodes = []
         for r in results:
             for node_dict in r["chain"]:
-                all_chain_nodes.append(node_dict)
+                if node_dict.get("body") is not None:
+                    all_chain_nodes.append(node_dict)
 
-        chain_for_prefetch = [
-            {
-                "fqn": n.get("fqn", ""),
-                "startLine": n.get("start_line", 0),
-                "line": n.get("start_line", 0),
-                "body": n.get("body"),
-                "file": n.get("file"),
-                "depth": n.get("depth", 0),
-                "node_id": n.get("node_id", ""),
-            }
-            for n in all_chain_nodes
-        ]
-        try:
-            prefetch_result = _rbp.prefetch_chain(
-                memurai_client, chain_for_prefetch, group_id,
-                sig_hash, method_ttl=ttl, prefetch_ttl=3600,
-            )
-            for r in results:
-                r["prefetch_stats"] = prefetch_result
-        except Exception as e:  # noqa: BLE001
-            _log("redis-batch-prefetch failed: %s", e)
-            for r in results:
-                r["prefetch_error"] = str(e)
-
-    # 写一次 Memurai (覆盖同 sigHash), 包含所有变体
-    if memurai_client is not None and results:
-        try:
-            ok = memurai_client.set_json(
-                cache_key,
-                {"paths": results, "path_count": len(results)},
-                ex=ttl,
-            )
-            for r in results:
-                r["cache_key"] = cache_key
-                r["cache_written"] = bool(ok)
-        except Exception as e:  # noqa: BLE001
-            _log("Memurai 写缓存失败 (%s): %s", cache_key, e)
+        if all_chain_nodes:
+            chain_for_prefetch = [
+                {
+                    "fqn": n.get("fqn", ""),
+                    "startLine": n.get("start_line", 0),
+                    "line": n.get("start_line", 0),
+                    "body": n.get("body"),
+                    "file": n.get("file"),
+                    "depth": n.get("depth", 0),
+                    "node_id": n.get("node_id", ""),
+                }
+                for n in all_chain_nodes
+            ]
+            try:
+                prefetch_result = _rbp.prefetch_chain(
+                    memurai_client, chain_for_prefetch, group_id,
+                    sig_hash, method_ttl=ttl, prefetch_ttl=3600,
+                )
+                for r in results:
+                    r["prefetch_stats"] = prefetch_result
+            except Exception as e:  # noqa: BLE001
+                _log("redis-batch-prefetch failed: %s", e)
+                for r in results:
+                    r["prefetch_error"] = str(e)
 
     return results
 
@@ -1590,7 +1565,8 @@ def build_chain_jar_analyzer(
             _log("chain_db write failed: %s", e)
             result["chain_db_error"] = str(e)
 
-    # 6b. redis-batch-prefetch: cache key uses jar method_id
+    # 6b. redis-batch-prefetch: 批量预取方法体到 Memurai (可选)
+    # 调用链数据从 jar-analyzer.db chains 表取，不缓存到 Memurai
     if memurai_client is not None:
         chain_for_prefetch = [
             {
@@ -1602,32 +1578,18 @@ def build_chain_jar_analyzer(
                 "depth": n.depth,
                 "node_id": n.node_id,
             }
-            for n in chain_nodes
+            for n in chain_nodes if n.body is not None
         ]
-        try:
-            prefetch_result = _rbp.prefetch_chain(
-                memurai_client, chain_for_prefetch, group_id,
-                sig_hash, method_ttl=ttl, prefetch_ttl=3600,
-            )
-            result["prefetch_stats"] = prefetch_result
-        except Exception as e:  # noqa: BLE001
-            _log("redis-batch-prefetch failed: %s", e)
-            result["prefetch_error"] = str(e)
-
-    # 7. Memurai 缓存 (可选) — 缓存 key 用 jar method_id
-    if memurai_client is not None:
-        cache_key = f"{group_id}:audit:chain:{sig_hash}"
-        try:
-            ok = memurai_client.set_json(
-                cache_key, result, ex=ttl,
-            )
-            result["cache_key"] = cache_key
-            result["cache_written"] = bool(ok)
-        except Exception as e:  # noqa: BLE001
-            _log("Memurai 写缓存失败 (%s): %s", cache_key, e)
-            result["cache_key"] = cache_key
-            result["cache_written"] = False
-            result["cache_error"] = str(e)
+        if chain_for_prefetch:
+            try:
+                prefetch_result = _rbp.prefetch_chain(
+                    memurai_client, chain_for_prefetch, group_id,
+                    sig_hash, method_ttl=ttl, prefetch_ttl=3600,
+                )
+                result["prefetch_stats"] = prefetch_result
+            except Exception as e:  # noqa: BLE001
+                _log("redis-batch-prefetch failed: %s", e)
+                result["prefetch_error"] = str(e)
 
     return result
 
@@ -1730,7 +1692,6 @@ def build_all_chains_for_endpoint_jar_analyzer(
     # 不再依赖 java-method-call-extractor.jar
 
     sig_hash = _sig_hash_for_entry(entry_id)
-    cache_key = f"{group_id}:audit:chain:{sig_hash}"
     results: List[Dict[str, Any]] = []
 
     for path_idx, p in enumerate(paths):
@@ -1874,49 +1835,38 @@ def build_all_chains_for_endpoint_jar_analyzer(
             for r in results:
                 r["chain_db_error"] = str(e)
 
-    # Prefetch: batch prefetch all chain nodes to Memurai
+    # Prefetch: 批量预取方法体到 Memurai (可选)
+    # 调用链数据从 jar-analyzer.db chains 表取，不缓存到 Memurai
     if memurai_client is not None and results:
         all_chain_nodes = []
         for r in results:
             for node_dict in r["chain"]:
-                all_chain_nodes.append(node_dict)
-        chain_for_prefetch = [
-            {
-                "fqn": n.get("fqn", ""),
-                "startLine": n.get("start_line", 0),
-                "line": n.get("start_line", 0),
-                "body": n.get("body"),
-                "file": n.get("file"),
-                "depth": n.get("depth", 0),
-                "node_id": n.get("node_id", ""),
-            }
-            for n in all_chain_nodes
-        ]
-        try:
-            prefetch_result = _rbp.prefetch_chain(
-                memurai_client, chain_for_prefetch, group_id,
-                sig_hash, method_ttl=ttl, prefetch_ttl=3600,
-            )
-            for r in results:
-                r["prefetch_stats"] = prefetch_result
-        except Exception as e:  # noqa: BLE001
-            _log("redis-batch-prefetch failed: %s", e)
-            for r in results:
-                r["prefetch_error"] = str(e)
-
-    # Write Memurai cache (覆盖同 sigHash), 包含所有变体
-    if memurai_client is not None and results:
-        try:
-            ok = memurai_client.set_json(
-                cache_key,
-                {"paths": results, "path_count": len(results)},
-                ex=ttl,
-            )
-            for r in results:
-                r["cache_key"] = cache_key
-                r["cache_written"] = bool(ok)
-        except Exception as e:  # noqa: BLE001
-            _log("Memurai 写缓存失败 (%s): %s", cache_key, e)
+                if node_dict.get("body") is not None:
+                    all_chain_nodes.append(node_dict)
+        if all_chain_nodes:
+            chain_for_prefetch = [
+                {
+                    "fqn": n.get("fqn", ""),
+                    "startLine": n.get("start_line", 0),
+                    "line": n.get("start_line", 0),
+                    "body": n.get("body"),
+                    "file": n.get("file"),
+                    "depth": n.get("depth", 0),
+                    "node_id": n.get("node_id", ""),
+                }
+                for n in all_chain_nodes
+            ]
+            try:
+                prefetch_result = _rbp.prefetch_chain(
+                    memurai_client, chain_for_prefetch, group_id,
+                    sig_hash, method_ttl=ttl, prefetch_ttl=3600,
+                )
+                for r in results:
+                    r["prefetch_stats"] = prefetch_result
+            except Exception as e:  # noqa: BLE001
+                _log("redis-batch-prefetch failed: %s", e)
+                for r in results:
+                    r["prefetch_error"] = str(e)
 
     return results
 
