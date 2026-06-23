@@ -324,7 +324,11 @@ def _read_method_body(
             
             # 检测 Lombok 模式：start_line 指向字段声明
             start_line_content = lines[start_line - 1].strip()
-            if (start_line_content.startswith("private ") or 
+            # 排除抽象方法（abstract 关键字）和方法签名（含括号）
+            is_abstract = "abstract " in start_line_content
+            is_method_sig = "(" in start_line_content and ")" in start_line_content
+            if not is_abstract and not is_method_sig and (
+                start_line_content.startswith("private ") or
                 start_line_content.startswith("protected ") or
                 start_line_content.startswith("public ")) and ";" in start_line_content:
                 # 这是字段声明，不是方法体（Lombok getter/setter）
@@ -374,6 +378,8 @@ def _read_method_body(
                 lc.startswith("public ")) and ";" in lc:
                 return None, "lombok"
         if end_line > len(lines):
+            _log("end_line %d > file lines %d for %s, clamping to %d",
+                 end_line, len(lines), file_path, len(lines))
             end_line = len(lines)
         return "".join(lines[start_line - 1: end_line]), "source"
     except OSError as e:
@@ -875,48 +881,49 @@ def build_chain(
         "cte_source": "jar-analyzer" if used_jar_analyzer else "codegraph",
     }
 
-    # 6a. Write chain to SQLite if loop_audit_dir is provided
+    # 6a. Write chain to SQLite if jar-analyzer.db path is provided
     if loop_audit_dir is not None:
-        try:
-            from chain_db import ChainDB
-            _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else (loop_audit_dir / "chains.db")
-            db = ChainDB(_chain_db_path)
-            # 构建 chain_path: fqn(sink num: N) -> fqn(sink num: N) -> ...
-            chain_path_parts = []
-            node_path_parts = []
-            for n in chain_nodes:
-                sink_num = len(n.sinks)
-                chain_path_parts.append(f"{n.fqn}(sink num: {sink_num})")
-                node_path_parts.append(n.node_id)
+        from chain_db import ChainDB
+        _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else None
+        if _chain_db_path is not None:
+            try:
+                db = ChainDB(_chain_db_path)
+                # 构建 chain_path: fqn(sink num: N) -> fqn(sink num: N) -> ...
+                chain_path_parts = []
+                node_path_parts = []
+                for n in chain_nodes:
+                    sink_num = len(n.sinks)
+                    chain_path_parts.append(f"{n.fqn}(sink num: {sink_num})")
+                    node_path_parts.append(n.node_id)
 
-            # 只计算最后一个节点的 sink + preset 匹配
-            last_sinks = len(chain_nodes[-1].sinks) if chain_nodes else 0
-            last_preset = _sr.match_preset_sinks([_chain_node_to_dict(chain_nodes[-1])]) if chain_nodes else 0
-            # 入口无用户参数时降权
-            entry_has_params = result.get("entry_has_params", True)
-            penalty = 0 if entry_has_params else 100
-            priority = max(0, last_preset * 10 + last_sinks - penalty)
+                # 只计算最后一个节点的 sink + preset 匹配
+                last_sinks = len(chain_nodes[-1].sinks) if chain_nodes else 0
+                last_preset = _sr.match_preset_sinks([_chain_node_to_dict(chain_nodes[-1])]) if chain_nodes else 0
+                # 入口无用户参数时降权
+                entry_has_params = result.get("entry_has_params", True)
+                penalty = 0 if entry_has_params else 100
+                priority = max(0, last_preset * 10 + last_sinks - penalty)
 
-            chain_path_str = " -> ".join(chain_path_parts)
-            node_path_str = " -> ".join(node_path_parts)
-            db.insert_chain(
-                chain_id=sig_hash,
-                endpoint_fqn=entry_fqn,
-                priority=priority,
-                total_sinks=total_sinks,
-                preset_sinks=result.get("preset_sink_count", 0),
-                cycle_detected=cycle_detected,
-                chain_path=chain_path_str,
-                node_path=node_path_str,
-                last_sinks=last_sinks,
-                is_sink=last_sinks > 0,
-                node_count=len(chain_nodes),
-            )
-            result["chain_db"] = str(_chain_db_path)
-            result["last_sinks_priority"] = priority
-        except Exception as e:  # noqa: BLE001
-            _log("chain_db write failed: %s", e)
-            result["chain_db_error"] = str(e)
+                chain_path_str = " -> ".join(chain_path_parts)
+                node_path_str = " -> ".join(node_path_parts)
+                db.insert_chain(
+                    chain_id=sig_hash,
+                    endpoint_fqn=entry_fqn,
+                    priority=priority,
+                    total_sinks=total_sinks,
+                    preset_sinks=result.get("preset_sink_count", 0),
+                    cycle_detected=cycle_detected,
+                    chain_path=chain_path_str,
+                    node_path=node_path_str,
+                    last_sinks=last_sinks,
+                    is_sink=last_sinks > 0,
+                    node_count=len(chain_nodes),
+                )
+                result["chain_db"] = str(_chain_db_path)
+                result["last_sinks_priority"] = priority
+            except Exception as e:  # noqa: BLE001
+                _log("chain_db write failed: %s", e)
+                result["chain_db_error"] = str(e)
 
     # 6b. redis-batch-prefetch: 批量预取方法体到 Memurai (可选)
     # 调用链数据从 jar-analyzer.db chains 表取，不缓存到 Memurai
@@ -1267,46 +1274,46 @@ def build_all_chains_for_endpoint(
         }
         results.append(result)
 
-    # Write chains to SQLite if loop_audit_dir is provided
+    # Write chains to SQLite if jar-analyzer.db path is provided
     if loop_audit_dir is not None and results:
-        try:
+        _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else None
+        if _chain_db_path is not None:
             from chain_db import ChainDB
-            _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else (loop_audit_dir / "chains.db")
             db = ChainDB(_chain_db_path)
-            chains_to_insert = []
-            for r in results:
-                chain_path_parts = []
-                node_path_parts = []
-                for n in r["chain"]:
-                    sink_num = len(n.get("sinks", []))
-                    chain_path_parts.append(f"{n['fqn']}(sink num: {sink_num})")
-                    node_path_parts.append(n['node_id'])
-                # 只计算最后一个节点的 sink + preset 匹配
-                last_node = r["chain"][-1] if r["chain"] else None
-                last_sinks = len(last_node.get("sinks", [])) if last_node else 0
-                last_preset = _sr.match_preset_sinks([last_node]) if last_node else 0
-                penalty = 0 if entry_has_params else 100
-                priority = max(0, last_preset * 10 + last_sinks - penalty)
-                chains_to_insert.append({
-                    "chain_id": f"{sig_hash}_{r.get('path_index', 0)}",
-                    "endpoint_fqn": entry_fqn,
-                    "priority": priority,
-                    "total_sinks": r.get("total_sinks", 0),
-                    "preset_sinks": r.get("preset_sink_count", 0),
-                    "cycle_detected": r.get("cycle_detected", False),
-                    "chain_path": " -> ".join(chain_path_parts),
-                    "node_path": " -> ".join(node_path_parts),
-                    "last_sinks": last_sinks,
-                    "is_sink": last_sinks > 0,
-                    "node_count": len(r["chain"]),
-                })
-            db.insert_chains_batch(chains_to_insert)
-            for r in results:
-                r["chain_db"] = str(_chain_db_path)
-        except Exception as e:  # noqa: BLE001
-            _log("chain_db write failed: %s", e)
-            for r in results:
-                r["chain_db_error"] = str(e)
+            try:
+                chains_to_insert = []
+                for r in results:
+                    chain_path_parts = []
+                    node_path_parts = []
+                    for n in r["chain"]:
+                        sink_num = len(n.get("sinks", []))
+                        chain_path_parts.append(f"{n['fqn']}(sink num: {sink_num})")
+                        node_path_parts.append(n['node_id'])
+                    last_node = r["chain"][-1] if r["chain"] else None
+                    last_sinks = len(last_node.get("sinks", [])) if last_node else 0
+                    last_preset = _sr.match_preset_sinks([last_node]) if last_node else 0
+                    penalty = 0 if entry_has_params else 100
+                    priority = max(0, last_preset * 10 + last_sinks - penalty)
+                    chains_to_insert.append({
+                        "chain_id": f"{sig_hash}_{r.get('path_index', 0)}",
+                        "endpoint_fqn": entry_fqn,
+                        "priority": priority,
+                        "total_sinks": r.get("total_sinks", 0),
+                        "preset_sinks": r.get("preset_sink_count", 0),
+                        "cycle_detected": r.get("cycle_detected", False),
+                        "chain_path": " -> ".join(chain_path_parts),
+                        "node_path": " -> ".join(node_path_parts),
+                        "last_sinks": last_sinks,
+                        "is_sink": last_sinks > 0,
+                        "node_count": len(r["chain"]),
+                    })
+                db.insert_chains_batch(chains_to_insert)
+                for r in results:
+                    r["chain_db"] = str(_chain_db_path)
+            except Exception as e:
+                _log("chain_db write failed: %s", e)
+                for r in results:
+                    r["chain_db_error"] = str(e)
 
     # Prefetch: 批量预取所有变体的方法体到 Memurai (可选)
     # 调用链数据从 jar-analyzer.db chains 表取，不缓存到 Memurai
@@ -1564,44 +1571,45 @@ def build_chain_jar_analyzer(
         "cte_source": "jar-analyzer",
     }
 
-    # 6a. Write chain to SQLite if loop_audit_dir provided
+    # 6a. Write chain to SQLite if jar-analyzer.db path is provided
     if loop_audit_dir is not None:
-        try:
+        _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else None
+        if _chain_db_path is not None:
             from chain_db import ChainDB
-            _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else (loop_audit_dir / "chains.db")
             db = ChainDB(_chain_db_path)
-            chain_path_parts = []
-            node_path_parts = []
-            for n in chain_nodes:
-                sink_num = len(n.sinks)
-                chain_path_parts.append(f"{n.fqn}(sink num: {sink_num})")
-                node_path_parts.append(n.node_id)
+            try:
+                chain_path_parts = []
+                node_path_parts = []
+                for n in chain_nodes:
+                    sink_num = len(n.sinks)
+                    chain_path_parts.append(f"{n.fqn}(sink num: {sink_num})")
+                    node_path_parts.append(n.node_id)
 
-            last_sinks = len(chain_nodes[-1].sinks) if chain_nodes else 0
-            last_preset = _sr.match_preset_sinks([_chain_node_to_dict(chain_nodes[-1])]) if chain_nodes else 0
-            penalty = 0 if entry_has_params else 100
-            priority = max(0, last_preset * 10 + last_sinks - penalty)
+                last_sinks = len(chain_nodes[-1].sinks) if chain_nodes else 0
+                last_preset = _sr.match_preset_sinks([_chain_node_to_dict(chain_nodes[-1])]) if chain_nodes else 0
+                penalty = 0 if entry_has_params else 100
+                priority = max(0, last_preset * 10 + last_sinks - penalty)
 
-            chain_path_str = " -> ".join(chain_path_parts)
-            node_path_str = " -> ".join(node_path_parts)
-            db.insert_chain(
-                chain_id=sig_hash,
-                endpoint_fqn=entry_fqn,
-                priority=priority,
-                total_sinks=total_sinks,
-                preset_sinks=result.get("preset_sink_count", 0),
-                cycle_detected=cycle_detected,
-                chain_path=chain_path_str,
-                node_path=node_path_str,
-                last_sinks=last_sinks,
-                is_sink=last_sinks > 0,
-                node_count=len(chain_nodes),
-            )
-            result["chain_db"] = str(_chain_db_path)
-            result["last_sinks_priority"] = priority
-        except Exception as e:  # noqa: BLE001
-            _log("chain_db write failed: %s", e)
-            result["chain_db_error"] = str(e)
+                chain_path_str = " -> ".join(chain_path_parts)
+                node_path_str = " -> ".join(node_path_parts)
+                db.insert_chain(
+                    chain_id=sig_hash,
+                    endpoint_fqn=entry_fqn,
+                    priority=priority,
+                    total_sinks=total_sinks,
+                    preset_sinks=result.get("preset_sink_count", 0),
+                    cycle_detected=cycle_detected,
+                    chain_path=chain_path_str,
+                    node_path=node_path_str,
+                    last_sinks=last_sinks,
+                    is_sink=last_sinks > 0,
+                    node_count=len(chain_nodes),
+                )
+                result["chain_db"] = str(_chain_db_path)
+                result["last_sinks_priority"] = priority
+            except Exception as e:
+                _log("chain_db write failed: %s", e)
+                result["chain_db_error"] = str(e)
 
     # 6b. redis-batch-prefetch: 批量预取方法体到 Memurai (可选)
     # 调用链数据从 jar-analyzer.db chains 表取，不缓存到 Memurai
@@ -1835,45 +1843,46 @@ def build_all_chains_for_endpoint_jar_analyzer(
         }
         results.append(result)
 
-    # Write chains to SQLite
+    # Write chains to SQLite if jar-analyzer.db path is provided
     if loop_audit_dir is not None and results:
-        try:
+        _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else None
+        if _chain_db_path is not None:
             from chain_db import ChainDB
-            _chain_db_path = Path(jar_analyzer_db_path) if jar_analyzer_db_path else (loop_audit_dir / "chains.db")
             db = ChainDB(_chain_db_path)
-            chains_to_insert = []
-            for r in results:
-                chain_path_parts = []
-                node_path_parts = []
-                for n in r["chain"]:
-                    sink_num = len(n.get("sinks", []))
-                    chain_path_parts.append(f"{n['fqn']}(sink num: {sink_num})")
-                    node_path_parts.append(n['node_id'])
-                last_node = r["chain"][-1] if r["chain"] else None
-                last_sinks = len(last_node.get("sinks", [])) if last_node else 0
-                last_preset = _sr.match_preset_sinks([last_node]) if last_node else 0
-                penalty = 0 if entry_has_params else 100
-                priority = max(0, last_preset * 10 + last_sinks - penalty)
-                chains_to_insert.append({
-                    "chain_id": f"{sig_hash}_{r.get('path_index', 0)}",
-                    "endpoint_fqn": entry_fqn,
-                    "priority": priority,
-                    "total_sinks": r.get("total_sinks", 0),
-                    "preset_sinks": r.get("preset_sink_count", 0),
-                    "cycle_detected": r.get("cycle_detected", False),
-                    "chain_path": " -> ".join(chain_path_parts),
-                    "node_path": " -> ".join(node_path_parts),
-                    "last_sinks": last_sinks,
-                    "is_sink": last_sinks > 0,
-                    "node_count": len(r["chain"]),
-                })
-            db.insert_chains_batch(chains_to_insert)
-            for r in results:
-                r["chain_db"] = str(_chain_db_path)
-        except Exception as e:  # noqa: BLE001
-            _log("chain_db write failed: %s", e)
-            for r in results:
-                r["chain_db_error"] = str(e)
+            try:
+                chains_to_insert = []
+                for r in results:
+                    chain_path_parts = []
+                    node_path_parts = []
+                    for n in r["chain"]:
+                        sink_num = len(n.get("sinks", []))
+                        chain_path_parts.append(f"{n['fqn']}(sink num: {sink_num})")
+                        node_path_parts.append(n['node_id'])
+                    last_node = r["chain"][-1] if r["chain"] else None
+                    last_sinks = len(last_node.get("sinks", [])) if last_node else 0
+                    last_preset = _sr.match_preset_sinks([last_node]) if last_node else 0
+                    penalty = 0 if entry_has_params else 100
+                    priority = max(0, last_preset * 10 + last_sinks - penalty)
+                    chains_to_insert.append({
+                        "chain_id": f"{sig_hash}_{r.get('path_index', 0)}",
+                        "endpoint_fqn": entry_fqn,
+                        "priority": priority,
+                        "total_sinks": r.get("total_sinks", 0),
+                        "preset_sinks": r.get("preset_sink_count", 0),
+                        "cycle_detected": r.get("cycle_detected", False),
+                        "chain_path": " -> ".join(chain_path_parts),
+                        "node_path": " -> ".join(node_path_parts),
+                        "last_sinks": last_sinks,
+                        "is_sink": last_sinks > 0,
+                        "node_count": len(r["chain"]),
+                    })
+                db.insert_chains_batch(chains_to_insert)
+                for r in results:
+                    r["chain_db"] = str(_chain_db_path)
+            except Exception as e:
+                _log("chain_db write failed: %s", e)
+                for r in results:
+                    r["chain_db_error"] = str(e)
 
     # Prefetch: 批量预取方法体到 Memurai (可选)
     # 调用链数据从 jar-analyzer.db chains 表取，不缓存到 Memurai

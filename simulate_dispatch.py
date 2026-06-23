@@ -3,7 +3,7 @@
 simulate_dispatch.py — 模拟主 agent 调度 3 条链
 
 模拟 Phase 3 调度逻辑：
-1. 从 chains.db 取链元数据（不加载方法体）
+1. 从 jar-analyzer.db chains 表取链元数据（不加载方法体）
 2. 按 dispatch 规则分类
 3. 模拟调用 load_method_body.py 加载方法体
 4. 检查中间状态和计数

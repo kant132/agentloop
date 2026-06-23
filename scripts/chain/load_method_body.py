@@ -130,7 +130,7 @@ def main():
     parser.add_argument("--max-depth", type=int, default=4, help="前 N 层（默认 4）")
     parser.add_argument("--tail-depth", type=int, default=2, help="后 N 层（默认 2，链<6层时全部加载）")
     parser.add_argument("--jar-analyzer-db", default="", help="jar-analyzer.db 路径（含 chains 表，与 --chain-id 配合使用）")
-    parser.add_argument("--loop-dir", default="", help="loop_audit 目录（回退: 查找 chains.db）")
+    parser.add_argument("--loop-dir", default="", help="loop_audit 目录（回退: 查找 jar-analyzer.db）")
     args = parser.parse_args()
 
     memurai = Memurai()
@@ -143,14 +143,14 @@ def main():
             p = Path(args.jar_analyzer_db)
             if p.is_file():
                 chain_db_path = p
-        # 回退: loop_dir / chains.db 或常见位置
+        # 回退: loop_dir 或常见位置的 jar-analyzer.db
         if chain_db_path is None:
             loop_dir = Path(args.loop_dir) if args.loop_dir else Path.cwd()
             for guess in [
-                loop_dir / "chains.db",
+                loop_dir / "jar-analyzer.db",
                 Path.cwd() / "projects" / args.group_id / "loop_audit" / "jar-analyzer.db",
                 Path(__file__).resolve().parent.parent.parent / "projects" / args.group_id / "loop_audit" / "jar-analyzer.db",
-                Path.cwd() / "projects" / args.group_id / "loop_audit" / "chains.db",
+                loop_dir / "chains.db",
                 Path(__file__).resolve().parent.parent.parent / "projects" / args.group_id / "loop_audit" / "chains.db",
             ]:
                 if guess.exists():
