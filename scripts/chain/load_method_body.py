@@ -50,8 +50,8 @@ def load_single(memurai: Memurai, group_id: str, node_id: str) -> dict | None:
         count_key = f"{key}:count"
         try:
             memurai._run(["INCR", count_key], check_error=False)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"WARN: INCR count failed for {count_key}: {e}", file=__import__('sys').stderr)
         return {
             "node_id": node_id,
             "fqn": data.get("fqn", ""),
@@ -60,7 +60,8 @@ def load_single(memurai: Memurai, group_id: str, node_id: str) -> dict | None:
             "start_line": data.get("start_line") or data.get("startLine", 0),
             "depth": data.get("depth", 0),
         }
-    except (json.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, TypeError) as e:
+        print(f"WARN: corrupted cache data for {key}: {e}", file=__import__('sys').stderr)
         return None
 
 
