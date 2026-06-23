@@ -73,6 +73,7 @@ def prefetch_chain(
             "fqn": fqn,
             "start_line": start_line,
             "body": m.get("body", ""),
+            "body_source": m.get("body_source", "source"),
             "file": m.get("file", ""),
             "line": m.get("line", 0),
             "class": m.get("class", ""),

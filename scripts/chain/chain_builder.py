@@ -153,6 +153,7 @@ class ChainNode:
     start_line: int
     end_line: Optional[int] = None
     body: Optional[str] = None          # 注入 sink 注释后的方法体
+    body_source: str = "source"         # body 来源: "source" | "lombok" | "no_line" | "read_fail"
     depth: int = 0
     sinks: List[str] = field(default_factory=list)        # 体内已识别的 sink FQN
     edges: List[str] = field(default_factory=list)        # 该节点出向 calls 边的 target id
@@ -298,26 +299,48 @@ def _read_method_body(
     file_path: Path,
     start_line: int,
     end_line: Optional[int],
-) -> Optional[str]:
+) -> Tuple[Optional[str], str]:
     """读源文件 [start_line, end_line] 切片 (两边均 1-based, 包含)。
 
     end_line=None 时, 从 start_line 扫描到方法体闭合大括号。
-    任意边界缺失 → 返回 None (调用方决定降级)。
+    任意边界缺失 → 返回 (None, "read_fail") (调用方决定降级)。
+    
+    Returns:
+        (body, source) 元组:
+        - body: 方法体文本或 None
+        - source: "source" | "lombok" | "read_fail"
     """
     if not file_path.is_file():
-        return None
+        return None, "read_fail"
     if start_line <= 0:
-        return None
+        return None, "no_line"
     if end_line is None:
         # Scan from start_line to find method closing brace
         try:
             with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
                 lines = fh.readlines()
             if start_line > len(lines):
-                return None
+                return None, "read_fail"
+            
+            # 检测 Lombok 模式：start_line 指向字段声明
+            start_line_content = lines[start_line - 1].strip()
+            if (start_line_content.startswith("private ") or 
+                start_line_content.startswith("protected ") or
+                start_line_content.startswith("public ")) and ";" in start_line_content:
+                # 这是字段声明，不是方法体（Lombok getter/setter）
+                return None, "lombok"
+            
             brace_depth = 0
             found_open = False
             end = start_line
+            
+            # 如果 start_line 没有 {，向前查找方法签名上的 {
+            if "{" not in lines[start_line - 1]:
+                for j in range(start_line - 2, max(start_line - 5, -1), -1):
+                    if "{" in lines[j]:
+                        start_line = j + 1
+                        break
+            
             for i in range(start_line - 1, len(lines)):
                 line = lines[i]
                 for ch in line:
@@ -330,22 +353,25 @@ def _read_method_body(
                     end = i + 1
                     break
             if found_open and brace_depth <= 0:
-                return "".join(lines[start_line - 1:end])
-            return None
+                return "".join(lines[start_line - 1:end]), "source"
+            # 部分闭合：返回已读内容
+            if found_open:
+                return "".join(lines[start_line - 1:]), "partial"
+            return None, "read_fail"
         except OSError:
-            return None
+            return None, "read_fail"
     if end_line < start_line:
-        return None
+        return None, "read_fail"
     try:
         # 1-based → 0-based 切片
         with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
             lines = fh.readlines()
         if end_line > len(lines):
             end_line = len(lines)
-        return "".join(lines[start_line - 1: end_line])
+        return "".join(lines[start_line - 1: end_line]), "source"
     except OSError as e:
         _log("read body fail: %s [%d-%d]: %s", file_path, start_line, end_line, e)
-        return None
+        return None, "read_fail"
 
 
 def _annotate_body_with_sinks(
@@ -765,8 +791,9 @@ def build_chain(
 
         # body slice
         body: Optional[str] = None
+        body_source = "no_line"
         if file_p is not None and start_line > 0:
-            body = _read_method_body(file_p, start_line, end_line)
+            body, body_source = _read_method_body(file_p, start_line, end_line)
 
         # 该 method 的 sink FQN 列表 + 所有非 groupId 调用
         sinks: List[str] = []
@@ -893,7 +920,7 @@ def build_chain(
                 "startLine": n.start_line,
                 "line": n.start_line,
                 "body": n.body,
-                "file": n.file,
+                "body_source": n.body_source,
                 "depth": n.depth,
                 "node_id": n.node_id,
             }
@@ -1173,8 +1200,9 @@ def build_all_chains_for_endpoint(
 
             file_p = _resolve_file_path(file_path_str, project_root)
             body: Optional[str] = None
+            body_source = "no_line"
             if file_p is not None and r_start and r_start > 0:
-                body = _read_method_body(file_p, r_start, r_end)
+                body, body_source = _read_method_body(file_p, r_start, r_end)
 
             sinks: List[str] = []
             ext_calls: List[str] = []
@@ -1457,8 +1485,9 @@ def build_chain_jar_analyzer(
 
         # body: read from java source file
         body: Optional[str] = None
+        body_source = "no_line"
         if java_file_p is not None and java_file_p.is_file() and start_line > 0:
-            body = _read_method_body(java_file_p, start_line, end_line)
+            body, body_source = _read_method_body(java_file_p, start_line, end_line)
 
         depth = int(r.get("depth", 0))
 
@@ -1495,6 +1524,7 @@ def build_chain_jar_analyzer(
             start_line=start_line,
             end_line=end_line,
             body=annotated_body or None,
+            body_source=body_source,
             depth=depth,
             sinks=sinks,
             edges=node_edges,
@@ -1574,7 +1604,7 @@ def build_chain_jar_analyzer(
                 "startLine": n.start_line,
                 "line": n.start_line,
                 "body": n.body,
-                "file": n.file,
+                "body_source": n.body_source,
                 "depth": n.depth,
                 "node_id": n.node_id,
             }
@@ -1728,8 +1758,9 @@ def build_all_chains_for_endpoint_jar_analyzer(
 
             # body
             body: Optional[str] = None
+            body_source = "no_line"
             if java_file_p is not None and java_file_p.is_file() and start_line > 0:
-                body = _read_method_body(java_file_p, start_line, end_line)
+                body, body_source = _read_method_body(java_file_p, start_line, end_line)
 
             # sinks: 直接从 jar-analyzer.db 的 method_call_table 查非 groupId 调用
             sinks: List[str] = []
