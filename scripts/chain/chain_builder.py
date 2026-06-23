@@ -54,7 +54,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 _HERE = Path(__file__).resolve().parent
 _REPO_ROOT = _HERE.parent.parent          # D:\agentloop
-_DEFAULT_DB = _REPO_ROOT / "codegraph.db"
+_DEFAULT_DB = _REPO_ROOT / "jar-analyzer.db"   # Phase 0-3: 仅使用 jar-analyzer，Phase 4 PoC 使用 codegraph
 _DEFAULT_PROJECT_ROOT = _REPO_ROOT / "projects" / "_template"
 
 
@@ -461,7 +461,7 @@ def _batch_fetch_file_calls(
             log=log,
         )
     except Exception as e:  # noqa: BLE001 - 整批失败, 全部回退到单文件
-        _log("batch extract FAIL (将逐文件回退): %s", e)
+        _log("WARN: batch extract FAIL (将逐文件回退): %s", e)
         return cache, failures
 
     # JAR 返回的 file 字段 = str(fp).replace("\\", "/") (forward-slash 绝对路径)
@@ -533,7 +533,7 @@ def _get_file_calls_with_cache(
             log=False,
         )
     except Exception as e:  # noqa: BLE001
-        _log("file calls extract FAIL: %s : %s", file_path, e)
+        _log("WARN: file calls extract FAIL for %s (sinks may be missing): %s", file_path, e)
         records = []
         failures.append(str(file_path))
     cache[key] = records  # 写回 cache 避免同一文件重复回退
@@ -922,7 +922,7 @@ def build_chain(
                 result["chain_db"] = str(_chain_db_path)
                 result["last_sinks_priority"] = priority
             except Exception as e:  # noqa: BLE001
-                _log("chain_db write failed: %s", e)
+                _log("WARN: chain_db write failed: %s", e)
                 result["chain_db_error"] = str(e)
 
     # 6b. redis-batch-prefetch: 批量预取方法体到 Memurai (可选)
@@ -948,7 +948,7 @@ def build_chain(
                 )
                 result["prefetch_stats"] = prefetch_result
             except Exception as e:  # noqa: BLE001
-                _log("redis-batch-prefetch failed: %s", e)
+                _log("WARN: redis-batch-prefetch failed (method bodies not cached): %s", e)
                 result["prefetch_error"] = str(e)
 
     return result
@@ -1345,7 +1345,7 @@ def build_all_chains_for_endpoint(
                 for r in results:
                     r["prefetch_stats"] = prefetch_result
             except Exception as e:  # noqa: BLE001
-                _log("redis-batch-prefetch failed: %s", e)
+                _log("WARN: redis-batch-prefetch failed (method bodies not cached): %s", e)
                 for r in results:
                     r["prefetch_error"] = str(e)
 
@@ -1634,7 +1634,7 @@ def build_chain_jar_analyzer(
                 )
                 result["prefetch_stats"] = prefetch_result
             except Exception as e:  # noqa: BLE001
-                _log("redis-batch-prefetch failed: %s", e)
+                _log("WARN: redis-batch-prefetch failed (method bodies not cached): %s", e)
                 result["prefetch_error"] = str(e)
 
     return result
@@ -1913,7 +1913,7 @@ def build_all_chains_for_endpoint_jar_analyzer(
                 for r in results:
                     r["prefetch_stats"] = prefetch_result
             except Exception as e:  # noqa: BLE001
-                _log("redis-batch-prefetch failed: %s", e)
+                _log("WARN: redis-batch-prefetch failed (method bodies not cached): %s", e)
                 for r in results:
                     r["prefetch_error"] = str(e)
 

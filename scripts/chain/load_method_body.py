@@ -151,8 +151,6 @@ def main():
                 loop_dir / "jar-analyzer.db",
                 Path.cwd() / "projects" / args.group_id / "loop_audit" / "jar-analyzer.db",
                 Path(__file__).resolve().parent.parent.parent / "projects" / args.group_id / "loop_audit" / "jar-analyzer.db",
-                loop_dir / "chains.db",
-                Path(__file__).resolve().parent.parent.parent / "projects" / args.group_id / "loop_audit" / "chains.db",
             ]:
                 if guess.exists():
                     chain_db_path = guess
