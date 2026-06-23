@@ -1,0 +1,3096 @@
+{
+  "asset_type": "sensitive_info",
+  "source": "regex pattern scan",
+  "stats": {
+    "total": 342,
+    "by_type": {
+      "password": 59,
+      "api_key": 12,
+      "internal_ip": 95,
+      "email": 176
+    }
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-23T17:26:36.997626+00:00",
+  "items": [
+    {
+      "file": "src\\main\\java\\com\\macro\\mall\\service\\impl\\UmsAdminServiceImpl.java",
+      "line": 92,
+      "column": 22,
+      "type": "password",
+      "value_preview": "pass****",
+      "entropy": 4.22,
+      "severity": "high"
+    },
+    {
+      "file": "src\\main\\resources\\application-dev.yml",
+      "line": 5,
+      "column": 5,
+      "type": "password",
+      "value_preview": "root****",
+      "entropy": 1.5,
+      "severity": "medium"
+    },
+    {
+      "file": "src\\main\\resources\\application-dev.yml",
+      "line": 14,
+      "column": 15,
+      "type": "password",
+      "value_preview": "drui****",
+      "entropy": 1.92,
+      "severity": "medium"
+    },
+    {
+      "file": "src\\main\\resources\\application-dev.yml",
+      "line": 26,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "src\\main\\resources\\application-dev.yml",
+      "line": 27,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "src\\main\\resources\\application-prod.yml",
+      "line": 5,
+      "column": 5,
+      "type": "password",
+      "value_preview": "1234****",
+      "entropy": 2.58,
+      "severity": "medium"
+    },
+    {
+      "file": "src\\main\\resources\\application-prod.yml",
+      "line": 14,
+      "column": 15,
+      "type": "password",
+      "value_preview": "drui****",
+      "entropy": 1.92,
+      "severity": "medium"
+    },
+    {
+      "file": "src\\main\\resources\\application-prod.yml",
+      "line": 24,
+      "column": 20,
+      "type": "internal_ip",
+      "value_preview": "192.****",
+      "entropy": 2.72,
+      "severity": "low"
+    },
+    {
+      "file": "src\\main\\resources\\application-prod.yml",
+      "line": 26,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "src\\main\\resources\\application-prod.yml",
+      "line": 27,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\classes\\application-dev.yml",
+      "line": 5,
+      "column": 5,
+      "type": "password",
+      "value_preview": "root****",
+      "entropy": 1.5,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\classes\\application-dev.yml",
+      "line": 14,
+      "column": 15,
+      "type": "password",
+      "value_preview": "drui****",
+      "entropy": 1.92,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\classes\\application-dev.yml",
+      "line": 26,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\classes\\application-dev.yml",
+      "line": 27,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\classes\\application-prod.yml",
+      "line": 5,
+      "column": 5,
+      "type": "password",
+      "value_preview": "1234****",
+      "entropy": 2.58,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\classes\\application-prod.yml",
+      "line": 14,
+      "column": 15,
+      "type": "password",
+      "value_preview": "drui****",
+      "entropy": 1.92,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\classes\\application-prod.yml",
+      "line": 24,
+      "column": 20,
+      "type": "internal_ip",
+      "value_preview": "192.****",
+      "entropy": 2.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\classes\\application-prod.yml",
+      "line": 26,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\classes\\application-prod.yml",
+      "line": 27,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-dev.yml",
+      "line": 5,
+      "column": 5,
+      "type": "password",
+      "value_preview": "root****",
+      "entropy": 1.5,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-dev.yml",
+      "line": 14,
+      "column": 15,
+      "type": "password",
+      "value_preview": "drui****",
+      "entropy": 1.92,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-dev.yml",
+      "line": 26,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-dev.yml",
+      "line": 27,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-prod.yml",
+      "line": 5,
+      "column": 5,
+      "type": "password",
+      "value_preview": "1234****",
+      "entropy": 2.58,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-prod.yml",
+      "line": 14,
+      "column": 15,
+      "type": "password",
+      "value_preview": "drui****",
+      "entropy": 1.92,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-prod.yml",
+      "line": 24,
+      "column": 20,
+      "type": "internal_ip",
+      "value_preview": "192.****",
+      "entropy": 2.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-prod.yml",
+      "line": 26,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\BOOT-INF\\classes\\application-prod.yml",
+      "line": 27,
+      "column": 3,
+      "type": "api_key",
+      "value_preview": "mini****",
+      "entropy": 2.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\macro\\mall\\mapper\\UmsAdminMapper.xml",
+      "line": 200,
+      "column": 9,
+      "type": "password",
+      "value_preview": "#{ro****",
+      "entropy": 4.5,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\macro\\mall\\mapper\\UmsAdminMapper.xml",
+      "line": 232,
+      "column": 7,
+      "type": "password",
+      "value_preview": "#{ro****",
+      "entropy": 4.5,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\macro\\mall\\mapper\\UmsAdminMapper.xml",
+      "line": 251,
+      "column": 9,
+      "type": "password",
+      "value_preview": "#{pa****",
+      "entropy": 4.44,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\macro\\mall\\mapper\\UmsAdminMapper.xml",
+      "line": 280,
+      "column": 7,
+      "type": "password",
+      "value_preview": "#{pa****",
+      "entropy": 4.44,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\macro\\mall\\mapper\\UmsMemberMapper.xml",
+      "line": 272,
+      "column": 9,
+      "type": "password",
+      "value_preview": "#{ro****",
+      "entropy": 4.5,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\macro\\mall\\mapper\\UmsMemberMapper.xml",
+      "line": 329,
+      "column": 7,
+      "type": "password",
+      "value_preview": "#{ro****",
+      "entropy": 4.5,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\macro\\mall\\mapper\\UmsMemberMapper.xml",
+      "line": 359,
+      "column": 9,
+      "type": "password",
+      "value_preview": "#{pa****",
+      "entropy": 4.44,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\macro\\mall\\mapper\\UmsMemberMapper.xml",
+      "line": 413,
+      "column": 7,
+      "type": "password",
+      "value_preview": "#{pa****",
+      "entropy": 4.44,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\mysql\\cj\\LocalizedErrorMessages.properties",
+      "line": 1078,
+      "column": 47,
+      "type": "password",
+      "value_preview": "Pass****",
+      "entropy": 2.75,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\com\\mysql\\cj\\LocalizedErrorMessages.properties",
+      "line": 1233,
+      "column": 46,
+      "type": "password",
+      "value_preview": "Pass****",
+      "entropy": 2.75,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\generator.properties",
+      "line": 4,
+      "column": 6,
+      "type": "password",
+      "value_preview": "root****",
+      "entropy": 1.5,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\generatorConfig.xml",
+      "line": 33,
+      "column": 25,
+      "type": "password",
+      "value_preview": "${jd****",
+      "entropy": 3.75,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.alibaba\\druid\\pom.xml",
+      "line": 29,
+      "column": 11,
+      "type": "email",
+      "value_preview": "szuj****",
+      "entropy": 3.79,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.alibaba\\druid\\pom.xml",
+      "line": 34,
+      "column": 11,
+      "type": "email",
+      "value_preview": "litt****",
+      "entropy": 3.9,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.alibaba\\druid\\pom.xml",
+      "line": 39,
+      "column": 11,
+      "type": "email",
+      "value_preview": "yako****",
+      "entropy": 3.5,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.alibaba\\druid\\pom.xml",
+      "line": 53,
+      "column": 31,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.alibaba\\druid\\pom.xml",
+      "line": 373,
+      "column": 13,
+      "type": "internal_ip",
+      "value_preview": "10.1****",
+      "entropy": 1.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.alibaba\\druid-spring-boot-3-starter\\pom.xml",
+      "line": 21,
+      "column": 20,
+      "type": "email",
+      "value_preview": "8992****",
+      "entropy": 3.24,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.alibaba\\druid-spring-boot-3-starter\\pom.xml",
+      "line": 99,
+      "column": 22,
+      "type": "email",
+      "value_preview": "wens****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.alibaba\\druid-spring-boot-3-starter\\pom.xml",
+      "line": 100,
+      "column": 37,
+      "type": "email",
+      "value_preview": "wens****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.aliyun\\aliyun-java-sdk-core\\pom.xml",
+      "line": 37,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.aliyun\\aliyun-java-sdk-core\\pom.xml",
+      "line": 44,
+      "column": 14,
+      "type": "email",
+      "value_preview": "aliy****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.aliyun\\aliyun-java-sdk-ram\\pom.xml",
+      "line": 50,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.aliyun\\aliyun-java-sdk-ram\\pom.xml",
+      "line": 57,
+      "column": 14,
+      "type": "email",
+      "value_preview": "aliy****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.aliyun.oss\\aliyun-sdk-oss\\pom.xml",
+      "line": 208,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.aliyun.oss\\aliyun-sdk-oss\\pom.xml",
+      "line": 215,
+      "column": 14,
+      "type": "email",
+      "value_preview": "aliy****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml\\classmate\\pom.xml",
+      "line": 17,
+      "column": 29,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml\\classmate\\pom.xml",
+      "line": 18,
+      "column": 38,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml\\classmate\\pom.xml",
+      "line": 26,
+      "column": 20,
+      "type": "email",
+      "value_preview": "tatu****",
+      "entropy": 3.68,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml\\classmate\\pom.xml",
+      "line": 31,
+      "column": 20,
+      "type": "email",
+      "value_preview": "blan****",
+      "entropy": 3.59,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.core\\jackson-annotations\\pom.xml",
+      "line": 34,
+      "column": 25,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.core\\jackson-annotations\\pom.xml",
+      "line": 35,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.core\\jackson-core\\pom.xml",
+      "line": 29,
+      "column": 25,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.core\\jackson-core\\pom.xml",
+      "line": 30,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.core\\jackson-databind\\pom.xml",
+      "line": 31,
+      "column": 25,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.core\\jackson-databind\\pom.xml",
+      "line": 32,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.core\\jackson-databind\\pom.xml",
+      "line": 176,
+      "column": 19,
+      "type": "internal_ip",
+      "value_preview": "micr****",
+      "entropy": 3.47,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.core\\jackson-databind\\pom.xml",
+      "line": 342,
+      "column": 10,
+      "type": "internal_ip",
+      "value_preview": "mave****",
+      "entropy": 2.92,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.core\\jackson-databind\\pom.xml",
+      "line": 342,
+      "column": 32,
+      "type": "internal_ip",
+      "value_preview": "mave****",
+      "entropy": 2.92,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.fasterxml.jackson.datatype\\jackson-datatype-jsr310\\pom.xml",
+      "line": 23,
+      "column": 14,
+      "type": "email",
+      "value_preview": "nich****",
+      "entropy": 3.61,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.jsqlparser\\jsqlparser\\pom.xml",
+      "line": 91,
+      "column": 20,
+      "type": "email",
+      "value_preview": "t.wa****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.jsqlparser\\jsqlparser\\pom.xml",
+      "line": 108,
+      "column": 44,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.jsqlparser\\jsqlparser\\pom.xml",
+      "line": 603,
+      "column": 18,
+      "type": "internal_ip",
+      "value_preview": "mave****",
+      "entropy": 2.92,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.jsqlparser\\jsqlparser\\pom.xml",
+      "line": 603,
+      "column": 40,
+      "type": "internal_ip",
+      "value_preview": "mave****",
+      "entropy": 2.92,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.pagehelper\\pagehelper\\pom.xml",
+      "line": 4,
+      "column": 29,
+      "type": "email",
+      "value_preview": "abel****",
+      "entropy": 3.62,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.pagehelper\\pagehelper\\pom.xml",
+      "line": 48,
+      "column": 20,
+      "type": "email",
+      "value_preview": "abel****",
+      "entropy": 3.62,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.pagehelper\\pagehelper\\pom.xml",
+      "line": 53,
+      "column": 29,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.pagehelper\\pagehelper\\pom.xml",
+      "line": 54,
+      "column": 38,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.pagehelper\\pagehelper\\pom.xml",
+      "line": 55,
+      "column": 14,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.pagehelper\\pagehelper\\pom.xml",
+      "line": 160,
+      "column": 22,
+      "type": "internal_ip",
+      "value_preview": "10.2****",
+      "entropy": 2.16,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.pagehelper\\pagehelper\\pom.xml",
+      "line": 185,
+      "column": 22,
+      "type": "internal_ip",
+      "value_preview": "10.1****",
+      "entropy": 1.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.pagehelper\\pagehelper-spring-boot-autoconfigure\\pom.xml",
+      "line": 5,
+      "column": 24,
+      "type": "email",
+      "value_preview": "abel****",
+      "entropy": 3.62,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.github.pagehelper\\pagehelper-spring-boot-starter\\pom.xml",
+      "line": 5,
+      "column": 24,
+      "type": "email",
+      "value_preview": "abel****",
+      "entropy": 3.62,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.code.gson\\gson\\pom.xml",
+      "line": 334,
+      "column": 43,
+      "type": "internal_ip",
+      "value_preview": "gson****",
+      "entropy": 3.33,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.code.gson\\gson\\pom.xml",
+      "line": 334,
+      "column": 68,
+      "type": "internal_ip",
+      "value_preview": "gson****",
+      "entropy": 3.33,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.guava\\failureaccess\\pom.xml",
+      "line": 16,
+      "column": 28,
+      "type": "internal_ip",
+      "value_preview": "conc****",
+      "entropy": 3.26,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.guava\\failureaccess\\pom.xml",
+      "line": 113,
+      "column": 52,
+      "type": "internal_ip",
+      "value_preview": "conc****",
+      "entropy": 3.26,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.guava\\guava\\pom.xml",
+      "line": 85,
+      "column": 34,
+      "type": "internal_ip",
+      "value_preview": "base****",
+      "entropy": 3.24,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.guava\\guava\\pom.xml",
+      "line": 86,
+      "column": 39,
+      "type": "internal_ip",
+      "value_preview": "conc****",
+      "entropy": 3.26,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.guava\\guava\\pom.xml",
+      "line": 91,
+      "column": 38,
+      "type": "internal_ip",
+      "value_preview": "conc****",
+      "entropy": 3.26,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.guava\\guava\\pom.xml",
+      "line": 156,
+      "column": 51,
+      "type": "internal_ip",
+      "value_preview": "base****",
+      "entropy": 3.24,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.guava\\guava\\pom.xml",
+      "line": 156,
+      "column": 83,
+      "type": "internal_ip",
+      "value_preview": "base****",
+      "entropy": 3.24,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.j2objc\\j2objc-annotations\\pom.xml",
+      "line": 49,
+      "column": 40,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.google.j2objc\\j2objc-annotations\\pom.xml",
+      "line": 56,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tbal****",
+      "entropy": 3.28,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\com.zaxxer\\HikariCP\\pom.xml",
+      "line": 99,
+      "column": 17,
+      "type": "email",
+      "value_preview": "bret****",
+      "entropy": 3.83,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 316,
+      "column": 14,
+      "type": "email",
+      "value_preview": "baya****",
+      "entropy": 3.5,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 321,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tobr****",
+      "entropy": 3.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 327,
+      "column": 14,
+      "type": "email",
+      "value_preview": "sand****",
+      "entropy": 3.69,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 332,
+      "column": 14,
+      "type": "email",
+      "value_preview": "rwal****",
+      "entropy": 3.68,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 337,
+      "column": 14,
+      "type": "email",
+      "value_preview": "dlr@****",
+      "entropy": 3.82,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 342,
+      "column": 14,
+      "type": "email",
+      "value_preview": "jon@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 362,
+      "column": 14,
+      "type": "email",
+      "value_preview": "dgra****",
+      "entropy": 3.39,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 367,
+      "column": 14,
+      "type": "email",
+      "value_preview": "juli****",
+      "entropy": 3.85,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 374,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tn@a****",
+      "entropy": 3.55,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 379,
+      "column": 14,
+      "type": "email",
+      "value_preview": "chto****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 384,
+      "column": 14,
+      "type": "email",
+      "value_preview": "matt****",
+      "entropy": 3.78,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 391,
+      "column": 14,
+      "type": "email",
+      "value_preview": "sieg****",
+      "entropy": 3.55,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 412,
+      "column": 14,
+      "type": "email",
+      "value_preview": "stev****",
+      "entropy": 3.65,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 419,
+      "column": 14,
+      "type": "email",
+      "value_preview": "ben@****",
+      "entropy": 3.88,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 423,
+      "column": 14,
+      "type": "email",
+      "value_preview": "oleg****",
+      "entropy": 3.08,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 430,
+      "column": 14,
+      "type": "email",
+      "value_preview": "apac****",
+      "entropy": 3.79,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 451,
+      "column": 14,
+      "type": "email",
+      "value_preview": "joch****",
+      "entropy": 3.5,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 458,
+      "column": 14,
+      "type": "email",
+      "value_preview": "sebb****",
+      "entropy": 3.51,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-codec\\commons-codec\\pom.xml",
+      "line": 465,
+      "column": 14,
+      "type": "email",
+      "value_preview": "turi****",
+      "entropy": 3.9,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 409,
+      "column": 14,
+      "type": "email",
+      "value_preview": "sand****",
+      "entropy": 3.57,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 419,
+      "column": 14,
+      "type": "email",
+      "value_preview": "dion****",
+      "entropy": 3.64,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 428,
+      "column": 14,
+      "type": "email",
+      "value_preview": "nico****",
+      "entropy": 3.68,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 437,
+      "column": 14,
+      "type": "email",
+      "value_preview": "baya****",
+      "entropy": 3.5,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 455,
+      "column": 14,
+      "type": "email",
+      "value_preview": "jere****",
+      "entropy": 3.64,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 465,
+      "column": 14,
+      "type": "email",
+      "value_preview": "matt****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 474,
+      "column": 14,
+      "type": "email",
+      "value_preview": "mart****",
+      "entropy": 3.68,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 483,
+      "column": 14,
+      "type": "email",
+      "value_preview": "roxs****",
+      "entropy": 3.68,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 492,
+      "column": 14,
+      "type": "email",
+      "value_preview": "joch****",
+      "entropy": 3.78,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 526,
+      "column": 14,
+      "type": "email",
+      "value_preview": "kros****",
+      "entropy": 3.88,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\commons-io\\commons-io\\pom.xml",
+      "line": 586,
+      "column": 14,
+      "type": "email",
+      "value_preview": "mgri****",
+      "entropy": 3.51,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\io.netty\\netty-common\\pom.xml",
+      "line": 35,
+      "column": 17,
+      "type": "internal_ip",
+      "value_preview": "temp****",
+      "entropy": 2.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\io.netty\\netty-common\\pom.xml",
+      "line": 35,
+      "column": 85,
+      "type": "internal_ip",
+      "value_preview": "temp****",
+      "entropy": 2.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\io.netty\\netty-common\\pom.xml",
+      "line": 155,
+      "column": 43,
+      "type": "internal_ip",
+      "value_preview": "util****",
+      "entropy": 3.09,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.activation\\jakarta.activation-api\\pom.xml",
+      "line": 53,
+      "column": 35,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.activation\\jakarta.activation-api\\pom.xml",
+      "line": 54,
+      "column": 44,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.activation\\jakarta.activation-api\\pom.xml",
+      "line": 76,
+      "column": 20,
+      "type": "email",
+      "value_preview": "bill****",
+      "entropy": 3.64,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.activation\\jakarta.activation-api\\pom.xml",
+      "line": 393,
+      "column": 31,
+      "type": "email",
+      "value_preview": "jaf-****",
+      "entropy": 4.0,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.activation\\jakarta.activation-api\\pom.xml",
+      "line": 393,
+      "column": 52,
+      "type": "email",
+      "value_preview": "jaf-****",
+      "entropy": 4.0,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.annotation\\jakarta.annotation-api\\pom.xml",
+      "line": 67,
+      "column": 38,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.annotation\\jakarta.annotation-api\\pom.xml",
+      "line": 80,
+      "column": 19,
+      "type": "email",
+      "value_preview": "ca-d****",
+      "entropy": 3.79,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.validation\\jakarta.validation-api\\pom.xml",
+      "line": 31,
+      "column": 20,
+      "type": "email",
+      "value_preview": "emma****",
+      "entropy": 3.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.validation\\jakarta.validation-api\\pom.xml",
+      "line": 38,
+      "column": 20,
+      "type": "email",
+      "value_preview": "emma****",
+      "entropy": 3.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.validation\\jakarta.validation-api\\pom.xml",
+      "line": 45,
+      "column": 20,
+      "type": "email",
+      "value_preview": "hfer****",
+      "entropy": 3.68,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.validation\\jakarta.validation-api\\pom.xml",
+      "line": 52,
+      "column": 20,
+      "type": "email",
+      "value_preview": "gunn****",
+      "entropy": 3.55,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.validation\\jakarta.validation-api\\pom.xml",
+      "line": 59,
+      "column": 20,
+      "type": "email",
+      "value_preview": "guil****",
+      "entropy": 3.88,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.validation\\jakarta.validation-api\\pom.xml",
+      "line": 81,
+      "column": 38,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.validation\\jakarta.validation-api\\pom.xml",
+      "line": 209,
+      "column": 30,
+      "type": "email",
+      "value_preview": "bean****",
+      "entropy": 4.0,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\jakarta.validation\\jakarta.validation-api\\pom.xml",
+      "line": 209,
+      "column": 63,
+      "type": "email",
+      "value_preview": "bean****",
+      "entropy": 4.0,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\net.logstash.logback\\logstash-logback-encoder\\pom.xml",
+      "line": 25,
+      "column": 20,
+      "type": "email",
+      "value_preview": "neil****",
+      "entropy": 3.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\net.logstash.logback\\logstash-logback-encoder\\pom.xml",
+      "line": 36,
+      "column": 20,
+      "type": "email",
+      "value_preview": "lusi****",
+      "entropy": 3.85,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\ognl\\ognl\\pom.xml",
+      "line": 44,
+      "column": 29,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\ognl\\ognl\\pom.xml",
+      "line": 45,
+      "column": 14,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\ognl\\ognl\\pom.xml",
+      "line": 46,
+      "column": 38,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\ognl\\ognl\\pom.xml",
+      "line": 58,
+      "column": 20,
+      "type": "email",
+      "value_preview": "luka****",
+      "entropy": 3.94,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-compress\\pom.xml",
+      "line": 652,
+      "column": 14,
+      "type": "email",
+      "value_preview": "ck@n****",
+      "entropy": 3.52,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-compress\\pom.xml",
+      "line": 656,
+      "column": 14,
+      "type": "email",
+      "value_preview": "bgil****",
+      "entropy": 3.63,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-compress\\pom.xml",
+      "line": 664,
+      "column": 14,
+      "type": "email",
+      "value_preview": "lass****",
+      "entropy": 3.77,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-compress\\pom.xml",
+      "line": 674,
+      "column": 12,
+      "type": "email",
+      "value_preview": "sesu****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-compress\\pom.xml",
+      "line": 678,
+      "column": 14,
+      "type": "email",
+      "value_preview": "haus****",
+      "entropy": 3.66,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-compress\\pom.xml",
+      "line": 682,
+      "column": 14,
+      "type": "email",
+      "value_preview": "artu****",
+      "entropy": 3.76,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 545,
+      "column": 14,
+      "type": "email",
+      "value_preview": "dlr@****",
+      "entropy": 3.82,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 554,
+      "column": 14,
+      "type": "email",
+      "value_preview": "scol****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 564,
+      "column": 14,
+      "type": "email",
+      "value_preview": "baya****",
+      "entropy": 3.5,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 573,
+      "column": 14,
+      "type": "email",
+      "value_preview": "stev****",
+      "entropy": 3.8,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 583,
+      "column": 14,
+      "type": "email",
+      "value_preview": "rdon****",
+      "entropy": 3.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 616,
+      "column": 14,
+      "type": "email",
+      "value_preview": "jcar****",
+      "entropy": 3.5,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 639,
+      "column": 14,
+      "type": "email",
+      "value_preview": "joer****",
+      "entropy": 3.98,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 648,
+      "column": 14,
+      "type": "email",
+      "value_preview": "oheg****",
+      "entropy": 3.22,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 657,
+      "column": 14,
+      "type": "email",
+      "value_preview": "pben****",
+      "entropy": 3.78,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 665,
+      "column": 14,
+      "type": "email",
+      "value_preview": "brit****",
+      "entropy": 3.57,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 673,
+      "column": 14,
+      "type": "email",
+      "value_preview": "djon****",
+      "entropy": 3.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 682,
+      "column": 14,
+      "type": "email",
+      "value_preview": "lgui****",
+      "entropy": 3.83,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.apache.commons\\commons-lang3\\pom.xml",
+      "line": 691,
+      "column": 14,
+      "type": "email",
+      "value_preview": "chto****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.glassfish.jaxb\\jaxb-runtime\\pom.xml",
+      "line": 182,
+      "column": 29,
+      "type": "internal_ip",
+      "value_preview": "jdk.****",
+      "entropy": 3.42,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.hdrhistogram\\HdrHistogram\\pom.xml",
+      "line": 48,
+      "column": 38,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.hibernate.validator\\hibernate-validator\\pom.xml",
+      "line": 27,
+      "column": 14,
+      "type": "email",
+      "value_preview": "emma****",
+      "entropy": 3.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.hibernate.validator\\hibernate-validator\\pom.xml",
+      "line": 34,
+      "column": 14,
+      "type": "email",
+      "value_preview": "hfer****",
+      "entropy": 3.68,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.hibernate.validator\\hibernate-validator\\pom.xml",
+      "line": 41,
+      "column": 14,
+      "type": "email",
+      "value_preview": "gunn****",
+      "entropy": 3.55,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.hibernate.validator\\hibernate-validator\\pom.xml",
+      "line": 48,
+      "column": 14,
+      "type": "email",
+      "value_preview": "kevi****",
+      "entropy": 3.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.hibernate.validator\\hibernate-validator\\pom.xml",
+      "line": 55,
+      "column": 14,
+      "type": "email",
+      "value_preview": "davi****",
+      "entropy": 3.68,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.hibernate.validator\\hibernate-validator\\pom.xml",
+      "line": 62,
+      "column": 14,
+      "type": "email",
+      "value_preview": "guil****",
+      "entropy": 3.88,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.hibernate.validator\\hibernate-validator\\pom.xml",
+      "line": 69,
+      "column": 14,
+      "type": "email",
+      "value_preview": "mark****",
+      "entropy": 3.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.hibernate.validator\\hibernate-validator\\pom.xml",
+      "line": 75,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.javassist\\javassist\\pom.xml",
+      "line": 46,
+      "column": 25,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.javassist\\javassist\\pom.xml",
+      "line": 47,
+      "column": 34,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.javassist\\javassist\\pom.xml",
+      "line": 48,
+      "column": 18,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.javassist\\javassist\\pom.xml",
+      "line": 55,
+      "column": 14,
+      "type": "email",
+      "value_preview": "chib****",
+      "entropy": 3.64,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.javassist\\javassist\\pom.xml",
+      "line": 67,
+      "column": 14,
+      "type": "email",
+      "value_preview": "adin****",
+      "entropy": 3.62,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.javassist\\javassist\\pom.xml",
+      "line": 77,
+      "column": 11,
+      "type": "email",
+      "value_preview": "kabi****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.javassist\\javassist\\pom.xml",
+      "line": 79,
+      "column": 14,
+      "type": "email",
+      "value_preview": "kabi****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.javassist\\javassist\\pom.xml",
+      "line": 91,
+      "column": 14,
+      "type": "email",
+      "value_preview": "smar****",
+      "entropy": 3.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 48,
+      "column": 38,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 68,
+      "column": 10,
+      "type": "internal_ip",
+      "value_preview": "mave****",
+      "entropy": 2.92,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 68,
+      "column": 52,
+      "type": "internal_ip",
+      "value_preview": "mave****",
+      "entropy": 2.92,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 69,
+      "column": 10,
+      "type": "internal_ip",
+      "value_preview": "cp.t****",
+      "entropy": 2.52,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 69,
+      "column": 90,
+      "type": "internal_ip",
+      "value_preview": "cp.t****",
+      "entropy": 2.52,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 244,
+      "column": 48,
+      "type": "internal_ip",
+      "value_preview": "cp.t****",
+      "entropy": 2.52,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 258,
+      "column": 49,
+      "type": "internal_ip",
+      "value_preview": "mave****",
+      "entropy": 2.92,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 290,
+      "column": 53,
+      "type": "internal_ip",
+      "value_preview": "cp.t****",
+      "entropy": 2.52,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 313,
+      "column": 53,
+      "type": "internal_ip",
+      "value_preview": "cp.t****",
+      "entropy": 2.52,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 333,
+      "column": 53,
+      "type": "internal_ip",
+      "value_preview": "cp.t****",
+      "entropy": 2.52,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 353,
+      "column": 53,
+      "type": "internal_ip",
+      "value_preview": "cp.t****",
+      "entropy": 2.52,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jboss.logging\\jboss-logging\\pom.xml",
+      "line": 371,
+      "column": 53,
+      "type": "internal_ip",
+      "value_preview": "cp.t****",
+      "entropy": 2.52,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jctools\\jctools-core\\pom.xml",
+      "line": 15,
+      "column": 4,
+      "type": "internal_ip",
+      "value_preview": "java****",
+      "entropy": 2.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jctools\\jctools-core\\pom.xml",
+      "line": 15,
+      "column": 27,
+      "type": "internal_ip",
+      "value_preview": "java****",
+      "entropy": 2.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jctools\\jctools-core\\pom.xml",
+      "line": 19,
+      "column": 32,
+      "type": "internal_ip",
+      "value_preview": "java****",
+      "entropy": 2.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jctools\\jctools-core\\pom.xml",
+      "line": 20,
+      "column": 32,
+      "type": "internal_ip",
+      "value_preview": "java****",
+      "entropy": 2.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.jctools\\jctools-core\\pom.xml",
+      "line": 147,
+      "column": 22,
+      "type": "internal_ip",
+      "value_preview": "java****",
+      "entropy": 2.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.latencyutils\\LatencyUtils\\pom.xml",
+      "line": 45,
+      "column": 38,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis\\pom.xml",
+      "line": 44,
+      "column": 31,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis\\pom.xml",
+      "line": 45,
+      "column": 40,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis\\pom.xml",
+      "line": 61,
+      "column": 26,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis\\pom.xml",
+      "line": 76,
+      "column": 20,
+      "type": "internal_ip",
+      "value_preview": "10.1****",
+      "entropy": 1.89,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis\\pom.xml",
+      "line": 438,
+      "column": 24,
+      "type": "internal_ip",
+      "value_preview": "10.1****",
+      "entropy": 1.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis\\pom.xml",
+      "line": 447,
+      "column": 24,
+      "type": "internal_ip",
+      "value_preview": "10.1****",
+      "entropy": 1.89,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 41,
+      "column": 14,
+      "type": "email",
+      "value_preview": "Alex****",
+      "entropy": 3.92,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 46,
+      "column": 14,
+      "type": "email",
+      "value_preview": "andr****",
+      "entropy": 3.84,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 51,
+      "column": 14,
+      "type": "email",
+      "value_preview": "giov****",
+      "entropy": 3.47,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 56,
+      "column": 14,
+      "type": "email",
+      "value_preview": "kay.****",
+      "entropy": 3.93,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 61,
+      "column": 14,
+      "type": "email",
+      "value_preview": "lish****",
+      "entropy": 3.47,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 66,
+      "column": 14,
+      "type": "email",
+      "value_preview": "lany****",
+      "entropy": 3.34,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 71,
+      "column": 14,
+      "type": "email",
+      "value_preview": "raj@****",
+      "entropy": 3.92,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 76,
+      "column": 14,
+      "type": "email",
+      "value_preview": "toma****",
+      "entropy": 3.56,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 81,
+      "column": 31,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 82,
+      "column": 40,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 98,
+      "column": 26,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 112,
+      "column": 6,
+      "type": "internal_ip",
+      "value_preview": "java****",
+      "entropy": 2.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 112,
+      "column": 28,
+      "type": "internal_ip",
+      "value_preview": "java****",
+      "entropy": 2.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 113,
+      "column": 6,
+      "type": "internal_ip",
+      "value_preview": "java****",
+      "entropy": 2.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 113,
+      "column": 36,
+      "type": "internal_ip",
+      "value_preview": "java****",
+      "entropy": 2.73,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 115,
+      "column": 20,
+      "type": "internal_ip",
+      "value_preview": "10.1****",
+      "entropy": 1.89,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 476,
+      "column": 24,
+      "type": "internal_ip",
+      "value_preview": "10.1****",
+      "entropy": 1.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis\\mybatis-spring\\pom.xml",
+      "line": 485,
+      "column": 24,
+      "type": "internal_ip",
+      "value_preview": "10.1****",
+      "entropy": 1.89,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis.generator\\mybatis-generator-core\\pom.xml",
+      "line": 229,
+      "column": 22,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis.spring.boot\\mybatis-spring-boot-autoconfigure\\pom.xml",
+      "line": 32,
+      "column": 14,
+      "type": "email",
+      "value_preview": "josh****",
+      "entropy": 3.26,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.mybatis.spring.boot\\mybatis-spring-boot-autoconfigure\\pom.xml",
+      "line": 36,
+      "column": 14,
+      "type": "email",
+      "value_preview": "kazu****",
+      "entropy": 3.69,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.springframework.data\\spring-data-commons\\pom.xml",
+      "line": 17,
+      "column": 12,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.springframework.data\\spring-data-redis\\pom.xml",
+      "line": 35,
+      "column": 32,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.webjars\\webjars-locator-lite\\pom.xml",
+      "line": 39,
+      "column": 20,
+      "type": "email",
+      "value_preview": "jame****",
+      "entropy": 3.47,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.yaml\\snakeyaml\\pom.xml",
+      "line": 35,
+      "column": 19,
+      "type": "email",
+      "value_preview": "snak****",
+      "entropy": 3.89,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.yaml\\snakeyaml\\pom.xml",
+      "line": 40,
+      "column": 44,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.45,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.yaml\\snakeyaml\\pom.xml",
+      "line": 55,
+      "column": 20,
+      "type": "email",
+      "value_preview": "publ****",
+      "entropy": 3.66,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\org.yaml\\snakeyaml\\pom.xml",
+      "line": 60,
+      "column": 20,
+      "type": "email",
+      "value_preview": "alex****",
+      "entropy": 3.8,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\redis.clients.authentication\\redis-authx-core\\pom.xml",
+      "line": 20,
+      "column": 10,
+      "type": "email",
+      "value_preview": "redi****",
+      "entropy": 4.07,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\redis.clients.authentication\\redis-authx-core\\pom.xml",
+      "line": 41,
+      "column": 23,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\redis.clients.authentication\\redis-authx-core\\pom.xml",
+      "line": 42,
+      "column": 16,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\maven\\redis.clients.authentication\\redis-authx-core\\pom.xml",
+      "line": 43,
+      "column": 32,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-commons.properties",
+      "line": 12,
+      "column": 15,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-commons.properties",
+      "line": 22,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tlud****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-commons.properties",
+      "line": 23,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tlud****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-core.properties",
+      "line": 12,
+      "column": 15,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-core.properties",
+      "line": 22,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tlud****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-core.properties",
+      "line": 23,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tlud****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-jakarta9.properties",
+      "line": 12,
+      "column": 15,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-jakarta9.properties",
+      "line": 22,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tlud****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-jakarta9.properties",
+      "line": 23,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tlud****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-observation.properties",
+      "line": 12,
+      "column": 15,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-observation.properties",
+      "line": 22,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tlud****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\micrometer-observation.properties",
+      "line": 23,
+      "column": 14,
+      "type": "email",
+      "value_preview": "tlud****",
+      "entropy": 3.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\native-image\\io.lettuce\\lettuce-core\\native-image.properties",
+      "line": 1,
+      "column": 262,
+      "type": "internal_ip",
+      "value_preview": "core****",
+      "entropy": 3.24,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\native-image\\io.netty\\netty-common\\native-image.properties",
+      "line": 15,
+      "column": 219,
+      "type": "internal_ip",
+      "value_preview": "util****",
+      "entropy": 3.09,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\native-image\\okhttp\\okhttp\\native-image.properties",
+      "line": 1,
+      "column": 67,
+      "type": "internal_ip",
+      "value_preview": "okht****",
+      "entropy": 3.58,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid\\git.properties",
+      "line": 3,
+      "column": 16,
+      "type": "internal_ip",
+      "value_preview": "wens****",
+      "entropy": 3.84,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid\\git.properties",
+      "line": 5,
+      "column": 22,
+      "type": "email",
+      "value_preview": "shao****",
+      "entropy": 3.84,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid\\git.properties",
+      "line": 19,
+      "column": 23,
+      "type": "email",
+      "value_preview": "shao****",
+      "entropy": 3.84,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid\\git.properties",
+      "line": 22,
+      "column": 1,
+      "type": "internal_ip",
+      "value_preview": "git.****",
+      "entropy": 2.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid\\git.properties",
+      "line": 23,
+      "column": 1,
+      "type": "internal_ip",
+      "value_preview": "git.****",
+      "entropy": 2.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid\\git.properties",
+      "line": 24,
+      "column": 23,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid-spring-boot-3-starter\\git.properties",
+      "line": 3,
+      "column": 16,
+      "type": "internal_ip",
+      "value_preview": "wens****",
+      "entropy": 3.84,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid-spring-boot-3-starter\\git.properties",
+      "line": 5,
+      "column": 22,
+      "type": "email",
+      "value_preview": "shao****",
+      "entropy": 3.84,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid-spring-boot-3-starter\\git.properties",
+      "line": 19,
+      "column": 23,
+      "type": "email",
+      "value_preview": "shao****",
+      "entropy": 3.84,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid-spring-boot-3-starter\\git.properties",
+      "line": 22,
+      "column": 1,
+      "type": "internal_ip",
+      "value_preview": "git.****",
+      "entropy": 2.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid-spring-boot-3-starter\\git.properties",
+      "line": 23,
+      "column": 1,
+      "type": "internal_ip",
+      "value_preview": "git.****",
+      "entropy": 2.95,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\META-INF\\scm\\com.alibaba\\druid-spring-boot-3-starter\\git.properties",
+      "line": 24,
+      "column": 23,
+      "type": "email",
+      "value_preview": "git@****",
+      "entropy": 3.38,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\apache\\catalina\\util\\ServerInfo.properties",
+      "line": 17,
+      "column": 15,
+      "type": "internal_ip",
+      "value_preview": "10.1****",
+      "entropy": 2.2,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\model\\impl\\Messages_ja.properties",
+      "line": 71,
+      "column": 168,
+      "type": "email",
+      "value_preview": "u300****",
+      "entropy": 3.84,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages.properties",
+      "line": 69,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages.properties",
+      "line": 69,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages.properties",
+      "line": 69,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_de.properties",
+      "line": 51,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_de.properties",
+      "line": 51,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_de.properties",
+      "line": 51,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_es.properties",
+      "line": 51,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_es.properties",
+      "line": 51,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_es.properties",
+      "line": 51,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_fr.properties",
+      "line": 51,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_fr.properties",
+      "line": 51,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_fr.properties",
+      "line": 51,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_it.properties",
+      "line": 51,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_it.properties",
+      "line": 51,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_it.properties",
+      "line": 51,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_ja.properties",
+      "line": 51,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_ja.properties",
+      "line": 51,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_ja.properties",
+      "line": 51,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_ko.properties",
+      "line": 51,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_ko.properties",
+      "line": 51,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_ko.properties",
+      "line": 51,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_pt_BR.properties",
+      "line": 51,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_pt_BR.properties",
+      "line": 51,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_pt_BR.properties",
+      "line": 51,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_zh_CN.properties",
+      "line": 51,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_zh_CN.properties",
+      "line": 51,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_zh_CN.properties",
+      "line": 51,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_zh_TW.properties",
+      "line": 51,
+      "column": 50,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_zh_TW.properties",
+      "line": 51,
+      "column": 107,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\glassfish\\jaxb\\runtime\\v2\\runtime\\Messages_zh_TW.properties",
+      "line": 51,
+      "column": 149,
+      "type": "internal_ip",
+      "value_preview": "com.****",
+      "entropy": 2.75,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\boot\\logging\\java\\logging-file.properties",
+      "line": 14,
+      "column": 15,
+      "type": "internal_ip",
+      "value_preview": "vali****",
+      "entropy": 3.35,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\boot\\logging\\java\\logging.properties",
+      "line": 7,
+      "column": 15,
+      "type": "internal_ip",
+      "value_preview": "vali****",
+      "entropy": 3.35,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\boot\\logging\\log4j2\\log4j2-file.xml",
+      "line": 48,
+      "column": 31,
+      "type": "internal_ip",
+      "value_preview": "vali****",
+      "entropy": 3.35,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\boot\\logging\\log4j2\\log4j2.xml",
+      "line": 32,
+      "column": 31,
+      "type": "internal_ip",
+      "value_preview": "vali****",
+      "entropy": 3.35,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\boot\\logging\\logback\\defaults.xml",
+      "line": 30,
+      "column": 30,
+      "type": "internal_ip",
+      "value_preview": "vali****",
+      "entropy": 3.35,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "Empt****",
+      "entropy": 2.32,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "Empt****",
+      "entropy": 2.32,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_cs_CZ.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "\\u01****",
+      "entropy": 3.25,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_cs_CZ.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "\\u01****",
+      "entropy": 3.25,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_de.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "Ung\\****",
+      "entropy": 3.52,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_de.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "Ung\\****",
+      "entropy": 3.52,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_en.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "Empt****",
+      "entropy": 2.32,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_en.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "Empt****",
+      "entropy": 2.32,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_es_ES.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "Cred****",
+      "entropy": 3.19,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_es_ES.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "Cred****",
+      "entropy": 3.19,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_fr.properties",
+      "line": 3,
+      "column": 34,
+      "type": "email",
+      "value_preview": "laur****",
+      "entropy": 3.72,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_fr.properties",
+      "line": 4,
+      "column": 36,
+      "type": "email",
+      "value_preview": "vale****",
+      "entropy": 4.0,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_it.properties",
+      "line": 2,
+      "column": 42,
+      "type": "password",
+      "value_preview": "Empt****",
+      "entropy": 2.32,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_it.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "Cred****",
+      "entropy": 3.1,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_ja.properties",
+      "line": 5,
+      "column": 41,
+      "type": "password",
+      "value_preview": "\\u30****",
+      "entropy": 3.48,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_ja.properties",
+      "line": 20,
+      "column": 24,
+      "type": "password",
+      "value_preview": "\\u30****",
+      "entropy": 3.48,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_ko_KR.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "\\ube****",
+      "entropy": 3.32,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_ko_KR.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "\\ube****",
+      "entropy": 3.27,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_lt.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "Tu\\u****",
+      "entropy": 3.13,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_lt.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "Tu\\u****",
+      "entropy": 3.13,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_mn_MN.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "\\u04****",
+      "entropy": 2.68,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_mn_MN.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "\\u04****",
+      "entropy": 2.68,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_pl.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "Niep****",
+      "entropy": 3.1,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_pl.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "Niep****",
+      "entropy": 3.1,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_pt_BR.properties",
+      "line": 3,
+      "column": 34,
+      "type": "email",
+      "value_preview": "leov****",
+      "entropy": 3.56,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_pt_BR.properties",
+      "line": 5,
+      "column": 41,
+      "type": "password",
+      "value_preview": "Usu\\****",
+      "entropy": 3.25,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_pt_BR.properties",
+      "line": 20,
+      "column": 24,
+      "type": "password",
+      "value_preview": "Usu\\****",
+      "entropy": 3.25,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_pt_PT.properties",
+      "line": 4,
+      "column": 41,
+      "type": "password",
+      "value_preview": "Cred****",
+      "entropy": 3.1,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_pt_PT.properties",
+      "line": 19,
+      "column": 24,
+      "type": "password",
+      "value_preview": "Cred****",
+      "entropy": 3.1,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_ru.properties",
+      "line": 3,
+      "column": 34,
+      "type": "email",
+      "value_preview": "olez****",
+      "entropy": 3.79,
+      "severity": "low"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_ru.properties",
+      "line": 5,
+      "column": 41,
+      "type": "password",
+      "value_preview": "\\u04****",
+      "entropy": 2.9,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_ru.properties",
+      "line": 20,
+      "column": 24,
+      "type": "password",
+      "value_preview": "\\u04****",
+      "entropy": 2.9,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_uk_UA.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "\\u04****",
+      "entropy": 2.87,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_uk_UA.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "\\u04****",
+      "entropy": 2.87,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_zh_CN.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "\\u75****",
+      "entropy": 3.73,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_zh_CN.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "\\u75****",
+      "entropy": 3.73,
+      "severity": "high"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_zh_TW.properties",
+      "line": 2,
+      "column": 41,
+      "type": "password",
+      "value_preview": "\\u6C****",
+      "entropy": 3.45,
+      "severity": "medium"
+    },
+    {
+      "file": "target\\jar-analyzer-temp\\org\\springframework\\security\\messages_zh_TW.properties",
+      "line": 17,
+      "column": 24,
+      "type": "password",
+      "value_preview": "\\u6C****",
+      "entropy": 3.45,
+      "severity": "medium"
+    }
+  ]
+}

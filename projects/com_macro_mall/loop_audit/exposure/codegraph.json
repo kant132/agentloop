@@ -1,0 +1,608 @@
+{
+  "asset_type": "codegraph",
+  "source": "jar-analyzer SQLite pattern search",
+  "stats": {
+    "total": 74,
+    "by_category": {
+      "sql": 21,
+      "reflection": 53
+    }
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-23T17:26:30.304375+00:00",
+  "items": [
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::<init>",
+      "category": "sql",
+      "nodes_id": "1593",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 23,
+      "snippet": "\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000\n\u0001\u0000\tgetAction\n\u0000\b\u0000$"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::builder",
+      "category": "sql",
+      "nodes_id": "124",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 23,
+      "snippet": "\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000\n\u0001\u0000\tgetAction\n\u0000\b\u0000$"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::canEqual",
+      "category": "sql",
+      "nodes_id": "838",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 22,
+      "snippet": "\n\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000\n\u0001\u0000\tgetAction"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::equals",
+      "category": "sql",
+      "nodes_id": "1428",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 22,
+      "snippet": "\n\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000\n\u0001\u0000\tgetAction"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::getAction",
+      "category": "sql",
+      "nodes_id": "499",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 27,
+      "snippet": "\u0000\"\u0000\n\u0001\u0000\tgetAction\n\u0000\b\u0000$\n\u0000%\u0000\n\u0001\u0000\ngetResource\u0012\u0000\u0000\u0000'\n\u0000(\u0000)\u0001\u0000\u0017makeConcatWithConstants\u0001\u0000\\(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::getEffect",
+      "category": "sql",
+      "nodes_id": "1446",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 25,
+      "snippet": "getPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000\n\u0001\u0000\tgetAction\n\u0000\b\u0000$\n\u0000%\u0000\n\u0001\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::getPrincipal",
+      "category": "sql",
+      "nodes_id": "551",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 26,
+      "snippet": "\u0000\b\u0000!\n\u0000\"\u0000\n\u0001\u0000\tgetAction\n\u0000\b\u0000$\n\u0000%\u0000\n\u0001\u0000\ngetResource\u0012\u0000\u0000\u0000'"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::getResource",
+      "category": "sql",
+      "nodes_id": "753",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 28,
+      "snippet": "\u0001\u0000\tgetAction\n\u0000\b\u0000$\n\u0000%\u0000\n\u0001\u0000\ngetResource\u0012\u0000\u0000\u0000'\n\u0000(\u0000)\u0001\u0000\u0017makeConcatWithConstants\u0001\u0000\\(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;\n\u0000\b\u0000+"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::hashCode",
+      "category": "sql",
+      "nodes_id": "522",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 22,
+      "snippet": "\n\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000\n\u0001\u0000\tgetAction"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::setAction",
+      "category": "sql",
+      "nodes_id": "1129",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 21,
+      "snippet": "\u0000\b\u0000\n\n\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::setEffect",
+      "category": "sql",
+      "nodes_id": "161",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 21,
+      "snippet": "\u0000\b\u0000\n\n\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::setPrincipal",
+      "category": "sql",
+      "nodes_id": "614",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 21,
+      "snippet": "\u0000\b\u0000\n\n\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::setResource",
+      "category": "sql",
+      "nodes_id": "735",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 21,
+      "snippet": "\u0000\b\u0000\n\n\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement::toString",
+      "category": "sql",
+      "nodes_id": "1177",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement.class",
+      "line": 21,
+      "snippet": "\u0000\b\u0000\n\n\u0000\u001f\u0000\n\u0001\u0000\ngetPrincipal\n\u0000\b\u0000!\n\u0000\"\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement$StatementBuilder::<init>",
+      "category": "sql",
+      "nodes_id": "1840",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement$StatementBuilder.class",
+      "line": 23,
+      "snippet": "SourceFile\u0001\u0000\u001aBucketPolicyConfigDto.java\u0001\u0000\bNestHost\u0007\u00000\u0001\u0000(com/macro/mall/dto/BucketPolicyConfigDto\u0001\u0000\u0010BootstrapMethods\b\u00003\u0001\u0000]BucketPolicyConfigDto.Statement.StatementBuilder(Effect=\u0001, Principal=\u0001, Action=\u0001, Resource=\u0001)\u000f\u0006\u00005\n\u00006\u00007\u0007\u00008\n\u0000\n\u00009\u0001\u0000$java/lang/invoke/StringConcatFactory\u0001\u0000�(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;\u0001\u0000\nInnerClasses\u0001\u0000\tStatement\u0001\u0000\u0010StatementBuilder\u0007\u0000>\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0000@\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\b\u0000\u0002\u0000\u0000\u0000\u0004\u0000\u0002\u0000\n\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement$StatementBuilder::Action",
+      "category": "sql",
+      "nodes_id": "1366",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement$StatementBuilder.class",
+      "line": 23,
+      "snippet": "SourceFile\u0001\u0000\u001aBucketPolicyConfigDto.java\u0001\u0000\bNestHost\u0007\u00000\u0001\u0000(com/macro/mall/dto/BucketPolicyConfigDto\u0001\u0000\u0010BootstrapMethods\b\u00003\u0001\u0000]BucketPolicyConfigDto.Statement.StatementBuilder(Effect=\u0001, Principal=\u0001, Action=\u0001, Resource=\u0001)\u000f\u0006\u00005\n\u00006\u00007\u0007\u00008\n\u0000\n\u00009\u0001\u0000$java/lang/invoke/StringConcatFactory\u0001\u0000�(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;\u0001\u0000\nInnerClasses\u0001\u0000\tStatement\u0001\u0000\u0010StatementBuilder\u0007\u0000>\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0000@\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\b\u0000\u0002\u0000\u0000\u0000\u0004\u0000\u0002\u0000\n\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement$StatementBuilder::Effect",
+      "category": "sql",
+      "nodes_id": "417",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement$StatementBuilder.class",
+      "line": 23,
+      "snippet": "SourceFile\u0001\u0000\u001aBucketPolicyConfigDto.java\u0001\u0000\bNestHost\u0007\u00000\u0001\u0000(com/macro/mall/dto/BucketPolicyConfigDto\u0001\u0000\u0010BootstrapMethods\b\u00003\u0001\u0000]BucketPolicyConfigDto.Statement.StatementBuilder(Effect=\u0001, Principal=\u0001, Action=\u0001, Resource=\u0001)\u000f\u0006\u00005\n\u00006\u00007\u0007\u00008\n\u0000\n\u00009\u0001\u0000$java/lang/invoke/StringConcatFactory\u0001\u0000�(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;\u0001\u0000\nInnerClasses\u0001\u0000\tStatement\u0001\u0000\u0010StatementBuilder\u0007\u0000>\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0000@\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\b\u0000\u0002\u0000\u0000\u0000\u0004\u0000\u0002\u0000\n\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement$StatementBuilder::Principal",
+      "category": "sql",
+      "nodes_id": "1746",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement$StatementBuilder.class",
+      "line": 23,
+      "snippet": "SourceFile\u0001\u0000\u001aBucketPolicyConfigDto.java\u0001\u0000\bNestHost\u0007\u00000\u0001\u0000(com/macro/mall/dto/BucketPolicyConfigDto\u0001\u0000\u0010BootstrapMethods\b\u00003\u0001\u0000]BucketPolicyConfigDto.Statement.StatementBuilder(Effect=\u0001, Principal=\u0001, Action=\u0001, Resource=\u0001)\u000f\u0006\u00005\n\u00006\u00007\u0007\u00008\n\u0000\n\u00009\u0001\u0000$java/lang/invoke/StringConcatFactory\u0001\u0000�(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;\u0001\u0000\nInnerClasses\u0001\u0000\tStatement\u0001\u0000\u0010StatementBuilder\u0007\u0000>\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0000@\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\b\u0000\u0002\u0000\u0000\u0000\u0004\u0000\u0002\u0000\n\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement$StatementBuilder::Resource",
+      "category": "sql",
+      "nodes_id": "481",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement$StatementBuilder.class",
+      "line": 23,
+      "snippet": "SourceFile\u0001\u0000\u001aBucketPolicyConfigDto.java\u0001\u0000\bNestHost\u0007\u00000\u0001\u0000(com/macro/mall/dto/BucketPolicyConfigDto\u0001\u0000\u0010BootstrapMethods\b\u00003\u0001\u0000]BucketPolicyConfigDto.Statement.StatementBuilder(Effect=\u0001, Principal=\u0001, Action=\u0001, Resource=\u0001)\u000f\u0006\u00005\n\u00006\u00007\u0007\u00008\n\u0000\n\u00009\u0001\u0000$java/lang/invoke/StringConcatFactory\u0001\u0000�(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;\u0001\u0000\nInnerClasses\u0001\u0000\tStatement\u0001\u0000\u0010StatementBuilder\u0007\u0000>\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0000@\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\b\u0000\u0002\u0000\u0000\u0000\u0004\u0000\u0002\u0000\n\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement$StatementBuilder::build",
+      "category": "sql",
+      "nodes_id": "1445",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement$StatementBuilder.class",
+      "line": 23,
+      "snippet": "SourceFile\u0001\u0000\u001aBucketPolicyConfigDto.java\u0001\u0000\bNestHost\u0007\u00000\u0001\u0000(com/macro/mall/dto/BucketPolicyConfigDto\u0001\u0000\u0010BootstrapMethods\b\u00003\u0001\u0000]BucketPolicyConfigDto.Statement.StatementBuilder(Effect=\u0001, Principal=\u0001, Action=\u0001, Resource=\u0001)\u000f\u0006\u00005\n\u00006\u00007\u0007\u00008\n\u0000\n\u00009\u0001\u0000$java/lang/invoke/StringConcatFactory\u0001\u0000�(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;\u0001\u0000\nInnerClasses\u0001\u0000\tStatement\u0001\u0000\u0010StatementBuilder\u0007\u0000>\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0000@\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\b\u0000\u0002\u0000\u0000\u0000\u0004\u0000\u0002\u0000\n\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.dto.BucketPolicyConfigDto$Statement$StatementBuilder::toString",
+      "category": "sql",
+      "nodes_id": "925",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\dto\\BucketPolicyConfigDto$Statement$StatementBuilder.class",
+      "line": 23,
+      "snippet": "SourceFile\u0001\u0000\u001aBucketPolicyConfigDto.java\u0001\u0000\bNestHost\u0007\u00000\u0001\u0000(com/macro/mall/dto/BucketPolicyConfigDto\u0001\u0000\u0010BootstrapMethods\b\u00003\u0001\u0000]BucketPolicyConfigDto.Statement.StatementBuilder(Effect=\u0001, Principal=\u0001, Action=\u0001, Resource=\u0001)\u000f\u0006\u00005\n\u00006\u00007\u0007\u00008\n\u0000\n\u00009\u0001\u0000$java/lang/invoke/StringConcatFactory\u0001\u0000�(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;\u0001\u0000\nInnerClasses\u0001\u0000\tStatement\u0001\u0000\u0010StatementBuilder\u0007\u0000>\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0000@\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\b\u0000\u0002\u0000\u0000\u0000\u0004\u0000\u0002\u0000\n\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.validator.FlagValidatorClass::<init>",
+      "category": "reflection",
+      "nodes_id": "665",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\validator\\FlagValidatorClass.class",
+      "line": 10,
+      "snippet": "\u0000\n\u0001\u0000&com/macro/mall/validator/FlagValidator\u0001\u0000\u0005value\u0001\u0000\u0015()[Ljava/lang/String;\t\u0000\u000e\u0000\u000f\u0007\u0000\u0010\n\u0000\u0011\u0000\u0012\u0001\u0000+com/macro/mall/validator/FlagValidatorClass\u0001\u0000\u0006values\u0001\u0000\u0013[Ljava/lang/String;\n\u0000\u0014\u0000\u0015\u0007\u0000\u0016\n\u0000\u0017\u0000\u0018\u0001\u0000\u0010java/lang/String\u0001\u0000\u0007valueOf\u0001\u0000&(Ljava/lang/Object;)Ljava/lang/String;\n\u0000\u0014\u0000\u001a\n\u0000\u001b\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.validator.FlagValidatorClass::initialize",
+      "category": "reflection",
+      "nodes_id": "355",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\validator\\FlagValidatorClass.class",
+      "line": 10,
+      "snippet": "\u0000\n\u0001\u0000&com/macro/mall/validator/FlagValidator\u0001\u0000\u0005value\u0001\u0000\u0015()[Ljava/lang/String;\t\u0000\u000e\u0000\u000f\u0007\u0000\u0010\n\u0000\u0011\u0000\u0012\u0001\u0000+com/macro/mall/validator/FlagValidatorClass\u0001\u0000\u0006values\u0001\u0000\u0013[Ljava/lang/String;\n\u0000\u0014\u0000\u0015\u0007\u0000\u0016\n\u0000\u0017\u0000\u0018\u0001\u0000\u0010java/lang/String\u0001\u0000\u0007valueOf\u0001\u0000&(Ljava/lang/Object;)Ljava/lang/String;\n\u0000\u0014\u0000\u001a\n\u0000\u001b\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.validator.FlagValidatorClass::initialize",
+      "category": "reflection",
+      "nodes_id": "1425",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\validator\\FlagValidatorClass.class",
+      "line": 14,
+      "snippet": "\u0000\u0017\u0000\u0018\u0001\u0000\u0010java/lang/String\u0001\u0000\u0007valueOf\u0001\u0000&(Ljava/lang/Object;)Ljava/lang/String;\n\u0000\u0014\u0000\u001a\n\u0000\u001b\u0000\n\u0001\u0000\u0006equals\u0001\u0000\u0015(Ljava/lang/Object;)Z\u0007\u0000\n\u0001\u0000\u0011java/lang/Integer\n\u0000\u000e\u0000 \n\u0000!\u0000\"\u0001\u0000\u0007isValid\u0001\u0000E(Ljava/lang/Integer;Ljakarta/validation/ConstraintValidatorContext;)Z"
+    },
+    {
+      "fqn": "com.macro.mall.validator.FlagValidatorClass::isValid",
+      "category": "reflection",
+      "nodes_id": "1317",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\validator\\FlagValidatorClass.class",
+      "line": 19,
+      "snippet": "\u0000\u000e\u0000 \n\u0000!\u0000\"\u0001\u0000\u0007isValid\u0001\u0000E(Ljava/lang/Integer;Ljakarta/validation/ConstraintValidatorContext;)Z\n\u0000\u000e\u0000$\n\u0000%\u0000&\u0001\u0000\ninitialize\u0001\u0000+(Lcom/macro/mall/validator/FlagValidator;)V\u0007\u0000(\u0001\u0000&jakarta/validation/ConstraintValidator\u0001\u0000\u0004Code\u0001\u0000\u000fLineNumberTable\u0001\u0000\u0012LocalVariableTable\u0001\u0000\u0004this\u0001\u0000-Lcom/macro/mall/validator/FlagValidatorClass;\u0001\u0000\nflagValidator\u0001\u0000(Lcom/macro/mall/validator/FlagValidator;\u0001\u0000\u0010MethodParameters\u0001\u0000\u0001i\u0001\u0000\u0001I\u0001\u0000\u0013Ljava/lang/Integer;\u0001\u0000\u001aconstraintValidatorContext\u0001\u0000/Ljakarta/validation/ConstraintValidatorContext;\u0001\u0000\u0001Z\u0001\u0000\nStackMapTable\u0001\u0000D(Ljava/lang/Object;Ljakarta/validation/ConstraintValidatorContext;)Z\u0001\u0000$(Ljava/lang/annotation/Annotation;)V\u0001\u0000\tSignature\u0001\u0000wLjava/lang/Object;Ljakarta/validation/ConstraintValidator<Lcom/macro/mall/validator/FlagValidator;Ljava/lang/Integer;>;\u0001\u0000"
+    },
+    {
+      "fqn": "com.macro.mall.validator.FlagValidatorClass::isValid",
+      "category": "reflection",
+      "nodes_id": "1352",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\BOOT-INF\\classes\\com\\macro\\mall\\validator\\FlagValidatorClass.class",
+      "line": 10,
+      "snippet": "\u0000\n\u0001\u0000&com/macro/mall/validator/FlagValidator\u0001\u0000\u0005value\u0001\u0000\u0015()[Ljava/lang/String;\t\u0000\u000e\u0000\u000f\u0007\u0000\u0010\n\u0000\u0011\u0000\u0012\u0001\u0000+com/macro/mall/validator/FlagValidatorClass\u0001\u0000\u0006values\u0001\u0000\u0013[Ljava/lang/String;\n\u0000\u0014\u0000\u0015\u0007\u0000\u0016\n\u0000\u0017\u0000\u0018\u0001\u0000\u0010java/lang/String\u0001\u0000\u0007valueOf\u0001\u0000&(Ljava/lang/Object;)Ljava/lang/String;\n\u0000\u0014\u0000\u001a\n\u0000\u001b\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.jar.NestedJarFile$NestedJarEntry::getMethod",
+      "category": "reflection",
+      "nodes_id": "1258",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\jar\\NestedJarFile$NestedJarEntry.class",
+      "line": 543,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::<init>",
+      "category": "reflection",
+      "nodes_id": "1519",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\ClassPathIndexFile.class",
+      "line": 41,
+      "snippet": "\u0000T\u0000U\u0001\u0000\u0007isEmpty\u0001\u0000\u0003()Z\n\u0000+\u0000W\n\u0000X\u0000Y\u0001\u0000\bcontains\u0001\u0000\u0015(Ljava/lang/Object;)Z\n\u0000+\u0000\u000f\u0012\u0000\u0003\u0000\u0014\n\u0000\u0018\u0000]\n\u0000^\u0000_\u0001\u0000\u0006toList\u0001\u0000\u0012()Ljava/util/List;\u0007\u0000a\u0001\u0000\njava/io/File"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::asUrl",
+      "category": "reflection",
+      "nodes_id": "241",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\ClassPathIndexFile.class",
+      "line": 70,
+      "snippet": "\u0000\u0018\u0000�\n\u0000�\u0000�\u0001\u0000\u0006filter\u0001\u00009(Ljava/util/function/Predicate;)Ljava/util/stream/Stream;\n\u0000\b\u0000�\n\u0000\u0005\u0000�\u0001\u0000!(Ljava/io/File;Ljava/util/List;)V\n\u00004\u0000�\n\u0000�\u0000�\u0001\u0000\u0004trim\u0001\u0000\u0014()Ljava/lang/String;\u0001\u0000\tSignature\u0001\u0000#Ljava/util/Set<Ljava/lang/String;>;\u0001\u0000\u0004Code\u0001\u0000\u000fLineNumberTable\u0001\u0000\u0012LocalVariableTable\u0001\u0000\u0004this\u0001\u0000;Lorg/springframework/boot/loader/launch/ClassPathIndexFile;\u0001\u0000\u0010Ljava/util/List;\u0001\u0000\u0016LocalVariableTypeTable\u0001\u0000$Ljava/util/List<Ljava/lang/String;>;\u0001\u0000\u0010MethodParameters\u0001\u00005(Ljava/io/File;Ljava/util/List<Ljava/lang/String;>;)V\u0001\u0000\nextractName\u0001\u0000\u0004line\u0001\u0000\u0012Ljava/lang/String;\u0001\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::containsEntry",
+      "category": "reflection",
+      "nodes_id": "144",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\ClassPathIndexFile.class",
+      "line": 58,
+      "snippet": "\u0000\b\u0000u\n\u0000v\u0000w\u0001\u0000\u000eloadIfPossible\u0001\u0000Y(Ljava/io/File;Ljava/io/File;)Lorg/springframework/boot/loader/launch/ClassPathIndexFile;\n\u0000`\u0000y\n\u0000z\u0000U\u0001\u0000\u0006exists\n\u0000`\u0000|\n\u0000}\u0000U\u0001\u0000\u0006isFile\n\u0000`\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::extractName",
+      "category": "reflection",
+      "nodes_id": "67",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\ClassPathIndexFile.class",
+      "line": 47,
+      "snippet": "java/io/File\n\u0000`\u0000c\n\u0000\u0005\u0000d\u0001\u0000#(Ljava/io/File;Ljava/lang/String;)V\n\u0000`\u0000f\n\u0000g\u0000h\u0001\u0000\u0005toURI\u0001\u0000\u0010()Ljava/net/URI;\n\u0000j\u0000k\u0007\u0000l\n\u0000m\u0000n\u0001\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::getUrls",
+      "category": "reflection",
+      "nodes_id": "1031",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\ClassPathIndexFile.class",
+      "line": 65,
+      "snippet": "\u0000�\u0000�\u0001\u0000\u0006toPath\u0001\u0000\u0016()Ljava/nio/file/Path;\n\u0000�\u0000�\u0007\u0000�\n\u0000�\u0000�\u0001\u0000\u0013java/nio/file/Files\u0001\u0000\nreadAllLines\u0001\u0000&(Ljava/nio/file/Path;)Ljava/util/List;\u0012\u0000\u0004\u0000�\n\u0000�\u0000�\u0001\u0000\u0004test\u0001\u0000 ()Ljava/util/function/Predicate;\n\u0000\u0018\u0000�\n\u0000�\u0000�\u0001\u0000\u0006filter\u0001\u00009(Ljava/util/function/Predicate;)Ljava/util/stream/Stream;"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::lineHasText",
+      "category": "reflection",
+      "nodes_id": "176",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\ClassPathIndexFile.class",
+      "line": 93,
+      "snippet": "\u0000�\u00008\u0010\u00008\u0001\u0000\nInnerClasses\u0007\u0000�\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0000�\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u00000\u0000\b\u0000\u0002\u0000\u0000\u0000\u0002\u0000\u0012\u0000\n\u0000\n\u0000\u0000\u0000\u0012\u0000/\u00000\u0000\u0001\u0000�\u0000\u0000\u0000\u0002\u0000�\u0000\t\u0000\u0002\u0000\u0005\u0000�\u0000\u0003\u0000�\u0000\u0000\u0000�\u0000\u0003\u0000\u0003\u0000\u0000\u0000/*�\u0000\u0001*+�\u0000\u0007*,�\u0000\n\u0001\u0000*�\u0000\u0013\u0000\u0000�\u0000\u0017\u0002\u0000�\u0000\n\u0000\u0000�\u0000!�\u0000'\u0002\u0000�\u0000+�\u0000-�\u0000\u0000\u0000\u0003\u0000�\u0000\u0000\u0000\u0012\u0000\u0004\u0000\u0000\u0000)\u0000\u0004\u0000*\u0000\t\u0000+\u0000.\u0000,\u0000�\u0000\u0000\u0000 \u0000\u0003\u0000\u0000\u0000/\u0000�\u0000�\u0000\u0000\u0000\u0000\u0000/\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::loadIfPossible",
+      "category": "reflection",
+      "nodes_id": "49",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\ClassPathIndexFile.class",
+      "line": 78,
+      "snippet": "containsEntry\u0001\u0000\u0004name\u0001\u0000\u0007getUrls\u0001\u0000\"()Ljava/util/List<Ljava/net/URL;>;\u0001\u0000\u0005asUrl\u0001\u0000\"(Ljava/lang/String;)Ljava/net/URL;\u0001\u0000\u0002ex\u0001\u0000 Ljava/net/MalformedURLException;\u0001\u0000](Ljava/io/File;Ljava/lang/String;)Lorg/springframework/boot/loader/launch/ClassPathIndexFile;\u0001\u0000\blocation\u0001\u0000\nExceptions\u0007\u0000�\u0001\u0000\u0013java/io/IOException\u0001\u0000\tindexFile\u0001\u0000\nlineHasText\u0001\u0000\nSourceFile\u0001\u0000\u0017ClassPathIndexFile.java\u0001\u0000\u0010BootstrapMethods\u000f\u0006\u0000�\n\u0000�\u0000�\u0007\u0000�\n\u0000�\u0000�\u0001\u0000\"java/lang/invoke/LambdaMetafactory\u0001\u0000\nmetafactory\u0001\u0000�(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;\u0010\u0000�\u0001\u0000&(Ljava/lang/Object;)Ljava/lang/Object;\u000f\u0005\u0000�"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::loadIfPossible",
+      "category": "reflection",
+      "nodes_id": "564",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\ClassPathIndexFile.class",
+      "line": 82,
+      "snippet": "\u0000�\u0000�\u0007\u0000�\n\u0000�\u0000�\u0001\u0000\"java/lang/invoke/LambdaMetafactory\u0001\u0000\nmetafactory\u0001\u0000�(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;\u0010\u0000�\u0001\u0000&(Ljava/lang/Object;)Ljava/lang/Object;\u000f\u0005\u0000�\n\u0000\b\u0000�\n\u0000�\u0000K\u0010\u0000K\u0010\u0000�\u0001\u0000\u0014()Ljava/lang/Object;\u000f\b\u0000�\n\u0000�\u0000\u0003\u0007\u0000�\u0001\u0000\u0017java/util/LinkedHashSet\u0010\u0000�\u0001\u0000\u001b()Ljava/util/LinkedHashSet;\u000f\u0006\u0000�\n\u0000�\u0000�\u0007\u0000�"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::size",
+      "category": "reflection",
+      "nodes_id": "580",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\ClassPathIndexFile.class",
+      "line": 54,
+      "snippet": "java/net/URI\u0001\u0000\u0005toURL\u0001\u0000\u0010()Ljava/net/URL;\u0007\u0000p\u0001\u0000\njava/net/MalformedURLException\n\u0000F\u0000r\n\u0000\u0005\u0000s\u0001\u0000\u0018(Ljava/lang/Throwable;)V\n\u0000\b\u0000u\n\u0000v\u0000w\u0001\u0000\u000eloadIfPossible\u0001\u0000Y(Ljava/io/File;Ljava/io/File;)Lorg/springframework/boot/loader/launch/ClassPathIndexFile;\n\u0000`\u0000y"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::<clinit>",
+      "category": "reflection",
+      "nodes_id": "1494",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 40,
+      "snippet": "\u0000H\u0000I\u0007\u0000J\n\u0000K\u0000L\u0001\u0000\u0015java/lang/ClassLoader\u0001\u0000\u0013getResourceAsStream\u0001\u0000)(Ljava/lang/String;)Ljava/io/InputStream;\u0007\u0000N\u0001\u0000\njava/io/ByteArrayOutputStream\n\u0000M\u0000\u000f\n\u00005\u0000Q\n\u0000\u0005\u0000R\u0001\u0000\u0015(Ljava/lang/String;)V\n\u0000T\u0000U\u0007\u0000V"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::<init>",
+      "category": "reflection",
+      "nodes_id": "157",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 72,
+      "snippet": "\u0000\u0002\u0000�\n\u0000v\u0000�\u0001\u0000�(Lorg/springframework/boot/loader/launch/LaunchedClassLoader$DefinePackageCallType;Ljava/util/function/Supplier;)Ljava/lang/Object;\u0007\u0000�\u0001\u0000\u0011java/lang/Package\n\u0000\b\u0000�\n\u0000v\u0000�\u0001\u0000�(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/net/URL;)Ljava/lang/Package;\u0012\u0000\u0003\u0000�\n\u0000�\u0000�\u0001\u0000�(Lorg/springframework/boot/loader/launch/LaunchedClassLoader;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/net/URL;)Ljava/util/function/Supplier;\n\u0000\u0002\u0000�\n\u0000z\u0000�\u0001\u0000R(Ljava/lang/String;Ljava/net/URL;Ljava/util/function/Supplier;)Ljava/lang/Package;\t\u0000\u0002\u0000�"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::<init>",
+      "category": "reflection",
+      "nodes_id": "1833",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 61,
+      "snippet": "\u0000l\u0000m\u0001\u0000\naddSuppressed\u0001\u0000\u0018(Ljava/lang/Throwable;)V\u0007\u0000o\u0001\u0000\u0013java/io/IOException\u0012\u0000\u0001\u0000@\n\u00005\u0000r\n\u0000\u0005\u0000s\u0001\u0000*(Ljava/lang/String;Ljava/lang/Throwable;)V\n\u0000\b\u0000u\n\u0000v\u0000w\u0001\u0000\ndefinePackage\u0001\u0000M(Ljava/lang/String;Ljava/util/jar/Manifest;Ljava/net/URL;)Ljava/lang/Package;"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackage",
+      "category": "reflection",
+      "nodes_id": "7",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 116,
+      "snippet": "\u0000\u0002\u0001\n\n\u0000�\u0000w\u0010\u0001\u000f\u0001\u0000\u0015()Ljava/lang/Package;\u000f\u0005\u0001\u0011\n\u0000\u0002\u0001\u0012\n\u0000�\u0000�\u0001\u0000\nInnerClasses\u0001\u0000\u0015DefinePackageCallType\u0007\u0001\u0016\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0001\u0018\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\u0002\u0000\b\u0000\u0000\u0000\u0006\u0000\u001a\u0000�\u0000(\u0000\u0001\u0000�\u0000\u0000\u0000\u0002\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackage",
+      "category": "reflection",
+      "nodes_id": "357",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 152,
+      "snippet": "*+,-�\u0000x�\u0000\u0000\u0000\u0003\u0000�\u0000\u0000\u0000\u0006\u0000\u0001\u0000\u0000\u0000t\u0000�\u0000\u0000\u0000*\u0000\u0004\u0000\u0000\u0000\u0019\u0000�\u0000�\u0000\u0000\u0000\u0000\u0000\u0019\u0000�\u0000(\u0000\u0001\u0000\u0000\u0000\u0019\u0000�\u0000�\u0000\u0002\u0000\u0000\u0000\u0019\u0000�\u0000�\u0000\u0003\u0000�\u0000\u0000\u0000\u0007\u0000\u0002\u0011F\u0007\u0000�\u0000�\u0000\u0000\u0000\u0004\u0000\u0001\u0000�\u0000�\u0000\u0000\u0000\n\u0003\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000\u0002\u0000z\u0000w\u0000\u0002\u0000�\u0000\u0000\u0000�\u0000\u0006\u0000\u0006\u0000\u0000\u0000'*�\u0000\u0011Y:\u0004�*�\u0000{*+,-�\u0000�\u0000\u0000�\u0000��\u0000�\u0019\u0004ð:\u0005\u0019\u0004�\u0019\u0005�\u0000\u0002\u0000\b\u0000\n\u0000\u001f\u0000\u0000\u0000\u001f\u0000$\u0000\u001f\u0000\u0000\u0000\u0003\u0000�\u0000\u0000\u0000\u000e\u0000\u0003\u0000\u0000\u0000x\u0000\b\u0000y\u0000\u001f\u0000z\u0000�\u0000\u0000\u0000*\u0000\u0004\u0000\u0000\u0000'\u0000�\u0000�\u0000\u0000\u0000\u0000\u0000'\u0000�\u0000(\u0000\u0001\u0000\u0000\u0000'\u0000�\u0000�\u0000\u0002\u0000\u0000\u0000'\u0000�\u0000�\u0000\u0003\u0000�\u0000\u0000\u0000\u001b\u0000\u0001�\u0000\u001f\u0000\u0005\u0007\u0000\u0002\u0007\u0000 \u0007\u0000�\u0007\u0000�\u0007\u0000\n\u0000\u0001\u0007\u0000h\u0000�\u0000\u0000\u0000\n\u0003\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000\u0004\u0000v\u0000�\u0000\u0003\u0000�\u0000\u0000\u0000�\u0000\n\u0000\t\u0000\u0000\u00004*�\u0000\u0015�\u0000\u0015*+,-\u0019\u0004\u0019\u0005\u0019\u0006\u0019\u0007\u0019\b�\u0000��*+\u0019\b*+,-\u0019\u0004\u0019\u0005\u0019\u0006\u0019\u0007\u0019\b�\u0000�\u0000\u0000�\u0000��\u0000\u0000\u0000\u0003\u0000�\u0000\u0000\u0000\u000e\u0000\u0003\u0000\u0000\u0000�\u0000\u0007\u0000�\u0000\u0019\u0000�\u0000�\u0000\u0000\u0000\\\u0000\t\u0000\u0000\u00004\u0000�\u0000�\u0000\u0000\u0000\u0000\u00004\u0000�\u0000(\u0000\u0001\u0000\u0000\u00004\u0000�\u0000(\u0000\u0002\u0000\u0000\u00004\u0000�\u0000(\u0000\u0003\u0000\u0000\u00004\u0000�\u0000(\u0000\u0004\u0000\u0000\u00004\u0000�\u0000(\u0000\u0005\u0000\u0000\u00004\u0000�\u0000(\u0000\u0006\u0000\u0000\u00004\u0000�\u0000(\u0000\u0007\u0000\u0000\u00004\u0000�\u0000�\u0000\b\u0000�\u0000\u0000\u0000\u0003\u0000\u0001\u0019\u0000�\u0000\u0000\u0000\u0004\u0000\u0001\u0000�\u0000�\u0000\u0000\u0000!\b\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000\u0002\u0000z\u0000�\u0000\u0003\u0000�\u0000\u0000\u0000�\u0000\u0004\u0000\u0007\u0000\u0000\u0000A*�\u0000\u0011Y:\u0004�*�\u0000��\u0000\n**�\u0000\u0019�\u0000�:\u0005\u0019\u0005�\u0000\u000f*+\u0019\u0005,�\u0000�\u0019\u0004ð*�\u0000�-�\u0000��\u0000�\u0019\u0004ð:\u0006\u0019\u0004�\u0019\u0006�\u0000\u0003\u0000\b\u0000)\u00009\u0000\u0000\u0000*\u00008\u00009\u0000\u0000\u00009\u0000>\u00009\u0000\u0000\u0000\u0004\u0000�\u0000\u0000\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackage",
+      "category": "reflection",
+      "nodes_id": "1889",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 128,
+      "snippet": "*-\u0019\u0004�\u0000\u0007*�\u0000\nY�\u0000\u000e�\u0000\u0011*\u001b�\u0000\u0015*,�\u0000\u0019�\u0000\u0000\u0000\u0002\u0000�\u0000\u0000\u0000\u0016\u0000\u0005\u0000\u0000\u0000H\u0000\u0007\u00002\u0000\u0012\u0000I\u0000\u0017\u0000J\u0000\n\u0000K\u0000�\u0000\u0000\u00004\u0000\u0005\u0000\u0000\u0000\n\u0000�\u0000�\u0000\u0000\u0000\u0000\u0000\n\u0000\u0017\u0000\u0018\u0000\u0001\u0000\u0000\u0000\n\u0000\u001b\u0000\n\u0000\u0002\u0000\u0000\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackageForExploded",
+      "category": "reflection",
+      "nodes_id": "1509",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 137,
+      "snippet": "�\u0000\u001f�\u0000\n+�\u0000%�\u0000)�\u0000\u0015*+�\u0000-N\n�\u0000\b*-�\u00001-�N*+\n�\u00007�\u0000\u0001\u0000\u0013\u0000#\u0000$\u00005\u0000\u0004\u0000�\u0000\u0000\u0000\n\u0000\u0007\u0000\u0000\u0000O\u0000\u0013\u0000Q\u0000\u0019\u0000R\u0000\n\u0000S\u0000\"\u0000U\u0000$\u0000W\u0000%\u0000[\u0000�\u0000\u0000\u0000*\u0000\u0004\u0000\u0019\u0000\n\u0000�\u0000�\u0000\u0003\u0000\u0000\u0000,\u0000�\u0000�\u0000\u0000\u0000\u0000\u0000,\u0000�\u0000(\u0000\u0001\u0000\u0000\u0000,\u0000�\u0000\u0018\u0000\u0002\u0000�\u0000\u0000\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackageForExploded",
+      "category": "reflection",
+      "nodes_id": "1905",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 120,
+      "snippet": "\u0000�\u0000�\u0001\u0000\nInnerClasses\u0001\u0000\u0015DefinePackageCallType\u0007\u0001\u0016\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0001\u0018\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\u0002\u0000\b\u0000\u0000\u0000\u0006\u0000\u001a\u0000�\u0000(\u0000\u0001\u0000�\u0000\u0000\u0000\u0002\u0000\n\u0000\u001a\u0000'\u0000(\u0000\u0000\u0000\u0012\u0000\u0017\u0000\u0018\u0000\u0000\u0000\u0012\u0000\u001b\u0000\n\u0000\u0000\u0000\u0012\u0000\u0013\u0000\u0014\u0000\u0000\u0000B\u0000�\u0000�\u0000\u0000\u0000\n\u0000\u0001\u0000\u0005\u0000�\u0000\u0002\u0000�\u0000\u0000\u0000U\u0000\u0005\u0000\u0004\u0000\u0000\u0000\t*\u001b\u0001,-�\u0000\u0001�\u0000\u0000\u0000\u0002\u0000�\u0000\u0000\u0000\n\u0000\u0002\u0000\u0000\u0000=\u0000\b\u0000>\u0000�\u0000\u0000\u0000*\u0000\u0004\u0000\u0000\u0000\t\u0000�\u0000�\u0000\u0000\u0000\u0000\u0000\t\u0000\u0017\u0000\u0018\u0000\u0001\u0000\u0000\u0000\t\u0000�\u0000�\u0000\u0002\u0000\u0000\u0000\t\u0000�\u0000�\u0000\u0003\u0000�\u0000\u0000\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::getManifest",
+      "category": "reflection",
+      "nodes_id": "1488",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 164,
+      "snippet": "\u0003\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000\u0002\u0000�\u0000\u0002\u0000v\u0000�\u0000\u0003\u0000�\u0000\u0000\u0000�\u0000\u0002\u0000\u0006\u0000\u0000\u0000$*�\u0000�N*+�\u0000�,�\u0000�\u0001\u0000:\u0004*-�\u0000�\u0019\u0004�:\u0005*-�\u0000�\u0019\u0005�\u0000\u0002\u0000\u0005\u0000\u0012\u0000\u001a\u0000\u0000\u0000\u001a\u0000\n\u0000\u001a\u0000\u0000\u0000\u0004\u0000�\u0000\u0000\u0000\n\u0000\u0007\u0000\u0000\u0000�\u0000\u0005\u0000�\u0000\n\u0000�\u0000\u0012\u0000�\u0000\u0017\u0000�\u0000\u001a\u0000�\u0000!\u0000�\u0000�\u0000\u0000\u0000*\u0000\u0004\u0000\u0000\u0000$\u0000�\u0000�\u0000\u0000\u0000\u0000\u0000$\u0000�\u0000�\u0000\u0001\u0000\u0000\u0000$\u0000�\u0000�\u0000\u0002\u0000\u0005\u0000\u001f\u0000�\u0000�\u0000\u0003\u0000�\u0000\u0000\u0000\n\u0000\u0001\u0000\u0000\u0000$\u0000�\u0000�\u0000\u0002\u0000�\u0000\u0000\u0000\u0018\u0000\u0001�\u0000\u001a\u0000\u0004\u0007\u0000\u0002\u0007\u0000|\u0007\u0000�\u0007\u0000|\u0000\u0001\u0007\u0000h\u0000�\u0000\u0000\u0000\t\u0002\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000\u0002\u0000�\u0000\u0002\u0000�\u0000�\u0000\u0002\u0000�\u0000\u0000\u0000q\u0000\u0001\u0000\u0003\u0000\u0000\u0000\u0012+�\u0000\n+�\u0000�\u0001\u0000�\u0000\u0004\u0001�M\u0001�\u0000\u0001\u0000\u0000\u0000\u000e\u0000\u000f\u0000n\u0000\u0003\u0000�\u0000\u0000\u0000\u000e\u0000\u0003\u0000\u0000\u0000�\u0000\u000f\u0000�\u0000\u0010\u0000�\u0000�\u0000\u0000\u0000 \u0000\u0003\u0000\u0010\u0000\u0002\u0000�\u0000�\u0000\u0002\u0000\u0000\u0000\u0012\u0000�\u0000�\u0000\u0000\u0000\u0000\u0000\u0012\u0000�\u0000\n\u0000\u0001\u0000�\u0000\u0000\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::lambda$definePackage$1",
+      "category": "reflection",
+      "nodes_id": "805",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 132,
+      "snippet": "\u0000\u0017\u0000\u0018\u0000\u0001\u0000\u0000\u0000\n\u0000\u001b\u0000\n\u0000\u0002\u0000\u0000\u0000\n\u0000�\u0000�\u0000\u0003\u0000\u0000\u0000\n\u0000�\u0000�\u0000\u0004\u0000�\u0000\u0000\u0000\u0011\u0004\u0000\u0017\u0000\u0000\u0000\u001b\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000\u0004\u00009\u0000:\u0000\u0004\u0000�\u0000\u0000\u0000�\u0000\u0003\u0000\u0004\u0000\u0000\u0000,+\u0012\n�\u0000\u001f�\u0000\n+�\u0000%�\u0000)�\u0000\u0015*+�\u0000-N"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::lambda$definePackageForExploded$0",
+      "category": "reflection",
+      "nodes_id": "581",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 121,
+      "snippet": "InnerClasses\u0001\u0000\u0015DefinePackageCallType\u0007\u0001\u0016\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0001\u0018\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0000!\u0000\u0002\u0000\b\u0000\u0000\u0000\u0006\u0000\u001a\u0000�\u0000(\u0000\u0001\u0000�\u0000\u0000\u0000\u0002\u0000\n\u0000\u001a\u0000'\u0000(\u0000\u0000\u0000\u0012\u0000\u0017\u0000\u0018\u0000\u0000\u0000\u0012\u0000\u001b\u0000\n\u0000\u0000\u0000\u0012\u0000\u0013\u0000\u0014\u0000\u0000\u0000B\u0000�\u0000�\u0000\u0000\u0000\n\u0000\u0001\u0000\u0005\u0000�\u0000\u0002\u0000�\u0000\u0000\u0000U\u0000\u0005\u0000\u0004\u0000\u0000\u0000\t*\u001b\u0001,-�\u0000\u0001�\u0000\u0000\u0000\u0002\u0000�\u0000\u0000\u0000\n\u0000\u0002\u0000\u0000\u0000=\u0000\b\u0000>\u0000�\u0000\u0000\u0000*\u0000\u0004\u0000\u0000\u0000\t\u0000�\u0000�\u0000\u0000\u0000\u0000\u0000\t\u0000\u0017\u0000\u0018\u0000\u0001\u0000\u0000\u0000\t\u0000�\u0000�\u0000\u0002\u0000\u0000\u0000\t\u0000�\u0000�\u0000\u0003\u0000�\u0000\u0000\u0000\n\u0003\u0000\u0017\u0000\u0000\u0000�\u0000\u0000\u0000�\u0000\u0000\u0000\u0001\u0000\u0005\u0000\u0006\u0000\u0002\u0000�\u0000\u0000\u0000\u0000\u0003\u0000\u0005\u0000\u0000\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::loadClass",
+      "category": "reflection",
+      "nodes_id": "1023",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 79,
+      "snippet": "\u0000�\u0000�\u0001\u0000\u0015definePackageCallType\n\u0000\u0002\u0000�\n\u0000�\u0000�\u0001\u0000\ngetManifest\u0001\u0000J(Lorg/springframework/boot/loader/launch/Archive;)Ljava/util/jar/Manifest;\n\u0000\u0002\u0000u\t\u0000|\u0000�\n\u0000�\u0000�\u0001\u0000\nATTRIBUTES"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::loadClassInLaunchedClassLoader",
+      "category": "reflection",
+      "nodes_id": "1332",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader.class",
+      "line": 96,
+      "snippet": "Exceptions\u0001\u0000\tSignature\u0001\u0000)(Ljava/lang/String;Z)Ljava/lang/Class<*>;\u0001\u0000\u0005bytes\u0001\u0000\u0002[B\u0001\u0000\ndefinedClass\u0001\u0000\noutputStream\u0001\u0000\u001fLjava/io/ByteArrayOutputStream;\u0001\u0000\ninputStream\u0001\u0000\u0015Ljava/io/InputStream;\u0001\u0000\ninternalName\u0001\u0000\u0002ex\u0001\u0000\u0015Ljava/io/IOException;\u0007\u0000�\u0001\u0000((Ljava/lang/String;)Ljava/lang/Class<*>;\u0001\u0000\u0003man\u0001\u0000\u0018Ljava/util/jar/Manifest;\u0001\u0000\u0003url\u0001\u0000\u000eLjava/net/URL;\u0007\u0000�\u0001\u0000\"java/lang/IllegalArgumentException\u0007\u0000�\u0001\u0000\u0016java/util/jar/Manifest\u0007\u0000�\u0001\u0000\njava/net/URL\u0001\u0000\tspecTitle\u0001\u0000\nspecVersion\u0001\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::$values",
+      "category": "reflection",
+      "nodes_id": "1628",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader$DefinePackageCallType.class",
+      "line": 175,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::<clinit>",
+      "category": "reflection",
+      "nodes_id": "1677",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader$DefinePackageCallType.class",
+      "line": 180,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::<init>",
+      "category": "reflection",
+      "nodes_id": "110",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader$DefinePackageCallType.class",
+      "line": 175,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::valueOf",
+      "category": "reflection",
+      "nodes_id": "718",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader$DefinePackageCallType.class",
+      "line": 175,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::values",
+      "category": "reflection",
+      "nodes_id": "393",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\launch\\LaunchedClassLoader$DefinePackageCallType.class",
+      "line": 175,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::<clinit>",
+      "category": "reflection",
+      "nodes_id": "1184",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 44,
+      "snippet": "\u0000\n\u0000M\n\u0000N\u0000O\u0001\u0000\u0018definePackageIfNecessary\u0001\u0000\u0015(Ljava/lang/String;)V\u0007\u0000Q\u0001\u0000\"java/lang/IllegalArgumentException\n\u0000\n\u0000S\n\u0000T\u0000U\u0001\u0000.tolerateRaceConditionDueToBeingParallelCapable\u0001\u00009(Ljava/lang/IllegalArgumentException;Ljava/lang/String;)V\b\u0000W\u0001\u0000\u0005java.\n\u0000Y\u0000Z\u0007\u0000["
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::<init>",
+      "category": "reflection",
+      "nodes_id": "1171",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 61,
+      "snippet": "\u0000\n\u0000k\n\u0000l\u0000m\u0001\u0000\ndefinePackage\u0001\u0000'(Ljava/lang/String;Ljava/lang/String;)V\n\u0000o\u0000p\u0007\u0000q\n\u0000r\u0000s\u0001\u0000\njava/util/Set\u0001\u0000\bcontains\u0001\u0000\u0015(Ljava/lang/Object;)Z"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::clearCache",
+      "category": "reflection",
+      "nodes_id": "1568",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 232,
+      "snippet": "\u0000\u0000\u0000\t\u0002\u0001\u0013\u0000\u0000\u0001\u0019\u0000\u0000\u0000\u0002\u0000�\u0000�\u0000\u0002\u0001\u0004\u0000\u0000\u0000~\u0000\u0002\u0000\u0004\u0000\u0000\u0000\"+�\u0000��\u0000\u0010+�\u0000�N-,�\u0000��\u0000\u0010+,�\u0000��\u0000\u0007\u0004�\u0000\u0004\u0003�\u0000\u0000\u0000\u0003\u0001\u0005\u0000\u0000\u0000\u000e\u0000\u0003\u0000\u0000\u0000�\u0000\u0014\u0000�\u0000!\u0000�\u0001\u0006\u0000\u0000\u0000*\u0000\u0004\u0000\n\u0000\b\u0001$\u0001%\u0000\u0003\u0000\u0000\u0000\"\u0001\u0007\u0001\b\u0000\u0000\u0000\u0000\u0000\"\u0001\n\u0001\n\u0000\u0001\u0000\u0000\u0000\"\u0001\n\u0001\n\u0000\u0002\u0001\u000e\u0000\u0000\u0000\u0006\u0000\u0003\u0014\n@\u0001\u0001"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::clearCache",
+      "category": "reflection",
+      "nodes_id": "1706",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 204,
+      "snippet": "�\u0000$+\u0003\n�\u0000bN*-�\u0000f�\u0000\u0015*+-�\u0000j�\u0000\n:\u0004*\u0019\u0004-�\u0000R�\u0000\u0001\u0000$\u0000*\u0000-\u0000P\u0000\u0003\u0001\u0005\u0000\u0000\u0000.\u0000\n\u0000\u0000\u0000y\u0000\t\u0000z\u0000\n\u0000|\u0000\u0011\u0000}\u0000\u0015\u0000~\u0000\n\u0000\u0000$\u0000�\u0000*\u0000�\u0000-\u0000�\u0000/\u0000�\u00006\u0000�\u0001\u0006\u0000\u0000\u00004\u0000\u0005\u0000/\u0000\u0007\u0001\u0013\u0001\u0014\u0000\u0004\u0000\n\u0000\u001a\u0001\u0019\u0001"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::clearCache",
+      "category": "reflection",
+      "nodes_id": "1734",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 221,
+      "snippet": "\u0000\t\u0000G\u0000=\u0001\u001f\u0001 \u0000\b\u0000\u0000\u0000�\u0001\u0007\u0001\b\u0000\u0000\u0000\u0000\u0000�\u0001\u001a\u0001\n\u0000\u0001\u0000\u0000\u0000�\u0001\u0019\u0001\n\u0000\u0002\u0000\n\u0000z\u0001!\u0001\n\u0000\u0003\u0000+\u0000k\u0001\"\u0001\n\u0000\u0004\u0001\u000e\u0000\u0000\u0000.\u0000\u0006\u000e�\u0000*\u0000\b\u0007\u0000\n\u0007\u0000Y\u0007\u0000Y\u0007\u0000Y\u0007\u0000Y\u0007\u0001#\u0001\u0001\u0000\u0000�\u0000E\u0007\u0000�B\u0007\u0000��\u0000\u0001�\u0000\u0005\u0001"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::clearJarFiles",
+      "category": "reflection",
+      "nodes_id": "512",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 249,
+      "snippet": "\u0000\u0005\u0000\u0000\u0000c\u0001\u0007\u0001\b\u0000\u0000\u0000\u0000\u0000c\u0001\u001f\u0001 \u0000\u0001\u0000\u000e\u0000U\u0001\n\u0001\n\u0000\u0002\u0000\u0019\u0000J\u0001'\u0001(\u0000\u0003\u0001\u000e\u0000\u0000\u0000\u001b\u0000\u0005�\u0000\u0014\u0007\u0000��\u0000\n\u0007\u0000��\u00000\u0007\u0000�E\u0007\u0001\u000f�\u0000\u0007\u0001\u0011\u0000\u0000\u0000\u0004\u0000\u0001\u0000�\u0001\n\u0000\u0000\u0000\u0005\u0001\u0001\u001f\u0000\u0000\u0000\u0001\u0000�\u0000\n\u0000\u0001\u0001\u0004\u0000\u0000\u0000�\u0000\u0002\u0000\u0005\u0000\u0000\u00008�\u0000Ÿ\u0000�*�\u0000ͧ\u0000\u0004L*�\u0000\u001aL+�=\u0003>\n"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::close",
+      "category": "reflection",
+      "nodes_id": "531",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 244,
+      "snippet": "Y:\u0004�*�\u0000\n+,�\u0000�\u0003\u0000�\u0000�:\u0005\u0019\u0005�\u0000\n,�\u0000�\u0019\u0005M\u0019\u0004ç\u0000\n:\u0006\u0019\u0004�\u0019\u0006�,�\u0000\u0002\u00007\u0000V\u0000Y\u0000\u0000\u0000Y\u0000^\u0000Y\u0000\u0000\u0000\u0003\u0001\u0005\u0000\u0000\u0000>\u0000\u000f\u0000\u0000\u0000�\u0000\u000e\u0000�\u0000\u0012\u0000�\u0000\u0014\u0000�\u0000\u0019\u0000�\u0000 \u0000�\u0000\"\u0000�\u0000'\u0000�\u0000/\u0000�\u00007\u0000�\u0000G\u0000�\u0000L\u0000�\u0000P\u0000�\u0000S\u0000�\u0000a\u0000�\u0001\u0006\u0000\u0000\u00004\u0000\u0005\u0000G\u0000\n\u0001&\u0001\n\u0000\u0005\u0000\u0000\u0000c\u0001\u0007\u0001\b\u0000\u0000\u0000\u0000\u0000c\u0001\u001f\u0001 \u0000\u0001\u0000\u000e\u0000U\u0001\n\u0001"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::definePackage",
+      "category": "reflection",
+      "nodes_id": "1169",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 139,
+      "snippet": "\u0000�\u0000�\u0001\u0000\u0006values\u0001\u0000\u0018()Ljava/util/Collection;\n\u0000�\u0000�\u0007\u0000�\n\u0000�\u0000�\u0001\u0000\u0014java/util/Collection\u0001\u0000\biterator\u0001\u0000\u0016()Ljava/util/Iterator;\n\u0000�\u0000�\u0007\u0000�\n\u0000�\u0000�\u0001\u0000\u0012java/util/Iterator\u0001\u0000\u0007hasNext\u0001\u0000\u0003()Z\n\u0000�\u0000�\n\u0000�\u0000�\u0001\u0000\u0004next\u0001\u0000\u0014()Ljava/lang/Object;"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::definePackageIfNecessary",
+      "category": "reflection",
+      "nodes_id": "762",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 121,
+      "snippet": "\u0000\n\u0000�\n\u0000�\u0000�\u0001\u0000\bisJarUrl\u0001\u0000\u0011(Ljava/net/URL;)Z\n\u0000\n\u0000�\n\u0000�\u0000�\u0001\u0000\u0011(Ljava/net/URL;)V\n\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::findResource",
+      "category": "reflection",
+      "nodes_id": "1350",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 68,
+      "snippet": "\u0000Y\u0000u\n\u0000v\u0000w\u0001\u0000\u0007replace\u0001\u0000\u0016(CC)Ljava/lang/String;\u0012\u0000\u0001\u0000y\n\u0000z\u0000{\u0001\u0000\u0017makeConcatWithConstants\u0001\u0000&(Ljava/lang/String;)Ljava/lang/String;\u0012\u0000\u0002\u0000y\n\u0000\n\u0000~\n\u0000\u0000�\u0001\u0000\ngetJarFile\u0001\u0000'(Ljava/net/URL;)Ljava/util/jar/JarFile;"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::findResources",
+      "category": "reflection",
+      "nodes_id": "1621",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 82,
+      "snippet": "\u0000�\n\u0000l\u0000�\u0001\u0000M(Ljava/lang/String;Ljava/util/jar/Manifest;Ljava/net/URL;)Ljava/lang/Package;\u0007\u0000�\u0001\u0000\u0013java/io/IOException\n\u0000o\u0000�\n\u0000�\u0000s\u0001\u0000\u0003add\u0007\u0000�\u0001\u0000\u0018java/lang/AssertionError\b\u0000�\u0001\u0000=Package %s has already been defined but it could not be found\u0007\u0000�\u0001\u0000\u0010java/lang/Object\n\u0000Y\u0000�\n\u0000�\u0000�\u0001\u0000\tformatted\u0001\u0000'([Ljava/lang/Object;)Ljava/lang/String;\n\u0000�\u0000�"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::getJarFile",
+      "category": "reflection",
+      "nodes_id": "1474",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 179,
+      "snippet": "\u0000G\u0000\u0011\u0000I\u0000\u0017\u0000L\u0000\u001a\u0000I\u0000\n\u0000L\u0000 \u0000M\u0001\u0006\u0000\u0000\u0000\u0016\u0000\u0002\u0000\u0000\u0000\"\u0001\u0007\u0001\b\u0000\u0000\u0000\u0000\u0000\"\u0001\n\u0001\n\u0000\u0001\u0001\u000e\u0000\u0000\u0000\u0007\u0000\u0002\nN\u0007\u0001\u000f\u0001\n\u0000\u0000\u0000\u0005\u0001\u0001\n\u0000\u0000\u0000\u0001\u0000A\u0000B\u0000\u0004\u0001\u0004\u0000\u0000\u0000�\u0000\u0004\u0000\u0004\u0000\u0000\u0000)*�\u0000.�\u0000\t*+�\u0000?�\u0003�\u00006�\u0000CY*+�\u0000?�\u0000EM�\u0000<,�N�\u0000<-�\u0000\u0001\u0000\u0011\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::hasEntry",
+      "category": "reflection",
+      "nodes_id": "746",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 174,
+      "snippet": "\u0000\u0001\u0000\u0000\u00001\u0001\t\u0001\n\u0000\u0002\u0001\n\u0000\u0000\u0000\t\u0002\u0000\n\u0000\u0000\u0001\t\u0000\u0000\u0000\u0001\u00004\u00005\u0000\u0002\u0001\u0004\u0000\u0000\u0000�\u0000\u0002\u0000\u0004\u0000\u0000\u0000\"*�\u0000.�\u0000\t*+�\u00002�\u0003�\u00006*+�\u00002M�\u0000<,�N�\u0000<-�\u0000\u0001\u0000\u0011\u0000\u0017\u0000\n\u0000\u0000\u0000\u0003\u0001\u0005\u0000\u0000\u0000\"\u0000\b\u0000\u0000\u0000D\u0000\u0007\u0000E\u0000\n\u0000G\u0000\u0011\u0000I\u0000\u0017\u0000L\u0000\u001a\u0000I\u0000\n\u0000L\u0000 \u0000M\u0001\u0006\u0000\u0000\u0000\u0016\u0000\u0002\u0000\u0000\u0000\"\u0001\u0007\u0001\b\u0000\u0000\u0000\u0000\u0000\"\u0001"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::isJarUrl",
+      "category": "reflection",
+      "nodes_id": "1896",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 239,
+      "snippet": "\u0000\u0000\u0000\t\u0002\u0001\n\u0000\u0000\u0001\n\u0000\u0000\u0000\u0002\u0000\u0000�\u0000\u0003\u0001\u0004\u0000\u0000\u0001\n\u0000\u0003\u0000\u0007\u0000\u0000\u0000c*�\u0000\n+�\u0000�\u0002\u0000�\u0000�M,�\u0000\u0005,�+�\u0000�N-�\u0000��\u0000\u0005\u0001�-\u0003�\u0000�-�\u0000��\u0000�M*�\u0000\nY:\u0004�*�\u0000\n+,�\u0000�\u0003\u0000�\u0000�:\u0005\u0019\u0005�\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::loadClass",
+      "category": "reflection",
+      "nodes_id": "1298",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 96,
+      "snippet": "java/util/Map\u0001\u0000\u0003get\u0001\u0000&(Ljava/lang/Object;)Ljava/lang/Object;\n\u0000�\u0000�\u0007\u0000�\n\u0000�\u0000�\u0001\u0000\njava/net/URL\u0001\u0000\u000eopenConnection\u0001\u0000\u001a()Ljava/net/URLConnection;\u0007\u0000�\u0001\u0000\u0019java/net/JarURLConnection\n\u0000�\u0000�\u0007\u0000�\n\u0000�\u0000;\u0001\u0000\u0016java/net/URLConnection\u0001\u0000\nsetUseCaches"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::tolerateRaceConditionDueToBeingParallelCapable",
+      "category": "reflection",
+      "nodes_id": "693",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader.class",
+      "line": 164,
+      "snippet": "InnerClasses\u0007\u0001F\u0001\u00001java/util/concurrent/ConcurrentHashMap$KeySetView\u0001\u0000\nKeySetView\u0001\u0000\u0014OptimizedEnumeration\u0007\u0001J\u0001\u0000%java/lang/invoke/MethodHandles$Lookup\u0007\u0001L\u0001\u0000\njava/lang/invoke/MethodHandles\u0001\u0000\u0006Lookup\u0004!\u0000\n\u0000\u0002\u0000\u0000\u0000\u0004\u0000\u0012\u0000\n\u0000\n\u0000\u0000\u0000\u0012\u00000\u00001\u0000\u0000\u0000\u0012\u0000\u0010\u0000\u0011\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0002\u0001\u0002\u0000\u0012\u0000\u0018\u0000\u0019\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0002\u0001\u0003\u0000\u0010\u0000\u0001\u0000\u0005\u0000\u0006\u0000\u0002\u0001\u0004\u0000\u0000\u0000�\u0000\u0003\u0000\u0003\u0000\u0000\u00001*+,�\u0000\u0001*�\u0000\u0007Y�\u0000\t�\u0000\n*�\u0000\u0012�\u0000\u0016*+�\u0000\u001a*+�\u0000"
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader$OptimizedEnumeration::<init>",
+      "category": "reflection",
+      "nodes_id": "1250",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader$OptimizedEnumeration.class",
+      "line": 264,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader$OptimizedEnumeration::hasMoreElements",
+      "category": "reflection",
+      "nodes_id": "1135",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader$OptimizedEnumeration.class",
+      "line": 270,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader$OptimizedEnumeration::nextElement",
+      "category": "reflection",
+      "nodes_id": "1227",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader$OptimizedEnumeration.class",
+      "line": 282,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader$OptimizedEnumeration::nextElement",
+      "category": "reflection",
+      "nodes_id": "1822",
+      "file": "D:\\agentloop\\jar-analyzer-temp\\org\\springframework\\boot\\loader\\net\\protocol\\jar\\JarUrlClassLoader$OptimizedEnumeration.class",
+      "line": 260,
+      "snippet": ""
+    }
+  ]
+}

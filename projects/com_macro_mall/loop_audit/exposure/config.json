@@ -1,0 +1,200 @@
+{
+  "asset_type": "config",
+  "source": "config file scan",
+  "stats": {
+    "total_files": 26,
+    "by_type": {
+      "yaml": 3,
+      "xml": 23
+    },
+    "secrets_detected": 5,
+    "cached": 26
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-23T17:26:33.817782+00:00",
+  "items": [
+    {
+      "file": "src\\main\\resources\\application.yml",
+      "file_type": "yaml",
+      "size_bytes": 2189,
+      "sha256": "e1749591d551e32fdac055413268dc8c6a3249c501e402bb4e29bccb9cece609",
+      "contains_secret": true
+    },
+    {
+      "file": "src\\main\\resources\\application-dev.yml",
+      "file_type": "yaml",
+      "size_bytes": 1186,
+      "sha256": "9b3180bba083623a862108f4fe15cdf3a4f4f92fb0f0bb69ad5f1232a426e3dc",
+      "contains_secret": true
+    },
+    {
+      "file": "src\\main\\resources\\application-prod.yml",
+      "file_type": "yaml",
+      "size_bytes": 1186,
+      "sha256": "e74bfa9ad4f14b2a034bc1932a1824afaae404536de35ec09a48417ed2eecc50",
+      "contains_secret": true
+    },
+    {
+      "file": "pom.xml",
+      "file_type": "xml",
+      "size_bytes": 2258,
+      "sha256": "548db72d541f5c0308b128b8315cca24ca9c365dbf50b00e487e801a9a244198",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\CmsPrefrenceAreaProductRelationDao.xml",
+      "file_type": "xml",
+      "size_bytes": 575,
+      "sha256": "c9e278b91a2277d43c2e0728c3d8fca8c3174882b1713381941028b5a44c444f",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\CmsSubjectProductRelationDao.xml",
+      "file_type": "xml",
+      "size_bytes": 549,
+      "sha256": "00f7d1044bf15750ebca6c74e72850cdd1f2f94356b97de76f4fcbd44f670705",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\OmsOrderDao.xml",
+      "file_type": "xml",
+      "size_bytes": 3728,
+      "sha256": "1619eb17cb3ff34aea49634d073f2b80a1cacaa3dfaef0f341c300d5f587ca51",
+      "contains_secret": true
+    },
+    {
+      "file": "src\\main\\resources\\dao\\OmsOrderOperateHistoryDao.xml",
+      "file_type": "xml",
+      "size_bytes": 655,
+      "sha256": "1af149ca5079f1bebb79c2b83f4e2274616c4fdb761e69a63ce7342468869b72",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\OmsOrderReturnApplyDao.xml",
+      "file_type": "xml",
+      "size_bytes": 2476,
+      "sha256": "c2fa4c8c040b2b46b52a95c3b39cff6788292c0e9fe477136f454e563767182e",
+      "contains_secret": true
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsMemberPriceDao.xml",
+      "file_type": "xml",
+      "size_bytes": 716,
+      "sha256": "2b8dbcc1da141a95673ac2818d0d6046c3bfb1673ab2e5356ec088049de683fa",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsProductAttributeCategoryDao.xml",
+      "file_type": "xml",
+      "size_bytes": 978,
+      "sha256": "d6a0234fd3daeff61243748ffd3b2df699195ada7c234a5c328accf084be904a",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsProductAttributeDao.xml",
+      "file_type": "xml",
+      "size_bytes": 733,
+      "sha256": "fa27b4444fbb15a5f464482c8f21df90690b66bd0b5f0ad5d69e35f734d924cd",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsProductAttributeValueDao.xml",
+      "file_type": "xml",
+      "size_bytes": 616,
+      "sha256": "b3c333725a62d706f256aa4a39d5131898513710654d23a9e7f3f37d8c959ddc",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsProductCategoryAttributeRelationDao.xml",
+      "file_type": "xml",
+      "size_bytes": 649,
+      "sha256": "16996790a2d4ecf9a2772a057f8502b766227b8cbfbf727cf7d8b4a10877297d",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsProductCategoryDao.xml",
+      "file_type": "xml",
+      "size_bytes": 932,
+      "sha256": "f393cc1be8dd0cf297639960e629edc0a09297d10079901dd59b6b4a6ae1411e",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsProductDao.xml",
+      "file_type": "xml",
+      "size_bytes": 3485,
+      "sha256": "18ca71cb491e0454a5faff2d0f87eeb897357770f34ffbe1bf0ec4c4988787cc",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsProductFullReductionDao.xml",
+      "file_type": "xml",
+      "size_bytes": 611,
+      "sha256": "d5c24df7ccfda479686ad2868c49989592880d416ede8fe7623d1fdb98a9f9ac",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsProductLadderDao.xml",
+      "file_type": "xml",
+      "size_bytes": 632,
+      "sha256": "fe41a6205db39b24403b574debbccfda2102107249f006f695c4820e0edf7ecb",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsProductVertifyRecordDao.xml",
+      "file_type": "xml",
+      "size_bytes": 763,
+      "sha256": "030d74ab98df2da0b2aa8fc38b3ed547ea3388ce83f32e89698f0fe969425745",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\PmsSkuStockDao.xml",
+      "file_type": "xml",
+      "size_bytes": 1497,
+      "sha256": "7c558522f6fcd7a26dbb0e7051d68c6b7cc8f2da55432e096be6914fe311523a",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\SmsCouponDao.xml",
+      "file_type": "xml",
+      "size_bytes": 1546,
+      "sha256": "37061f71d5e15ca3a24406c236e0446e52d9e2f7a5ac19f0ad125fa0d9f070cc",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\SmsCouponProductCategoryRelationDao.xml",
+      "file_type": "xml",
+      "size_bytes": 738,
+      "sha256": "deb60b94765b9e28951311801e1a115db618c4ed99e9931ce6e9ceeb97e4b6d1",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\SmsCouponProductRelationDao.xml",
+      "file_type": "xml",
+      "size_bytes": 669,
+      "sha256": "02301fb2d3c3e48453d7d195eac0612e38a3765d40a30036585cc445a03f1017",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\SmsFlashPromotionProductRelationDao.xml",
+      "file_type": "xml",
+      "size_bytes": 1353,
+      "sha256": "812efb634fa523baddb884cc44fe416d9ad0ccb394e0e7fe82e89556b287b3d7",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\UmsAdminRoleRelationDao.xml",
+      "file_type": "xml",
+      "size_bytes": 1803,
+      "sha256": "ff86bd2887198dafbedbd3428f147ef28504a18cdaaf872f2022d69d30525a5f",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\dao\\UmsRoleDao.xml",
+      "file_type": "xml",
+      "size_bytes": 2113,
+      "sha256": "827f64539ecf741ebd8297e79970e3cc9478019f41258e103d38fb71371588c9",
+      "contains_secret": false
+    }
+  ]
+}

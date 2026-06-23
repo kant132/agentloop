@@ -1,0 +1,9 @@
+{
+  "groupId": "com.macro.mall",
+  "projectName": "mall-admin-1.0-SNAPSHOT",
+  "projectRoot": "D:\\code\\mall\\mall-admin",
+  "jarAnalyzerDb": "D:\\agentloop\\projects\\com_macro_mall\\loop_audit\\jar-analyzer.db",
+  "targetJarPath": "D:\\code\\mall\\mall-admin\\target\\mall-admin-1.0-SNAPSHOT.jar",
+  "loopDir": "D:\\agentloop\\projects\\com_macro_mall\\loop_audit",
+  "exposurePipeline": true
+}

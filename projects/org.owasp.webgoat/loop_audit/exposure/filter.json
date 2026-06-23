@@ -1,0 +1,23 @@
+{
+  "asset_type": "filter",
+  "source": "filter scan (ast-grep + regex)",
+  "stats": {
+    "total": 1,
+    "by_type": {
+      "interceptor": 1
+    },
+    "cached": 1
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-22T06:18:39.425976+00:00",
+  "items": [
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\UserInterceptor.java",
+      "fqn": "org.owasp.webgoat.container.UserInterceptor",
+      "type": "interceptor",
+      "matched": "implements HandlerInterceptor",
+      "line": 16
+    }
+  ]
+}

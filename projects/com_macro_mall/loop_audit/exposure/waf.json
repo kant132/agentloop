@@ -1,0 +1,13 @@
+{
+  "asset_type": "waf",
+  "source": "file scan (nginx.conf/web.xml/Spring-Security/pom.xml)",
+  "stats": {
+    "total_files": 0,
+    "by_type": {},
+    "cached": 0
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-23T17:26:40.283642+00:00",
+  "items": []
+}

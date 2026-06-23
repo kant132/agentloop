@@ -1,0 +1,158 @@
+{
+  "asset_type": "config",
+  "source": "config file scan",
+  "stats": {
+    "total_files": 20,
+    "by_type": {
+      "properties": 6,
+      "xml": 14
+    },
+    "secrets_detected": 8,
+    "cached": 20
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-22T06:18:37.833788+00:00",
+  "items": [
+    {
+      "file": "src\\test\\resources\\application-webgoat-test.properties",
+      "file_type": "properties",
+      "size_bytes": 282,
+      "sha256": "2e34df434b6e23fd38a071b9a6c2d4b2cf0c6bec7d91c4d8ee3b7cb2d75273e3",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\test\\resources\\application-webwolf.properties",
+      "file_type": "properties",
+      "size_bytes": 338,
+      "sha256": "0f4f7bfa8a9c13adcdc2dca3d28fe1768336e89564898f339df5a717ab667d5d",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\application-webgoat.properties",
+      "file_type": "properties",
+      "size_bytes": 3401,
+      "sha256": "6ea6499575e089350c1b728e60fc3fe00b28f396aefa900362321eb6d180e142",
+      "contains_secret": true
+    },
+    {
+      "file": "src\\main\\resources\\application-webwolf.properties",
+      "file_type": "properties",
+      "size_bytes": 2066,
+      "sha256": "87960ed4557a4ae7f09a4dac4c9c5215c8aedc4c1ee0361f1915dc47d96a6028",
+      "contains_secret": true
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webgoat.properties",
+      "file_type": "properties",
+      "size_bytes": 3390,
+      "sha256": "4ccda3e05b4a1da3ce04044af11f2172d03c53db51555e1c36190aef8383f08d",
+      "contains_secret": true
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\application-webwolf.properties",
+      "file_type": "properties",
+      "size_bytes": 2055,
+      "sha256": "8d9df6a4e3a9d6438b5c60ecb7c662ddd8428ab73ddb4171c9a4ea7c34e4f017",
+      "contains_secret": true
+    },
+    {
+      "file": "pom.xml",
+      "file_type": "xml",
+      "size_bytes": 30631,
+      "sha256": "b50e2a0a135f35f4ab119502a385849c295d5b11aebcc645d24db2ff5affaaa1",
+      "contains_secret": true
+    },
+    {
+      "file": ".idea\\compiler.xml",
+      "file_type": "xml",
+      "size_bytes": 711,
+      "sha256": "1d8fbc9ffc581d236d22497a1070cc4137582adf3a3873bbf5da7b814c756d05",
+      "contains_secret": false
+    },
+    {
+      "file": ".idea\\encodings.xml",
+      "file_type": "xml",
+      "size_bytes": 191,
+      "sha256": "72bf29f40c3272669f3f6f48e0aeb9ff0b17fec9e4e41a3ffb43c4e42777f891",
+      "contains_secret": false
+    },
+    {
+      "file": ".idea\\jarRepositories.xml",
+      "file_type": "xml",
+      "size_bytes": 853,
+      "sha256": "a36c3c936d2c9ea32724e2e7dbe8489d5c2a985eb13df6a6114fa3ac0a97eaa6",
+      "contains_secret": false
+    },
+    {
+      "file": ".idea\\misc.xml",
+      "file_type": "xml",
+      "size_bytes": 539,
+      "sha256": "6bddc6b7951f13fbf833d43915b1507c1736135f5affec5c1cd46d781083982c",
+      "contains_secret": false
+    },
+    {
+      "file": ".idea\\workspace.xml",
+      "file_type": "xml",
+      "size_bytes": 3278,
+      "sha256": "4f302e88f7ade6cb47de25536231d3cfc4fcefb4e489ad7936c6038396be6ff8",
+      "contains_secret": true
+    },
+    {
+      "file": "src\\test\\resources\\logback-test.xml",
+      "file_type": "xml",
+      "size_bytes": 647,
+      "sha256": "7011c3717e7ed347789ad322a4009b8a299cdebae16931f170989e1449b52cc1",
+      "contains_secret": false
+    },
+    {
+      "file": "src\\main\\resources\\lessons\\employees.xml",
+      "file_type": "xml",
+      "size_bytes": 9177,
+      "sha256": "9c9e03601bc3518d433b0ccf720fef35a9d5d9105dda5de7a30a9aa3d75918a7",
+      "contains_secret": false
+    },
+    {
+      "file": "jar-analyzer-temp\\META-INF\\maven\\org.owasp.webgoat\\webgoat\\pom.xml",
+      "file_type": "xml",
+      "size_bytes": 30948,
+      "sha256": "38032f8f30488731def8aa45258156778652b47aeff4fd9d3087157cec7dd8f0",
+      "contains_secret": true
+    },
+    {
+      "file": "jar-analyzer-temp\\BOOT-INF\\classes\\lessons\\employees.xml",
+      "file_type": "xml",
+      "size_bytes": 9177,
+      "sha256": "9c9e03601bc3518d433b0ccf720fef35a9d5d9105dda5de7a30a9aa3d75918a7",
+      "contains_secret": false
+    },
+    {
+      "file": "config\\checkstyle\\checkstyle.xml",
+      "file_type": "xml",
+      "size_bytes": 13677,
+      "sha256": "accb8fdbfb448deb755c5efb1f7d08c268028c21a5c9c0ec147da06d496dd9f0",
+      "contains_secret": true
+    },
+    {
+      "file": "config\\checkstyle\\suppressions.xml",
+      "file_type": "xml",
+      "size_bytes": 566,
+      "sha256": "391de0e5bc3817f78b11b55fe4ad128846f3b02b10dcda2273ab5a6099e9fbbd",
+      "contains_secret": false
+    },
+    {
+      "file": "config\\dependency-check\\project-suppression.xml",
+      "file_type": "xml",
+      "size_bytes": 3303,
+      "sha256": "19088fb6f38facf2cec351800a94bc57cc198c0682b387413bd1ea06a9503cae",
+      "contains_secret": false
+    },
+    {
+      "file": ".idea\\inspectionProfiles\\Project_Default.xml",
+      "file_type": "xml",
+      "size_bytes": 279,
+      "sha256": "8fd3df5ff11acda4c6371b102c31a83be8ec68ea2115c3f31a8b127298f112f9",
+      "contains_secret": false
+    }
+  ]
+}

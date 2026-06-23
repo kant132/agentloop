@@ -1,0 +1,13 @@
+{
+  "asset_type": "db_schema",
+  "source": "file scan (JPA @Entity / MyBatis mapper.xml / Jooq generated)",
+  "stats": {
+    "total_files": 0,
+    "by_type": {},
+    "cached": 0
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-23T17:26:34.502768+00:00",
+  "items": []
+}

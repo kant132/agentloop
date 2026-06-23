@@ -1,0 +1,898 @@
+{
+  "asset_type": "codegraph",
+  "source": "jar-analyzer SQLite pattern search",
+  "stats": {
+    "total": 110,
+    "by_category": {
+      "sql": 4,
+      "startup": 56,
+      "reflection": 49,
+      "serialization": 1
+    }
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-22T06:18:36.830677+00:00",
+  "items": [
+    {
+      "fqn": "org.owasp.webgoat.lessons.pathtraversal.ProfileUploadBase::execute",
+      "category": "sql",
+      "nodes_id": "427",
+      "file": "",
+      "line": 41,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.lessons.pathtraversal.ProfileUploadRetrieval::execute",
+      "category": "sql",
+      "nodes_id": "1109",
+      "file": "",
+      "line": 84,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.lessons.sqlinjection.advanced.SqlInjectionLesson6a::executeSqlInjection",
+      "category": "sql",
+      "nodes_id": "905",
+      "file": "",
+      "line": 69,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.taintaudit.TrickySinks::buildUnexecutedSql",
+      "category": "sql",
+      "nodes_id": "761",
+      "file": "",
+      "line": 80,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.DatabaseConfiguration::<clinit>",
+      "category": "startup",
+      "nodes_id": "848",
+      "file": "",
+      "line": 23,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.DatabaseConfiguration::<init>",
+      "category": "startup",
+      "nodes_id": "2000",
+      "file": "",
+      "line": 22,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.DatabaseConfiguration::dataSource",
+      "category": "startup",
+      "nodes_id": "776",
+      "file": "",
+      "line": 31,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.DatabaseConfiguration::flyWayContainer",
+      "category": "startup",
+      "nodes_id": "1899",
+      "file": "",
+      "line": 47,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.DatabaseConfiguration::flywayLessons",
+      "category": "startup",
+      "nodes_id": "1382",
+      "file": "",
+      "line": 57,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.DatabaseConfiguration::lambda$flywayLessons$0",
+      "category": "startup",
+      "nodes_id": "1100",
+      "file": "",
+      "line": 58,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.DatabaseConfiguration::lessonDataSource",
+      "category": "startup",
+      "nodes_id": "751",
+      "file": "",
+      "line": 69,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::<clinit>",
+      "category": "startup",
+      "nodes_id": "618",
+      "file": "",
+      "line": 44,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::<init>",
+      "category": "startup",
+      "nodes_id": "570",
+      "file": "",
+      "line": 43,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::addInterceptors",
+      "category": "startup",
+      "nodes_id": "1156",
+      "file": "",
+      "line": 216,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::addResourceHandlers",
+      "category": "startup",
+      "nodes_id": "1368",
+      "file": "",
+      "line": 154,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::addViewControllers",
+      "category": "startup",
+      "nodes_id": "1981",
+      "file": "",
+      "line": 53,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::asciiDoctorTemplateResolver",
+      "category": "startup",
+      "nodes_id": "1212",
+      "file": "",
+      "line": 124,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::labelDebugger",
+      "category": "startup",
+      "nodes_id": "1474",
+      "file": "",
+      "line": 231,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::lambda$addResourceHandlers$0",
+      "category": "startup",
+      "nodes_id": "756",
+      "file": "",
+      "line": 167,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::lambda$addResourceHandlers$1",
+      "category": "startup",
+      "nodes_id": "768",
+      "file": "",
+      "line": 171,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::lambda$addResourceHandlers$2",
+      "category": "startup",
+      "nodes_id": "1267",
+      "file": "",
+      "line": 175,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::lambda$addResourceHandlers$3",
+      "category": "startup",
+      "nodes_id": "1277",
+      "file": "",
+      "line": 179,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::lambda$addResourceHandlers$4",
+      "category": "startup",
+      "nodes_id": "1291",
+      "file": "",
+      "line": 183,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::language",
+      "category": "startup",
+      "nodes_id": "1064",
+      "file": "",
+      "line": 198,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::lessonTemplateResolver",
+      "category": "startup",
+      "nodes_id": "1806",
+      "file": "",
+      "line": 113,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::lessonThymeleafTemplateResolver",
+      "category": "startup",
+      "nodes_id": "1226",
+      "file": "",
+      "line": 74,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::localeChangeInterceptor",
+      "category": "startup",
+      "nodes_id": "1552",
+      "file": "",
+      "line": 209,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::localeResolver",
+      "category": "startup",
+      "nodes_id": "1220",
+      "file": "",
+      "line": 203,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::messageSource",
+      "category": "startup",
+      "nodes_id": "951",
+      "file": "",
+      "line": 222,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::pluginMessages",
+      "category": "startup",
+      "nodes_id": "1255",
+      "file": "",
+      "line": 189,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::springThymeleafTemplateResolver",
+      "category": "startup",
+      "nodes_id": "1409",
+      "file": "",
+      "line": 100,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::thymeleafTemplateEngine",
+      "category": "startup",
+      "nodes_id": "107",
+      "file": "",
+      "line": 139,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration::viewResolver",
+      "category": "startup",
+      "nodes_id": "665",
+      "file": "",
+      "line": 61,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration$1::<init>",
+      "category": "startup",
+      "nodes_id": "1302",
+      "file": "",
+      "line": 75,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.MvcConfiguration$1::computeTemplateResource",
+      "category": "startup",
+      "nodes_id": "551",
+      "file": "",
+      "line": 84,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::<init>",
+      "category": "startup",
+      "nodes_id": "1141",
+      "file": "",
+      "line": 33,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::attachToLesson",
+      "category": "startup",
+      "nodes_id": "438",
+      "file": "",
+      "line": 61,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::attachToLessonInParentPackage",
+      "category": "startup",
+      "nodes_id": "1196",
+      "file": "",
+      "line": 41,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::course",
+      "category": "startup",
+      "nodes_id": "1973",
+      "file": "",
+      "line": 87,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::findDiff",
+      "category": "startup",
+      "nodes_id": "1636",
+      "file": "",
+      "line": 101,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::getHints",
+      "category": "startup",
+      "nodes_id": "1465",
+      "file": "",
+      "line": 169,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::getMapping",
+      "category": "startup",
+      "nodes_id": "553",
+      "file": "",
+      "line": 139,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::getPath",
+      "category": "startup",
+      "nodes_id": "632",
+      "file": "",
+      "line": 111,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$attachToLesson$3",
+      "category": "startup",
+      "nodes_id": "1874",
+      "file": "",
+      "line": 64,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$attachToLesson$4",
+      "category": "startup",
+      "nodes_id": "1940",
+      "file": "",
+      "line": 69,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$attachToLesson$5",
+      "category": "startup",
+      "nodes_id": "841",
+      "file": "",
+      "line": 71,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$attachToLessonInParentPackage$0",
+      "category": "startup",
+      "nodes_id": "1121",
+      "file": "",
+      "line": 47,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$attachToLessonInParentPackage$1",
+      "category": "startup",
+      "nodes_id": "27",
+      "file": "",
+      "line": 50,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$attachToLessonInParentPackage$2",
+      "category": "startup",
+      "nodes_id": "640",
+      "file": "",
+      "line": 52,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$course$6",
+      "category": "startup",
+      "nodes_id": "1463",
+      "file": "",
+      "line": 91,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$findDiff$7",
+      "category": "startup",
+      "nodes_id": "352",
+      "file": "",
+      "line": 102,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$findDiff$8",
+      "category": "startup",
+      "nodes_id": "1692",
+      "file": "",
+      "line": 103,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::lambda$getMapping$9",
+      "category": "startup",
+      "nodes_id": "244",
+      "file": "",
+      "line": 164,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::methodReturnTypeIsOfTypeAttackResult",
+      "category": "startup",
+      "nodes_id": "792",
+      "file": "",
+      "line": 127,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.CourseConfiguration::toAssignment",
+      "category": "startup",
+      "nodes_id": "242",
+      "file": "",
+      "line": 79,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.MvcConfiguration::<init>",
+      "category": "startup",
+      "nodes_id": "1364",
+      "file": "",
+      "line": 22,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.MvcConfiguration::addInterceptors",
+      "category": "startup",
+      "nodes_id": "1968",
+      "file": "",
+      "line": 47,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.MvcConfiguration::addResourceHandlers",
+      "category": "startup",
+      "nodes_id": "714",
+      "file": "",
+      "line": 29,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.MvcConfiguration::addViewControllers",
+      "category": "startup",
+      "nodes_id": "1252",
+      "file": "",
+      "line": 40,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.webwolf.MvcConfiguration::createDirectory",
+      "category": "startup",
+      "nodes_id": "1486",
+      "file": "",
+      "line": 52,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.owasp.webgoat.container.lessons.LessonConnectionInvocationHandler::invoke",
+      "category": "reflection",
+      "nodes_id": "68",
+      "file": "",
+      "line": 28,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.jar.NestedJarFile$NestedJarEntry::getMethod",
+      "category": "reflection",
+      "nodes_id": "1299",
+      "file": "",
+      "line": 543,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::<init>",
+      "category": "reflection",
+      "nodes_id": "1564",
+      "file": "",
+      "line": 41,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::asUrl",
+      "category": "reflection",
+      "nodes_id": "257",
+      "file": "",
+      "line": 70,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::containsEntry",
+      "category": "reflection",
+      "nodes_id": "151",
+      "file": "",
+      "line": 58,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::extractName",
+      "category": "reflection",
+      "nodes_id": "76",
+      "file": "",
+      "line": 47,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::getUrls",
+      "category": "reflection",
+      "nodes_id": "1052",
+      "file": "",
+      "line": 65,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::lineHasText",
+      "category": "reflection",
+      "nodes_id": "185",
+      "file": "",
+      "line": 93,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::loadIfPossible",
+      "category": "reflection",
+      "nodes_id": "61",
+      "file": "",
+      "line": 78,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::loadIfPossible",
+      "category": "reflection",
+      "nodes_id": "564",
+      "file": "",
+      "line": 82,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.ClassPathIndexFile::size",
+      "category": "reflection",
+      "nodes_id": "584",
+      "file": "",
+      "line": 54,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::<clinit>",
+      "category": "reflection",
+      "nodes_id": "1536",
+      "file": "",
+      "line": 40,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::<init>",
+      "category": "reflection",
+      "nodes_id": "166",
+      "file": "",
+      "line": 72,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::<init>",
+      "category": "reflection",
+      "nodes_id": "1875",
+      "file": "",
+      "line": 61,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackage",
+      "category": "reflection",
+      "nodes_id": "6",
+      "file": "",
+      "line": 116,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackage",
+      "category": "reflection",
+      "nodes_id": "390",
+      "file": "",
+      "line": 152,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackage",
+      "category": "reflection",
+      "nodes_id": "1932",
+      "file": "",
+      "line": 128,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackageForExploded",
+      "category": "reflection",
+      "nodes_id": "1556",
+      "file": "",
+      "line": 137,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::definePackageForExploded",
+      "category": "reflection",
+      "nodes_id": "1957",
+      "file": "",
+      "line": 120,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::getManifest",
+      "category": "reflection",
+      "nodes_id": "1533",
+      "file": "",
+      "line": 164,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::lambda$definePackage$1",
+      "category": "reflection",
+      "nodes_id": "821",
+      "file": "",
+      "line": 132,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::lambda$definePackageForExploded$0",
+      "category": "reflection",
+      "nodes_id": "585",
+      "file": "",
+      "line": 121,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::loadClass",
+      "category": "reflection",
+      "nodes_id": "1046",
+      "file": "",
+      "line": 79,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader::loadClassInLaunchedClassLoader",
+      "category": "reflection",
+      "nodes_id": "1375",
+      "file": "",
+      "line": 96,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::$values",
+      "category": "reflection",
+      "nodes_id": "1685",
+      "file": "",
+      "line": 175,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::<clinit>",
+      "category": "reflection",
+      "nodes_id": "1735",
+      "file": "",
+      "line": 180,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::<init>",
+      "category": "reflection",
+      "nodes_id": "123",
+      "file": "",
+      "line": 175,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::valueOf",
+      "category": "reflection",
+      "nodes_id": "732",
+      "file": "",
+      "line": 175,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.launch.LaunchedClassLoader$DefinePackageCallType::values",
+      "category": "reflection",
+      "nodes_id": "423",
+      "file": "",
+      "line": 175,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::<clinit>",
+      "category": "reflection",
+      "nodes_id": "1215",
+      "file": "",
+      "line": 44,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::<init>",
+      "category": "reflection",
+      "nodes_id": "1195",
+      "file": "",
+      "line": 61,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::clearCache",
+      "category": "reflection",
+      "nodes_id": "1612",
+      "file": "",
+      "line": 232,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::clearCache",
+      "category": "reflection",
+      "nodes_id": "1762",
+      "file": "",
+      "line": 204,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::clearCache",
+      "category": "reflection",
+      "nodes_id": "1787",
+      "file": "",
+      "line": 221,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::clearJarFiles",
+      "category": "reflection",
+      "nodes_id": "523",
+      "file": "",
+      "line": 249,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::close",
+      "category": "reflection",
+      "nodes_id": "534",
+      "file": "",
+      "line": 244,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::definePackage",
+      "category": "reflection",
+      "nodes_id": "1194",
+      "file": "",
+      "line": 139,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::definePackageIfNecessary",
+      "category": "reflection",
+      "nodes_id": "782",
+      "file": "",
+      "line": 121,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::findResource",
+      "category": "reflection",
+      "nodes_id": "1394",
+      "file": "",
+      "line": 68,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::findResources",
+      "category": "reflection",
+      "nodes_id": "1681",
+      "file": "",
+      "line": 82,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::getJarFile",
+      "category": "reflection",
+      "nodes_id": "1519",
+      "file": "",
+      "line": 179,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::hasEntry",
+      "category": "reflection",
+      "nodes_id": "760",
+      "file": "",
+      "line": 174,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::isJarUrl",
+      "category": "reflection",
+      "nodes_id": "1942",
+      "file": "",
+      "line": 239,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::loadClass",
+      "category": "reflection",
+      "nodes_id": "1340",
+      "file": "",
+      "line": 96,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader::tolerateRaceConditionDueToBeingParallelCapable",
+      "category": "reflection",
+      "nodes_id": "707",
+      "file": "",
+      "line": 164,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader$OptimizedEnumeration::<init>",
+      "category": "reflection",
+      "nodes_id": "1288",
+      "file": "",
+      "line": 264,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader$OptimizedEnumeration::hasMoreElements",
+      "category": "reflection",
+      "nodes_id": "1155",
+      "file": "",
+      "line": 270,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader$OptimizedEnumeration::nextElement",
+      "category": "reflection",
+      "nodes_id": "1264",
+      "file": "",
+      "line": 282,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader$OptimizedEnumeration::nextElement",
+      "category": "reflection",
+      "nodes_id": "1866",
+      "file": "",
+      "line": 260,
+      "snippet": ""
+    },
+    {
+      "fqn": "org.dummy.insecure.framework.VulnerableTaskHolder::readObject",
+      "category": "serialization",
+      "nodes_id": "647",
+      "file": "",
+      "line": 50,
+      "snippet": ""
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "asset_type": "auth_code",
+  "source": "ast-grep",
+  "stats": {
+    "total": 0,
+    "by_category": {},
+    "cached": 0
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-22T06:18:36.803162+00:00",
+  "items": []
+}

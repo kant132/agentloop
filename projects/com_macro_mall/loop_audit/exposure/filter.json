@@ -1,0 +1,13 @@
+{
+  "asset_type": "filter",
+  "source": "filter scan (ast-grep + regex)",
+  "stats": {
+    "total": 0,
+    "by_type": {},
+    "cached": 0
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-23T17:26:34.768561+00:00",
+  "items": []
+}

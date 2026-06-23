@@ -1,0 +1,2577 @@
+{
+  "asset_type": "route",
+  "source": "javaparser RouteExtractor + ast-grep file location",
+  "stats": {
+    "total": 160,
+    "files_scanned": 154,
+    "by_http_method": {
+      "GET": 63,
+      "POST": 97
+    }
+  },
+  "errors": [],
+  "degraded": true,
+  "collected_at": "2026-06-23T17:26:35.575917+00:00",
+  "items": [
+    {
+      "class_fqn": "com.macro.mall.controller.OmsCompanyAddressController",
+      "class_base_path": "/companyAddress",
+      "method_fqn": "com.macro.mall.controller.OmsCompanyAddressController#list",
+      "method_name": "list",
+      "full_url": "/companyAddress/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsCompanyAddressController.java",
+      "start_line": 27,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsCompanyAddressController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.CmsPrefrenceAreaController",
+      "class_base_path": "/prefrenceArea",
+      "method_fqn": "com.macro.mall.controller.CmsPrefrenceAreaController#listAll",
+      "method_name": "listAll",
+      "full_url": "/prefrenceArea/listAll",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/CmsPrefrenceAreaController.java",
+      "start_line": 27,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.CmsPrefrenceAreaController#listAll"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.MinioController",
+      "class_base_path": "/minio",
+      "method_fqn": "com.macro.mall.controller.MinioController#upload",
+      "method_name": "upload",
+      "full_url": "/minio/upload",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "PostMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/MinioController.java",
+      "start_line": 41,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.MinioController#upload"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.MinioController",
+      "class_base_path": "/minio",
+      "method_fqn": "com.macro.mall.controller.MinioController#delete",
+      "method_name": "delete",
+      "full_url": "/minio/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/MinioController.java",
+      "start_line": 102,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.MinioController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.CmsSubjectController",
+      "class_base_path": "/subject",
+      "method_fqn": "com.macro.mall.controller.CmsSubjectController#listAll",
+      "method_name": "listAll",
+      "full_url": "/subject/listAll",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/CmsSubjectController.java",
+      "start_line": 29,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.CmsSubjectController#listAll"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.CmsSubjectController",
+      "class_base_path": "/subject",
+      "method_fqn": "com.macro.mall.controller.CmsSubjectController#getList",
+      "method_name": "getList",
+      "full_url": "/subject/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/CmsSubjectController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.CmsSubjectController#getList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderSettingController",
+      "class_base_path": "/orderSetting",
+      "method_fqn": "com.macro.mall.controller.OmsOrderSettingController#getItem",
+      "method_name": "getItem",
+      "full_url": "/orderSetting/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderSettingController.java",
+      "start_line": 23,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.OmsOrderSettingController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderSettingController",
+      "class_base_path": "/orderSetting",
+      "method_fqn": "com.macro.mall.controller.OmsOrderSettingController#update",
+      "method_name": "update",
+      "full_url": "/orderSetting/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderSettingController.java",
+      "start_line": 31,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.OmsOrderSettingController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnApplyController",
+      "class_base_path": "/returnApply",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnApplyController#list",
+      "method_name": "list",
+      "full_url": "/returnApply/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnApplyController.java",
+      "start_line": 29,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnApplyController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnApplyController",
+      "class_base_path": "/returnApply",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnApplyController#delete",
+      "method_name": "delete",
+      "full_url": "/returnApply/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnApplyController.java",
+      "start_line": 39,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnApplyController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnApplyController",
+      "class_base_path": "/returnApply",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnApplyController#getItem",
+      "method_name": "getItem",
+      "full_url": "/returnApply/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnApplyController.java",
+      "start_line": 50,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnApplyController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnApplyController",
+      "class_base_path": "/returnApply",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnApplyController#updateStatus",
+      "method_name": "updateStatus",
+      "full_url": "/returnApply/update/status/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnApplyController.java",
+      "start_line": 58,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnApplyController#updateStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController",
+      "class_base_path": "/returnReason",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#create",
+      "method_name": "create",
+      "full_url": "/returnReason/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnReasonController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController",
+      "class_base_path": "/returnReason",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#update",
+      "method_name": "update",
+      "full_url": "/returnReason/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnReasonController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController",
+      "class_base_path": "/returnReason",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#delete",
+      "method_name": "delete",
+      "full_url": "/returnReason/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnReasonController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController",
+      "class_base_path": "/returnReason",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#list",
+      "method_name": "list",
+      "full_url": "/returnReason/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnReasonController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController",
+      "class_base_path": "/returnReason",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#getItem",
+      "method_name": "getItem",
+      "full_url": "/returnReason/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnReasonController.java",
+      "start_line": 68,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController",
+      "class_base_path": "/returnReason",
+      "method_fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#updateStatus",
+      "method_name": "updateStatus",
+      "full_url": "/returnReason/update/status",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderReturnReasonController.java",
+      "start_line": 76,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderReturnReasonController#updateStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OssController",
+      "class_base_path": "/aliyun/oss",
+      "method_fqn": "com.macro.mall.controller.OssController#policy",
+      "method_name": "policy",
+      "full_url": "/aliyun/oss/policy",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OssController.java",
+      "start_line": 29,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OssController#policy"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OssController",
+      "class_base_path": "/aliyun/oss",
+      "method_fqn": "com.macro.mall.controller.OssController#callback",
+      "method_name": "callback",
+      "full_url": "/aliyun/oss/callback",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OssController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OssController#callback"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderController",
+      "class_base_path": "/order",
+      "method_fqn": "com.macro.mall.controller.OmsOrderController#list",
+      "method_name": "list",
+      "full_url": "/order/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderController.java",
+      "start_line": 27,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderController",
+      "class_base_path": "/order",
+      "method_fqn": "com.macro.mall.controller.OmsOrderController#delivery",
+      "method_name": "delivery",
+      "full_url": "/order/update/delivery",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderController#delivery"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderController",
+      "class_base_path": "/order",
+      "method_fqn": "com.macro.mall.controller.OmsOrderController#close",
+      "method_name": "close",
+      "full_url": "/order/update/close",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderController#close"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderController",
+      "class_base_path": "/order",
+      "method_fqn": "com.macro.mall.controller.OmsOrderController#delete",
+      "method_name": "delete",
+      "full_url": "/order/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderController",
+      "class_base_path": "/order",
+      "method_fqn": "com.macro.mall.controller.OmsOrderController#detail",
+      "method_name": "detail",
+      "full_url": "/order/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderController.java",
+      "start_line": 70,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.OmsOrderController#detail"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderController",
+      "class_base_path": "/order",
+      "method_fqn": "com.macro.mall.controller.OmsOrderController#updateReceiverInfo",
+      "method_name": "updateReceiverInfo",
+      "full_url": "/order/update/receiverInfo",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderController.java",
+      "start_line": 78,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderController#updateReceiverInfo"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderController",
+      "class_base_path": "/order",
+      "method_fqn": "com.macro.mall.controller.OmsOrderController#updateReceiverInfo",
+      "method_name": "updateReceiverInfo",
+      "full_url": "/order/update/moneyInfo",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderController.java",
+      "start_line": 89,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderController#updateReceiverInfo"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.OmsOrderController",
+      "class_base_path": "/order",
+      "method_fqn": "com.macro.mall.controller.OmsOrderController#updateNote",
+      "method_name": "updateNote",
+      "full_url": "/order/update/note",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/OmsOrderController.java",
+      "start_line": 100,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.OmsOrderController#updateNote"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController",
+      "class_base_path": "/productAttribute/category",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#create",
+      "method_name": "create",
+      "full_url": "/productAttribute/category/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeCategoryController.java",
+      "start_line": 27,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController",
+      "class_base_path": "/productAttribute/category",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#update",
+      "method_name": "update",
+      "full_url": "/productAttribute/category/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeCategoryController.java",
+      "start_line": 39,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController",
+      "class_base_path": "/productAttribute/category",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#delete",
+      "method_name": "delete",
+      "full_url": "/productAttribute/category/delete/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeCategoryController.java",
+      "start_line": 51,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController",
+      "class_base_path": "/productAttribute/category",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#getItem",
+      "method_name": "getItem",
+      "full_url": "/productAttribute/category/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeCategoryController.java",
+      "start_line": 63,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController",
+      "class_base_path": "/productAttribute/category",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#getList",
+      "method_name": "getList",
+      "full_url": "/productAttribute/category/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeCategoryController.java",
+      "start_line": 71,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#getList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController",
+      "class_base_path": "/productAttribute/category",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#getListWithAttr",
+      "method_name": "getListWithAttr",
+      "full_url": "/productAttribute/category/list/withAttr",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeCategoryController.java",
+      "start_line": 79,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeCategoryController#getListWithAttr"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeController",
+      "class_base_path": "/productAttribute",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeController#getList",
+      "method_name": "getList",
+      "full_url": "/productAttribute/list/{cid}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeController.java",
+      "start_line": 32,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeController#getList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeController",
+      "class_base_path": "/productAttribute",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeController#create",
+      "method_name": "create",
+      "full_url": "/productAttribute/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeController.java",
+      "start_line": 44,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeController",
+      "class_base_path": "/productAttribute",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeController#update",
+      "method_name": "update",
+      "full_url": "/productAttribute/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeController.java",
+      "start_line": 56,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeController",
+      "class_base_path": "/productAttribute",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeController#getItem",
+      "method_name": "getItem",
+      "full_url": "/productAttribute/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeController.java",
+      "start_line": 68,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeController",
+      "class_base_path": "/productAttribute",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeController#delete",
+      "method_name": "delete",
+      "full_url": "/productAttribute/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeController.java",
+      "start_line": 76,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductAttributeController",
+      "class_base_path": "/productAttribute",
+      "method_fqn": "com.macro.mall.controller.PmsProductAttributeController#getAttrInfo",
+      "method_name": "getAttrInfo",
+      "full_url": "/productAttribute/attrInfo/{productCategoryId}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductAttributeController.java",
+      "start_line": 88,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductAttributeController#getAttrInfo"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsBrandController",
+      "class_base_path": "/brand",
+      "method_fqn": "com.macro.mall.controller.PmsBrandController#getList",
+      "method_name": "getList",
+      "full_url": "/brand/listAll",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsBrandController.java",
+      "start_line": 28,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsBrandController#getList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsBrandController",
+      "class_base_path": "/brand",
+      "method_fqn": "com.macro.mall.controller.PmsBrandController#create",
+      "method_name": "create",
+      "full_url": "/brand/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsBrandController.java",
+      "start_line": 35,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsBrandController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsBrandController",
+      "class_base_path": "/brand",
+      "method_fqn": "com.macro.mall.controller.PmsBrandController#update",
+      "method_name": "update",
+      "full_url": "/brand/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsBrandController.java",
+      "start_line": 49,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsBrandController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsBrandController",
+      "class_base_path": "/brand",
+      "method_fqn": "com.macro.mall.controller.PmsBrandController#delete",
+      "method_name": "delete",
+      "full_url": "/brand/delete/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsBrandController.java",
+      "start_line": 64,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsBrandController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsBrandController",
+      "class_base_path": "/brand",
+      "method_fqn": "com.macro.mall.controller.PmsBrandController#getList",
+      "method_name": "getList",
+      "full_url": "/brand/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsBrandController.java",
+      "start_line": 76,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsBrandController#getList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsBrandController",
+      "class_base_path": "/brand",
+      "method_fqn": "com.macro.mall.controller.PmsBrandController#getItem",
+      "method_name": "getItem",
+      "full_url": "/brand/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsBrandController.java",
+      "start_line": 87,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsBrandController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsBrandController",
+      "class_base_path": "/brand",
+      "method_fqn": "com.macro.mall.controller.PmsBrandController#deleteBatch",
+      "method_name": "deleteBatch",
+      "full_url": "/brand/delete/batch",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsBrandController.java",
+      "start_line": 94,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsBrandController#deleteBatch"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsBrandController",
+      "class_base_path": "/brand",
+      "method_fqn": "com.macro.mall.controller.PmsBrandController#updateShowStatus",
+      "method_name": "updateShowStatus",
+      "full_url": "/brand/update/showStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsBrandController.java",
+      "start_line": 106,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsBrandController#updateShowStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsBrandController",
+      "class_base_path": "/brand",
+      "method_fqn": "com.macro.mall.controller.PmsBrandController#updateFactoryStatus",
+      "method_name": "updateFactoryStatus",
+      "full_url": "/brand/update/factoryStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsBrandController.java",
+      "start_line": 119,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsBrandController#updateFactoryStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductCategoryController",
+      "class_base_path": "/productCategory",
+      "method_fqn": "com.macro.mall.controller.PmsProductCategoryController#create",
+      "method_name": "create",
+      "full_url": "/productCategory/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductCategoryController.java",
+      "start_line": 29,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductCategoryController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductCategoryController",
+      "class_base_path": "/productCategory",
+      "method_fqn": "com.macro.mall.controller.PmsProductCategoryController#update",
+      "method_name": "update",
+      "full_url": "/productCategory/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductCategoryController.java",
+      "start_line": 41,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductCategoryController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductCategoryController",
+      "class_base_path": "/productCategory",
+      "method_fqn": "com.macro.mall.controller.PmsProductCategoryController#getList",
+      "method_name": "getList",
+      "full_url": "/productCategory/list/{parentId}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductCategoryController.java",
+      "start_line": 55,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductCategoryController#getList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductCategoryController",
+      "class_base_path": "/productCategory",
+      "method_fqn": "com.macro.mall.controller.PmsProductCategoryController#getItem",
+      "method_name": "getItem",
+      "full_url": "/productCategory/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductCategoryController.java",
+      "start_line": 65,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductCategoryController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductCategoryController",
+      "class_base_path": "/productCategory",
+      "method_fqn": "com.macro.mall.controller.PmsProductCategoryController#delete",
+      "method_name": "delete",
+      "full_url": "/productCategory/delete/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductCategoryController.java",
+      "start_line": 73,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductCategoryController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductCategoryController",
+      "class_base_path": "/productCategory",
+      "method_fqn": "com.macro.mall.controller.PmsProductCategoryController#updateNavStatus",
+      "method_name": "updateNavStatus",
+      "full_url": "/productCategory/update/navStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductCategoryController.java",
+      "start_line": 85,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductCategoryController#updateNavStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductCategoryController",
+      "class_base_path": "/productCategory",
+      "method_fqn": "com.macro.mall.controller.PmsProductCategoryController#updateShowStatus",
+      "method_name": "updateShowStatus",
+      "full_url": "/productCategory/update/showStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductCategoryController.java",
+      "start_line": 97,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductCategoryController#updateShowStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductCategoryController",
+      "class_base_path": "/productCategory",
+      "method_fqn": "com.macro.mall.controller.PmsProductCategoryController#listWithChildren",
+      "method_name": "listWithChildren",
+      "full_url": "/productCategory/list/withChildren",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductCategoryController.java",
+      "start_line": 109,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductCategoryController#listWithChildren"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsSkuStockController",
+      "class_base_path": "/sku",
+      "method_fqn": "com.macro.mall.controller.PmsSkuStockController#getList",
+      "method_name": "getList",
+      "full_url": "/sku/{pid}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsSkuStockController.java",
+      "start_line": 25,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsSkuStockController#getList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsSkuStockController",
+      "class_base_path": "/sku",
+      "method_fqn": "com.macro.mall.controller.PmsSkuStockController#update",
+      "method_name": "update",
+      "full_url": "/sku/update/{pid}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsSkuStockController.java",
+      "start_line": 32,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsSkuStockController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsCouponHistoryController",
+      "class_base_path": "/couponHistory",
+      "method_fqn": "com.macro.mall.controller.SmsCouponHistoryController#list",
+      "method_name": "list",
+      "full_url": "/couponHistory/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsCouponHistoryController.java",
+      "start_line": 29,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsCouponHistoryController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsCouponController",
+      "class_base_path": "/coupon",
+      "method_fqn": "com.macro.mall.controller.SmsCouponController#add",
+      "method_name": "add",
+      "full_url": "/coupon/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsCouponController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsCouponController#add"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsCouponController",
+      "class_base_path": "/coupon",
+      "method_fqn": "com.macro.mall.controller.SmsCouponController#delete",
+      "method_name": "delete",
+      "full_url": "/coupon/delete/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsCouponController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsCouponController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsCouponController",
+      "class_base_path": "/coupon",
+      "method_fqn": "com.macro.mall.controller.SmsCouponController#update",
+      "method_name": "update",
+      "full_url": "/coupon/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsCouponController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsCouponController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsCouponController",
+      "class_base_path": "/coupon",
+      "method_fqn": "com.macro.mall.controller.SmsCouponController#list",
+      "method_name": "list",
+      "full_url": "/coupon/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsCouponController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsCouponController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsCouponController",
+      "class_base_path": "/coupon",
+      "method_fqn": "com.macro.mall.controller.SmsCouponController#getItem",
+      "method_name": "getItem",
+      "full_url": "/coupon/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsCouponController.java",
+      "start_line": 71,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsCouponController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionController",
+      "class_base_path": "/flash",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionController#create",
+      "method_name": "create",
+      "full_url": "/flash/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionController",
+      "class_base_path": "/flash",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionController#update",
+      "method_name": "update",
+      "full_url": "/flash/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionController",
+      "class_base_path": "/flash",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionController#delete",
+      "method_name": "delete",
+      "full_url": "/flash/delete/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionController",
+      "class_base_path": "/flash",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionController#update",
+      "method_name": "update",
+      "full_url": "/flash/update/status/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionController",
+      "class_base_path": "/flash",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionController#getItem",
+      "method_name": "getItem",
+      "full_url": "/flash/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionController.java",
+      "start_line": 70,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionController",
+      "class_base_path": "/flash",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionController#getItem",
+      "method_name": "getItem",
+      "full_url": "/flash/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionController.java",
+      "start_line": 78,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#create",
+      "method_name": "create",
+      "full_url": "/product/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 29,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#getUpdateInfo",
+      "method_name": "getUpdateInfo",
+      "full_url": "/product/updateInfo/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 41,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductController#getUpdateInfo"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#update",
+      "method_name": "update",
+      "full_url": "/product/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 49,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.PmsProductController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#getList",
+      "method_name": "getList",
+      "full_url": "/product/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 61,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductController#getList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#getList",
+      "method_name": "getList",
+      "full_url": "/product/simpleList",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 71,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductController#getList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#updateVerifyStatus",
+      "method_name": "updateVerifyStatus",
+      "full_url": "/product/update/verifyStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 79,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductController#updateVerifyStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#updatePublishStatus",
+      "method_name": "updatePublishStatus",
+      "full_url": "/product/update/publishStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 93,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductController#updatePublishStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#updateRecommendStatus",
+      "method_name": "updateRecommendStatus",
+      "full_url": "/product/update/recommendStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 106,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductController#updateRecommendStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#updateNewStatus",
+      "method_name": "updateNewStatus",
+      "full_url": "/product/update/newStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 119,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductController#updateNewStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.PmsProductController",
+      "class_base_path": "/product",
+      "method_fqn": "com.macro.mall.controller.PmsProductController#updateDeleteStatus",
+      "method_name": "updateDeleteStatus",
+      "full_url": "/product/update/deleteStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/PmsProductController.java",
+      "start_line": 132,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.PmsProductController#updateDeleteStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController",
+      "class_base_path": "/flashProductRelation",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#create",
+      "method_name": "create",
+      "full_url": "/flashProductRelation/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionProductRelationController.java",
+      "start_line": 27,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController",
+      "class_base_path": "/flashProductRelation",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#update",
+      "method_name": "update",
+      "full_url": "/flashProductRelation/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionProductRelationController.java",
+      "start_line": 38,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController",
+      "class_base_path": "/flashProductRelation",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#delete",
+      "method_name": "delete",
+      "full_url": "/flashProductRelation/delete/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionProductRelationController.java",
+      "start_line": 49,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController",
+      "class_base_path": "/flashProductRelation",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#getItem",
+      "method_name": "getItem",
+      "full_url": "/flashProductRelation/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionProductRelationController.java",
+      "start_line": 60,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController",
+      "class_base_path": "/flashProductRelation",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#list",
+      "method_name": "list",
+      "full_url": "/flashProductRelation/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionProductRelationController.java",
+      "start_line": 68,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionProductRelationController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController",
+      "class_base_path": "/flashSession",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#create",
+      "method_name": "create",
+      "full_url": "/flashSession/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionSessionController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController",
+      "class_base_path": "/flashSession",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#update",
+      "method_name": "update",
+      "full_url": "/flashSession/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionSessionController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController",
+      "class_base_path": "/flashSession",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#updateStatus",
+      "method_name": "updateStatus",
+      "full_url": "/flashSession/update/status/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionSessionController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#updateStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController",
+      "class_base_path": "/flashSession",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#delete",
+      "method_name": "delete",
+      "full_url": "/flashSession/delete/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionSessionController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController",
+      "class_base_path": "/flashSession",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#getItem",
+      "method_name": "getItem",
+      "full_url": "/flashSession/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionSessionController.java",
+      "start_line": 70,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController",
+      "class_base_path": "/flashSession",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#list",
+      "method_name": "list",
+      "full_url": "/flashSession/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionSessionController.java",
+      "start_line": 78,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController",
+      "class_base_path": "/flashSession",
+      "method_fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#selectList",
+      "method_name": "selectList",
+      "full_url": "/flashSession/selectList",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsFlashPromotionSessionController.java",
+      "start_line": 86,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsFlashPromotionSessionController#selectList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController",
+      "class_base_path": "/home/advertise",
+      "method_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#create",
+      "method_name": "create",
+      "full_url": "/home/advertise/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeAdvertiseController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController",
+      "class_base_path": "/home/advertise",
+      "method_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#delete",
+      "method_name": "delete",
+      "full_url": "/home/advertise/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeAdvertiseController.java",
+      "start_line": 36,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController",
+      "class_base_path": "/home/advertise",
+      "method_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#updateStatus",
+      "method_name": "updateStatus",
+      "full_url": "/home/advertise/update/status/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeAdvertiseController.java",
+      "start_line": 46,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#updateStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController",
+      "class_base_path": "/home/advertise",
+      "method_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#getItem",
+      "method_name": "getItem",
+      "full_url": "/home/advertise/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeAdvertiseController.java",
+      "start_line": 56,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController",
+      "class_base_path": "/home/advertise",
+      "method_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#update",
+      "method_name": "update",
+      "full_url": "/home/advertise/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeAdvertiseController.java",
+      "start_line": 64,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController",
+      "class_base_path": "/home/advertise",
+      "method_fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#list",
+      "method_name": "list",
+      "full_url": "/home/advertise/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeAdvertiseController.java",
+      "start_line": 74,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeAdvertiseController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeBrandController",
+      "class_base_path": "/home/brand",
+      "method_fqn": "com.macro.mall.controller.SmsHomeBrandController#create",
+      "method_name": "create",
+      "full_url": "/home/brand/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeBrandController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeBrandController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeBrandController",
+      "class_base_path": "/home/brand",
+      "method_fqn": "com.macro.mall.controller.SmsHomeBrandController#updateSort",
+      "method_name": "updateSort",
+      "full_url": "/home/brand/update/sort/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeBrandController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsHomeBrandController#updateSort"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeBrandController",
+      "class_base_path": "/home/brand",
+      "method_fqn": "com.macro.mall.controller.SmsHomeBrandController#delete",
+      "method_name": "delete",
+      "full_url": "/home/brand/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeBrandController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeBrandController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeBrandController",
+      "class_base_path": "/home/brand",
+      "method_fqn": "com.macro.mall.controller.SmsHomeBrandController#updateRecommendStatus",
+      "method_name": "updateRecommendStatus",
+      "full_url": "/home/brand/update/recommendStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeBrandController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeBrandController#updateRecommendStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeBrandController",
+      "class_base_path": "/home/brand",
+      "method_fqn": "com.macro.mall.controller.SmsHomeBrandController#list",
+      "method_name": "list",
+      "full_url": "/home/brand/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeBrandController.java",
+      "start_line": 70,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeBrandController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeNewProductController",
+      "class_base_path": "/home/newProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeNewProductController#create",
+      "method_name": "create",
+      "full_url": "/home/newProduct/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeNewProductController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeNewProductController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeNewProductController",
+      "class_base_path": "/home/newProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeNewProductController#updateSort",
+      "method_name": "updateSort",
+      "full_url": "/home/newProduct/update/sort/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeNewProductController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsHomeNewProductController#updateSort"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeNewProductController",
+      "class_base_path": "/home/newProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeNewProductController#delete",
+      "method_name": "delete",
+      "full_url": "/home/newProduct/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeNewProductController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeNewProductController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeNewProductController",
+      "class_base_path": "/home/newProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeNewProductController#updateRecommendStatus",
+      "method_name": "updateRecommendStatus",
+      "full_url": "/home/newProduct/update/recommendStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeNewProductController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeNewProductController#updateRecommendStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeNewProductController",
+      "class_base_path": "/home/newProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeNewProductController#list",
+      "method_name": "list",
+      "full_url": "/home/newProduct/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeNewProductController.java",
+      "start_line": 70,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeNewProductController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsMemberLevelController",
+      "class_base_path": "/memberLevel",
+      "method_fqn": "com.macro.mall.controller.UmsMemberLevelController#list",
+      "method_name": "list",
+      "full_url": "/memberLevel/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsMemberLevelController.java",
+      "start_line": 28,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsMemberLevelController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController",
+      "class_base_path": "/home/recommendProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#create",
+      "method_name": "create",
+      "full_url": "/home/recommendProduct/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendProductController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController",
+      "class_base_path": "/home/recommendProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#updateSort",
+      "method_name": "updateSort",
+      "full_url": "/home/recommendProduct/update/sort/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendProductController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#updateSort"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController",
+      "class_base_path": "/home/recommendProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#delete",
+      "method_name": "delete",
+      "full_url": "/home/recommendProduct/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendProductController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController",
+      "class_base_path": "/home/recommendProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#updateRecommendStatus",
+      "method_name": "updateRecommendStatus",
+      "full_url": "/home/recommendProduct/update/recommendStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendProductController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#updateRecommendStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController",
+      "class_base_path": "/home/recommendProduct",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#list",
+      "method_name": "list",
+      "full_url": "/home/recommendProduct/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendProductController.java",
+      "start_line": 70,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendProductController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController",
+      "class_base_path": "/home/recommendSubject",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#create",
+      "method_name": "create",
+      "full_url": "/home/recommendSubject/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendSubjectController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController",
+      "class_base_path": "/home/recommendSubject",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#updateSort",
+      "method_name": "updateSort",
+      "full_url": "/home/recommendSubject/update/sort/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendSubjectController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#updateSort"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController",
+      "class_base_path": "/home/recommendSubject",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#delete",
+      "method_name": "delete",
+      "full_url": "/home/recommendSubject/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendSubjectController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController",
+      "class_base_path": "/home/recommendSubject",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#updateRecommendStatus",
+      "method_name": "updateRecommendStatus",
+      "full_url": "/home/recommendSubject/update/recommendStatus",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendSubjectController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#updateRecommendStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController",
+      "class_base_path": "/home/recommendSubject",
+      "method_fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#list",
+      "method_name": "list",
+      "full_url": "/home/recommendSubject/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/SmsHomeRecommendSubjectController.java",
+      "start_line": 70,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.SmsHomeRecommendSubjectController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceCategoryController",
+      "class_base_path": "/resourceCategory",
+      "method_fqn": "com.macro.mall.controller.UmsResourceCategoryController#listAll",
+      "method_name": "listAll",
+      "full_url": "/resourceCategory/listAll",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceCategoryController.java",
+      "start_line": 25,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsResourceCategoryController#listAll"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceCategoryController",
+      "class_base_path": "/resourceCategory",
+      "method_fqn": "com.macro.mall.controller.UmsResourceCategoryController#create",
+      "method_name": "create",
+      "full_url": "/resourceCategory/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceCategoryController.java",
+      "start_line": 33,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsResourceCategoryController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceCategoryController",
+      "class_base_path": "/resourceCategory",
+      "method_fqn": "com.macro.mall.controller.UmsResourceCategoryController#update",
+      "method_name": "update",
+      "full_url": "/resourceCategory/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceCategoryController.java",
+      "start_line": 45,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsResourceCategoryController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceCategoryController",
+      "class_base_path": "/resourceCategory",
+      "method_fqn": "com.macro.mall.controller.UmsResourceCategoryController#delete",
+      "method_name": "delete",
+      "full_url": "/resourceCategory/delete/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceCategoryController.java",
+      "start_line": 58,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsResourceCategoryController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsMenuController",
+      "class_base_path": "/menu",
+      "method_fqn": "com.macro.mall.controller.UmsMenuController#create",
+      "method_name": "create",
+      "full_url": "/menu/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsMenuController.java",
+      "start_line": 28,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsMenuController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsMenuController",
+      "class_base_path": "/menu",
+      "method_fqn": "com.macro.mall.controller.UmsMenuController#update",
+      "method_name": "update",
+      "full_url": "/menu/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsMenuController.java",
+      "start_line": 40,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsMenuController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsMenuController",
+      "class_base_path": "/menu",
+      "method_fqn": "com.macro.mall.controller.UmsMenuController#getItem",
+      "method_name": "getItem",
+      "full_url": "/menu/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsMenuController.java",
+      "start_line": 53,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsMenuController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsMenuController",
+      "class_base_path": "/menu",
+      "method_fqn": "com.macro.mall.controller.UmsMenuController#delete",
+      "method_name": "delete",
+      "full_url": "/menu/delete/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsMenuController.java",
+      "start_line": 61,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsMenuController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsMenuController",
+      "class_base_path": "/menu",
+      "method_fqn": "com.macro.mall.controller.UmsMenuController#list",
+      "method_name": "list",
+      "full_url": "/menu/list/{parentId}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsMenuController.java",
+      "start_line": 73,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsMenuController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsMenuController",
+      "class_base_path": "/menu",
+      "method_fqn": "com.macro.mall.controller.UmsMenuController#treeList",
+      "method_name": "treeList",
+      "full_url": "/menu/treeList",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsMenuController.java",
+      "start_line": 83,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsMenuController#treeList"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsMenuController",
+      "class_base_path": "/menu",
+      "method_fqn": "com.macro.mall.controller.UmsMenuController#updateHidden",
+      "method_name": "updateHidden",
+      "full_url": "/menu/updateHidden/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsMenuController.java",
+      "start_line": 91,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsMenuController#updateHidden"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceController",
+      "class_base_path": "/resource",
+      "method_fqn": "com.macro.mall.controller.UmsResourceController#create",
+      "method_name": "create",
+      "full_url": "/resource/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceController.java",
+      "start_line": 30,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsResourceController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceController",
+      "class_base_path": "/resource",
+      "method_fqn": "com.macro.mall.controller.UmsResourceController#update",
+      "method_name": "update",
+      "full_url": "/resource/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceController.java",
+      "start_line": 43,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsResourceController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceController",
+      "class_base_path": "/resource",
+      "method_fqn": "com.macro.mall.controller.UmsResourceController#getItem",
+      "method_name": "getItem",
+      "full_url": "/resource/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceController.java",
+      "start_line": 57,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsResourceController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceController",
+      "class_base_path": "/resource",
+      "method_fqn": "com.macro.mall.controller.UmsResourceController#delete",
+      "method_name": "delete",
+      "full_url": "/resource/delete/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceController.java",
+      "start_line": 65,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsResourceController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceController",
+      "class_base_path": "/resource",
+      "method_fqn": "com.macro.mall.controller.UmsResourceController#list",
+      "method_name": "list",
+      "full_url": "/resource/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceController.java",
+      "start_line": 78,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsResourceController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsResourceController",
+      "class_base_path": "/resource",
+      "method_fqn": "com.macro.mall.controller.UmsResourceController#listAll",
+      "method_name": "listAll",
+      "full_url": "/resource/listAll",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsResourceController.java",
+      "start_line": 90,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsResourceController#listAll"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#create",
+      "method_name": "create",
+      "full_url": "/role/create",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 26,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsRoleController#create"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#update",
+      "method_name": "update",
+      "full_url": "/role/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 37,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsRoleController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#delete",
+      "method_name": "delete",
+      "full_url": "/role/delete",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 48,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsRoleController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#listAll",
+      "method_name": "listAll",
+      "full_url": "/role/listAll",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 59,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsRoleController#listAll"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#list",
+      "method_name": "list",
+      "full_url": "/role/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 67,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsRoleController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#updateStatus",
+      "method_name": "updateStatus",
+      "full_url": "/role/updateStatus/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 77,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsRoleController#updateStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#listMenu",
+      "method_name": "listMenu",
+      "full_url": "/role/listMenu/{roleId}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 90,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsRoleController#listMenu"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#listResource",
+      "method_name": "listResource",
+      "full_url": "/role/listResource/{roleId}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 98,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsRoleController#listResource"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#allocMenu",
+      "method_name": "allocMenu",
+      "full_url": "/role/allocMenu",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 106,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsRoleController#allocMenu"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsRoleController",
+      "class_base_path": "/role",
+      "method_fqn": "com.macro.mall.controller.UmsRoleController#allocResource",
+      "method_name": "allocResource",
+      "full_url": "/role/allocResource",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsRoleController.java",
+      "start_line": 114,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsRoleController#allocResource"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#register",
+      "method_name": "register",
+      "full_url": "/admin/register",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 46,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsAdminController#register"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#login",
+      "method_name": "login",
+      "full_url": "/admin/login",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 57,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsAdminController#login"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#refreshToken",
+      "method_name": "refreshToken",
+      "full_url": "/admin/refreshToken",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 71,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsAdminController#refreshToken"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#getAdminInfo",
+      "method_name": "getAdminInfo",
+      "full_url": "/admin/info",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 86,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsAdminController#getAdminInfo"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#logout",
+      "method_name": "logout",
+      "full_url": "/admin/logout",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 107,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsAdminController#logout"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#list",
+      "method_name": "list",
+      "full_url": "/admin/list",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 115,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsAdminController#list"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#getItem",
+      "method_name": "getItem",
+      "full_url": "/admin/{id}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 125,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsAdminController#getItem"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#update",
+      "method_name": "update",
+      "full_url": "/admin/update/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 133,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsAdminController#update"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#updatePassword",
+      "method_name": "updatePassword",
+      "full_url": "/admin/updatePassword",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 144,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsAdminController#updatePassword"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#delete",
+      "method_name": "delete",
+      "full_url": "/admin/delete/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 162,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsAdminController#delete"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#updateStatus",
+      "method_name": "updateStatus",
+      "full_url": "/admin/updateStatus/{id}",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 173,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsAdminController#updateStatus"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#updateRole",
+      "method_name": "updateRole",
+      "full_url": "/admin/role/update",
+      "http_methods": [
+        "POST"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 186,
+      "nodes_id": null,
+      "has_external_param": false,
+      "fqn": "com.macro.mall.controller.UmsAdminController#updateRole"
+    },
+    {
+      "class_fqn": "com.macro.mall.controller.UmsAdminController",
+      "class_base_path": "/admin",
+      "method_fqn": "com.macro.mall.controller.UmsAdminController#getRoleList",
+      "method_name": "getRoleList",
+      "full_url": "/admin/role/{adminId}",
+      "http_methods": [
+        "GET"
+      ],
+      "annotation": "RequestMapping",
+      "file": "D:/code/mall/mall-admin/src/main/java/com/macro/mall/controller/UmsAdminController.java",
+      "start_line": 198,
+      "nodes_id": null,
+      "has_external_param": true,
+      "fqn": "com.macro.mall.controller.UmsAdminController#getRoleList"
+    }
+  ]
+}

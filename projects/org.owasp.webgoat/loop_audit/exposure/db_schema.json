@@ -1,0 +1,70 @@
+{
+  "asset_type": "db_schema",
+  "source": "file scan (JPA @Entity / MyBatis mapper.xml / Jooq generated)",
+  "stats": {
+    "total_files": 9,
+    "by_type": {
+      "jpa_entity": 9
+    },
+    "cached": 9
+  },
+  "errors": [],
+  "degraded": false,
+  "collected_at": "2026-06-22T06:18:39.306738+00:00",
+  "items": [
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\WebGoat.java",
+      "type": "jpa_entity",
+      "size_bytes": 1673,
+      "sha256": "9de481702c0d497d520fb31b1d638e5f29aec48ee2bcdcc472a27c8b2f4893fd"
+    },
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\webwolf\\WebWolf.java",
+      "type": "jpa_entity",
+      "size_bytes": 1143,
+      "sha256": "d0b1f9ce86765eaa8578f5ab67ca45ff2fbd32f8ad486e0ca4f76cb9b3adaa78"
+    },
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\webwolf\\mailbox\\Email.java",
+      "type": "jpa_entity",
+      "size_bytes": 1406,
+      "sha256": "67bad6b574ffd65105d27af0e2c0b260e2731a628a8cdb91ff5ccad7adac3941"
+    },
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\webwolf\\user\\WebWolfUser.java",
+      "type": "jpa_entity",
+      "size_bytes": 1563,
+      "sha256": "80df19cf0ee5a41fbf9df72a071bfb1f31c44cf233208f859aed4d0acaf64911"
+    },
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\lessons\\Assignment.java",
+      "type": "jpa_entity",
+      "size_bytes": 1259,
+      "sha256": "d3aae04aa4521525123ced2f5111c23f24b8f5b3695f37570e6e9f0996548c33"
+    },
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\users\\AssignmentProgress.java",
+      "type": "jpa_entity",
+      "size_bytes": 1180,
+      "sha256": "f93b842ab4fcafe1bb73b77eea0a3a2ba54c4fe90be3c70e8158bdb96c138ea4"
+    },
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\users\\LessonProgress.java",
+      "type": "jpa_entity",
+      "size_bytes": 2505,
+      "sha256": "5ab6af6c374d9d1109bd47254e8353c926fe0ac7a8d0da79da18c4e6a7a0ec6b"
+    },
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\users\\UserProgress.java",
+      "type": "jpa_entity",
+      "size_bytes": 2859,
+      "sha256": "04443dd70be835625b37a3d7ae99f9aac01366d8f2f40d422f1082e0008c177b"
+    },
+    {
+      "file": "src\\main\\java\\org\\owasp\\webgoat\\container\\users\\WebGoatUser.java",
+      "type": "jpa_entity",
+      "size_bytes": 2275,
+      "sha256": "e5250859a84ea3036f1014479ca0cbf8f77abe54a76ad8281095224e042170ea"
+    }
+  ]
+}
