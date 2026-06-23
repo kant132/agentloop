@@ -172,13 +172,13 @@ class JavaParserBridge:
             try:
                 type_solver.add(ReflectionTypeSolver())
             except Exception:
-                pass
-
-            symbol_solver = JavaSymbolSolver(type_solver)
-            self._JStaticJavaParser.getParserConfiguration().setSymbolResolver(symbol_solver)
-            self._type_solver = type_solver
-            self._symbol_solver_ready = True
-            print(f"[javaparser_bridge] symbol solver initialized: {loaded_jars} jar(s) loaded")
+                import logging; logging.getLogger("javaparser_bridge").debug("ReflectionTypeSolver add failed")
+            if type_solver is not None:
+                symbol_solver = JavaSymbolSolver(type_solver)
+                self._JStaticJavaParser.getParserConfiguration().setSymbolResolver(symbol_solver)
+                self._type_solver = type_solver
+                self._symbol_solver_ready = True
+                print(f"[javaparser_bridge] symbol solver initialized: {loaded_jars} jar(s) loaded")
         except Exception as e:
             print(f"[javaparser_bridge] symbol solver setup failed: {_safe_java_exception_text(e)}")
 
@@ -206,7 +206,7 @@ class JavaParserBridge:
         try:
             self.shutdown()
         except Exception:
-            pass
+            import logging; logging.getLogger("javaparser_bridge").debug("__del__ shutdown failed")
 
     # --- Parsing primitives ---
 
@@ -307,7 +307,7 @@ class JavaParserBridge:
                     declaring_class = str(decl.declaringType().getQualifiedName())
                     resolved = True
                 except Exception:
-                    pass
+                    import logging; logging.getLogger("javaparser_bridge").debug("call.resolve() failed for %s%s", selector, args_text)
 
             # Build full_invocation
             if resolved and declaring_class != UNRESOLVED:

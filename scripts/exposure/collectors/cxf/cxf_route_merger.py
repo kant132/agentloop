@@ -125,6 +125,7 @@ def _run_javaparser_routes(source_root: Path, group_id: str) -> list[dict[str, A
             return []
         return data
     except Exception:
+        import logging; logging.getLogger("cxf_route_merger").warning("javaparser-service subprocess failed, returning 0 CXF routes")
         return []
 
 

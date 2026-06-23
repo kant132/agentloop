@@ -308,7 +308,7 @@ class FilterCollector:
                 memurai.set(key, content)
                 cached += 1
             except Exception:
-                continue
+                import logging; logging.getLogger("filter_collector").warning("memurai set failed for %s", key)
 
         return cached
 
