@@ -84,7 +84,8 @@ def _mc():
     try:
         from scripts.redis.memurai_client import Memurai
         return Memurai()
-    except Exception:
+    except Exception as e:
+        logging.warning("Memurai 连接失败: %s", e)
         return None
 
 def cleanup_memurai(gid: str) -> int:
@@ -149,8 +150,8 @@ def _query_auth_classes(db_path: Path) -> list:
     finally:
         try:
             conn.close()
-        except:
-            pass
+        except Exception as e:
+            logging.debug("conn.close failed: %s", e)
 
 # --- Loop result cleanup -----------------------------------------------------
 def cleanup_loop_results(ld: Path) -> None:
@@ -217,8 +218,8 @@ def _compute_round_metrics(ld: Path, round_n: int) -> dict:
                         reconcile_pass = int(r.stdout.strip().split()[-1])
                     except (ValueError, IndexError):
                         reconcile_pass = total_reports
-        except Exception:
-            pass
+        except Exception as e:
+            logging.debug("reconcile parse failed: %s", e)
 
     # compliance: 1.0 if p54_pass else 0.0  (p54_pass = total_reports == ep_ln)
     compliance = 1.0 if (ep_ln > 0 and total_reports == ep_ln) else 0.0
@@ -325,7 +326,8 @@ def check_convergence(dd: Path) -> bool:
     if not f.exists(): return False
     try:
         return bool(json.loads(f.read_text(encoding="utf-8")).get("satisfied"))
-    except Exception:
+    except Exception as e:
+        logging.warning("convergence.json parse failed: %s", e)
         return False
 
 # --- PoC monitor management -------------------------------------------------
@@ -350,7 +352,7 @@ def kill_poc_monitor(p) -> None:
     except Exception as e:
         logging.warning("poc-monitor kill failed: %s", e)
         try: p.kill()
-        except Exception: pass
+        except Exception as e2: logging.warning("p.kill fallback failed: %s", e2)
 
 # --- Prompt discovery + rendering -------------------------------------------
 def _prompt_path(group_id: Optional[str] = None) -> Path:

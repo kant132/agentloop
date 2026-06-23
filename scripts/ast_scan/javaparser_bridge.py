@@ -157,16 +157,16 @@ class JavaParserBridge:
                 try:
                     type_solver.add(JarTypeSolver(jarFile=str(p)))
                     loaded_jars += 1
-                except Exception:
-                    pass
+                except Exception as e:
+                    import sys; print(f"WARN: JarTypeSolver skip {p}: {e}", file=sys.stderr)
 
             # Source roots
             for src in self.source_roots:
                 if src.exists() and src.is_dir():
                     try:
                         type_solver.add(JavaParserTypeSolver(str(src)))
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        import sys; print(f"WARN: JarTypeSolver skip source {src}: {e}", file=sys.stderr)
 
             # JDK reflection
             try:

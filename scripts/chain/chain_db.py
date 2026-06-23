@@ -109,21 +109,16 @@ class ChainDB:
         with self._conn() as conn:
             conn.executescript(_SCHEMA)
         # 迁移：兼容旧库（忽略已存在的列）
-        try:
-            with self._conn() as conn:
-                conn.execute("ALTER TABLE chains ADD COLUMN last_sinks INTEGER DEFAULT 0")
-        except Exception:
-            pass
-        try:
-            with self._conn() as conn:
-                conn.execute("ALTER TABLE chains ADD COLUMN is_sink INTEGER DEFAULT 0")
-        except Exception:
-            pass
-        try:
-            with self._conn() as conn:
-                conn.execute("ALTER TABLE chains ADD COLUMN mismatch_score REAL DEFAULT 0")
-        except Exception:
-            pass
+        for col_name, col_def in [("last_sinks", "INTEGER DEFAULT 0"),
+                                  ("is_sink", "INTEGER DEFAULT 0"),
+                                  ("mismatch_score", "REAL DEFAULT 0")]:
+            try:
+                with self._conn() as conn:
+                    conn.execute(f"ALTER TABLE chains ADD COLUMN {col_name} {col_def}")
+            except Exception:
+                # column already exists is expected; log any other error
+                import logging
+                logging.getLogger("chain_db").debug("ALTER TABLE ADD %s skipped (likely exists)", col_name)
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path))

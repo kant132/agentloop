@@ -136,8 +136,8 @@ def check_skills_linked() -> bool:
                 os.symlink(str(skill_dir), str(link), target_is_directory=True)
             print(f"  [skill] 已链接: {skill_dir.name}")
             need_restart = True
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  WARN: 链接失败 {skill_dir.name}: {e}")
 
     if need_restart:
         print("\n=== Skills 链接已创建 ===")
