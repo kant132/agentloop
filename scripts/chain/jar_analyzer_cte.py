@@ -311,7 +311,7 @@ def get_method_meta(db_path: str, method_ids: list[str]) -> dict[str, dict]:
             placeholders = ",".join("?" * len(chunk))
             rows = conn.execute(
                 f"SELECT method_id, class_name, method_name, method_desc, "
-                f"is_static, line_number "
+                f"is_static, line_number, end_line "
                 f"FROM method_table "
                 f"WHERE CAST(method_id AS TEXT) IN ({placeholders})",
                 chunk,
@@ -324,10 +324,11 @@ def get_method_meta(db_path: str, method_ids: list[str]) -> dict[str, dict]:
                     "qualified_name": qname,
                     "class_name": r["class_name"],
                     "method_name": r["method_name"],
-                "method_desc": r["method_desc"],
-                "line_number": r["line_number"],
-                "is_static": r["is_static"],
-            }
+                    "method_desc": r["method_desc"],
+                    "line_number": r["line_number"],
+                    "end_line": r["end_line"] if r["end_line"] > 0 else None,
+                    "is_static": r["is_static"],
+                }
         return result
     finally:
         conn.close()

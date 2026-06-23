@@ -366,6 +366,13 @@ def _read_method_body(
         # 1-based → 0-based 切片
         with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
             lines = fh.readlines()
+        # 检测 Lombok 模式：start_line 指向字段声明
+        if start_line <= len(lines):
+            lc = lines[start_line - 1].strip()
+            if (lc.startswith("private ") or 
+                lc.startswith("protected ") or
+                lc.startswith("public ")) and ";" in lc:
+                return None, "lombok"
         if end_line > len(lines):
             end_line = len(lines)
         return "".join(lines[start_line - 1: end_line]), "source"
@@ -1476,9 +1483,10 @@ def build_chain_jar_analyzer(
             if java_file_p.is_file():
                 java_file_path = str(java_file_p)
 
-        # start_line: from method_table
+        # start_line/end_line: from method_table (ASM LineNumberTable)
         start_line = line_number_map.get(nid, 0) or 0
-        end_line = None  # jar-analyzer 没有 end_line
+        meta = method_meta_map.get(nid, {})
+        end_line = meta.get("end_line") if meta else None
 
         # edges
         node_edges = edges_map.get(nid, [])
@@ -1752,7 +1760,8 @@ def build_all_chains_for_endpoint_jar_analyzer(
                     java_file_path = str(java_file_p)
 
             start_line = line_number_map.get(nid, 0) or 0
-            end_line = None
+            meta = method_meta_map.get(nid, {})
+            end_line = meta.get("end_line") if meta else None
 
             node_edges = edges_map_all.get(nid, [])
 
